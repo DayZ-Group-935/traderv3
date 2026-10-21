@@ -743,8 +743,10 @@
         });
         kitConfigs.push(config);
         const price = token ? 0 : 16000;
-        addToCart("buy", kitName, 1, price);
-        closeKitPanel();
+        document.getElementById("kitPanel").style.display = "none";
+        buyCart[kitName] = {qty: 1, base: price, salePrice: null};
+        saveState();
+        renderSummary("buy");
         renderKitSummaries();
         toast(kitName + (token ? " (token)" : "") + " added");
       } catch (e) {
@@ -795,7 +797,7 @@
     }
 
     function saveState() {
-      localStorage.setItem("935calc", JSON.stringify({buyCart, sellCart, activeRoles: [...activeRoles]}));
+      localStorage.setItem("935calc", JSON.stringify({buyCart, sellCart, activeRoles: [...activeRoles], kitConfigs}));
     }
     function loadState() {
       try {
@@ -803,6 +805,7 @@
         buyCart = s.buyCart || {};
         sellCart = s.sellCart || {};
         activeRoles = new Set(s.activeRoles || []);
+        kitConfigs = s.kitConfigs || [];
       } catch(e) {}
     }
 
@@ -1076,7 +1079,7 @@
             delete cart[name];
           }
           saveState();
-          render();
+          renderSummary(type);
         };
         div.querySelector(".remove-all").onclick = () => {
           if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
@@ -1085,7 +1088,7 @@
           }
           delete cart[name];
           saveState();
-          render();
+          renderSummary(type);
         };
         el.appendChild(div);
       });
@@ -1133,7 +1136,7 @@
       }
       saveState();
       toast(`${qty} x ${name} Added`);
-      render();
+      renderSummary(type);
     }
 
     function handleBuyItem(item) {
@@ -1299,6 +1302,7 @@
     };
 
     render();
+    renderKitSummaries();
   </script>
 </body>
 </html>
