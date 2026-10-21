@@ -648,8 +648,19 @@
         "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
         "SCAR-H": { mag: "20Rd SCAR Mag", suppressor: "Bottle Suppressor" },
         "DMR": { mag: "20Rd DMR Mag", suppressor: "Bottle Suppressor" },
-        "R12": { mag: "12GA Buck", suppressor: "None" }
+        "R12": { mag: "12GA Buck", suppressor: "None" },
+        "Crossbow": { mag: "Bolts", suppressor: "None" }
       };
+      const scopeCompat = {
+        "Aug AX": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)"],
+        "M4A1": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)","MKII Optic","BUIS Optic"],
+        "SCAR-L": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)","MKII Optic"],
+        "DMR": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)","MKII Optic"],
+        "Crossbow": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)","MKII Optic"],
+        "SCAR-H": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)","MKII Optic"],
+        "R12": ["(select)","None","ATOG 6x","Holo Optic","Red Dot (Baraka)"]
+      };
+      const allScopes = ["- -","(select)","None","ATOG 6x","MKII Optic","Hunting Scope","PU Scope","Holo Optic","Red Dot (Baraka)","BUIS Optic","Kobra Sights","Starlight NV","Kazuar NV"];
       ["1","2"].forEach(n => {
         const wSel = fields.querySelector(`select[data-slot="weapon${n}"]`);
         if (!wSel) return;
@@ -671,6 +682,13 @@
             if (magSel) { magSel.value = "- -"; magSel.disabled = true; }
             if (suppSel) { suppSel.value = "- -"; suppSel.disabled = true; }
             if (scopeSel) { scopeSel.value = "- -"; scopeSel.disabled = true; }
+          }
+          // Filter scope options by weapon compatibility
+          if (scopeSel && !scopeSel.disabled) {
+            const allowed = scopeCompat[wSel.value] || allScopes;
+            const cur = scopeSel.value;
+            scopeSel.innerHTML = allowed.map(s => `<option value="${s}">${s}</option>`).join("");
+            if (allowed.includes(cur)) scopeSel.value = cur;
           }
         };
       });
@@ -703,7 +721,8 @@
         "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
         "SCAR-H": { mag: "20Rd SCAR Mag", suppressor: "Bottle Suppressor" },
         "DMR": { mag: "20Rd DMR Mag", suppressor: "Bottle Suppressor" },
-        "R12": { mag: "12GA Buck", suppressor: "None" }
+        "R12": { mag: "12GA Buck", suppressor: "None" },
+        "Crossbow": { mag: "Bolts", suppressor: "None" }
       };
       ["1","2"].forEach(n => {
         const w = config["weapon"+n];
