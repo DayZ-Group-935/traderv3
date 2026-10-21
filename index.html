@@ -386,6 +386,8 @@
   </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
     // ===== DATA (from original) =====
     const buyitems = {
@@ -550,7 +552,7 @@
       const t = document.getElementById("toast");
       t.textContent = msg;
       t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2200);
+      setTimeout(() => t.classList.remove("show"), 4000);
     }
 
     let kitConfigs = [];
@@ -746,12 +748,12 @@
         document.getElementById("kitPanel").style.display = "none";
         buyCart[kitName] = {qty: 1, base: price, salePrice: null};
         saveState();
-        renderSummary("buy");
-        renderKitSummaries();
+        try { renderSummary("buy"); } catch(e) { console.error("summary", e); }
+        try { renderKitSummaries(); } catch(e) { console.error("kitsum", e); }
         toast(kitName + (token ? " (token)" : "") + " added");
       } catch (e) {
         console.error(e);
-        toast("Error adding kit");
+        toast("Error: " + e.message);
       }
     }
 
@@ -797,7 +799,9 @@
     }
 
     function saveState() {
-      localStorage.setItem("935calc", JSON.stringify({buyCart, sellCart, activeRoles: [...activeRoles], kitConfigs}));
+      try {
+        localStorage.setItem("935calc", JSON.stringify({buyCart, sellCart, activeRoles: [...activeRoles], kitConfigs}));
+      } catch(e) {}
     }
     function loadState() {
       try {
@@ -1270,7 +1274,13 @@
       });
 
       const fm = activeRoles.has("Day One") ? " (FM)" : "";
-      toast(`Buy${fm}: ${Math.round(buyTotal)} Cr\nSell: ${Math.round(sellTotal)} Cr`);
+      const msg = `Buy${fm}: ${Math.round(buyTotal)} Cr | Sell: ${Math.round(sellTotal)} Cr`;
+      toast(msg);
+      // Also flash the cart headers
+      const bh = document.querySelector("#buySummaryWrap .summary-header");
+      const sh = document.querySelector("#sellSummaryWrap .summary-header");
+      if (bh) bh.textContent = `Buy Cart — ${Math.round(buyTotal)} Cr${fm}`;
+      if (sh) sh.textContent = `Sell Cart — ${Math.round(sellTotal)} Cr`;
     }
 
     // ===== INIT =====
