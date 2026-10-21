@@ -31,6 +31,14 @@
       min-height: 100vh;
     }
 
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      background: var(--bg);
+      min-height: 100vh;
+      position: relative;
+    }
+
     .header {
       text-align: center;
       padding: 12px 16px 8px;
@@ -38,7 +46,7 @@
     }
     .header img {
       width: 100%;
-      max-width: 420px;
+      max-width: 100%;
       height: auto;
       display: block;
       margin: 0 auto;
@@ -70,8 +78,7 @@
 
     .content {
       padding: 12px 16px 120px;
-      max-width: 480px;
-      margin: 0 auto;
+      max-width: 100%;
     }
 
     .search-box {
@@ -194,15 +201,15 @@
     .bottom-bar {
       position: fixed;
       bottom: 0;
-      left: 0;
-      right: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 420px;
       background: var(--surface);
       border-top: 1px solid var(--border);
       padding: 12px 16px;
       display: flex;
       gap: 8px;
-      max-width: 480px;
-      margin: 0 auto;
     }
     .bottom-bar button {
       flex: 1;
@@ -239,13 +246,12 @@
     .empty { text-align: center; color: var(--text-dim); padding: 20px; font-size: 14px; }
 
     @media (min-width: 600px) {
-      .content { max-width: 520px; }
-      .item-grid { grid-template-columns: 1fr 1fr 1fr; }
-      .roles-grid { grid-template-columns: 1fr 1fr 1fr; }
+      .roles-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
+  <div class="app">
   <div class="header">
     <a href="http://discord.gg/DayZGroup935" target="_blank" rel="noopener">
       <img src="logo-enhanced.jpg" alt="935 Trading Calculator">
@@ -291,6 +297,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  </div>
 
   <script>
     // ===== DATA (from original) =====
@@ -464,18 +471,45 @@
       });
     }
 
+    function flattenBuyItems(node, out = []) {
+      if (Array.isArray(node)) {
+        node.forEach(item => out.push(item));
+      } else if (node && typeof node === "object") {
+        Object.values(node).forEach(v => flattenBuyItems(v, out));
+      }
+      return out;
+    }
+
     function renderBuy() {
       const grid = document.getElementById("buyGrid");
       const bc = document.getElementById("buyBreadcrumb");
       grid.innerHTML = "";
-      renderBreadcrumb(buyPath, bc, true);
 
+      if (searchTerm) {
+        bc.innerHTML = '<span>Search results</span>';
+        const all = flattenBuyItems(buyitems);
+        const matches = all.filter(item => item.name.toLowerCase().includes(searchTerm));
+        if (matches.length === 0) {
+          grid.innerHTML = '<div class="empty">No matches</div>';
+        } else {
+          matches.forEach(item => {
+            const btn = document.createElement("button");
+            btn.className = "item-btn";
+            btn.textContent = item.name;
+            btn.onclick = () => handleBuyItem(item);
+            grid.appendChild(btn);
+          });
+        }
+        renderSummary("buy");
+        return;
+      }
+
+      renderBreadcrumb(buyPath, bc, true);
       let node = buyitems;
       for (const p of buyPath) node = node[p];
 
       if (Array.isArray(node)) {
         node.forEach(item => {
-          if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return;
           const btn = document.createElement("button");
           btn.className = "item-btn";
           btn.textContent = item.name;
@@ -484,7 +518,6 @@
         });
       } else {
         Object.keys(node).forEach(key => {
-          if (searchTerm) return; // categories hide when searching
           const btn = document.createElement("button");
           btn.className = "cat-btn";
           btn.textContent = key;
@@ -507,11 +540,30 @@
       const grid = document.getElementById("sellGrid");
       const bc = document.getElementById("sellBreadcrumb");
       grid.innerHTML = "";
+
+      if (searchTerm) {
+        bc.innerHTML = '<span>Search results</span>';
+        const all = [...sellitems, ...pelts];
+        const matches = all.filter(item => item.name.toLowerCase().includes(searchTerm));
+        if (matches.length === 0) {
+          grid.innerHTML = '<div class="empty">No matches</div>';
+        } else {
+          matches.forEach(item => {
+            const btn = document.createElement("button");
+            btn.className = "item-btn";
+            btn.textContent = item.name;
+            btn.onclick = () => handleSellItem(item);
+            grid.appendChild(btn);
+          });
+        }
+        renderSummary("sell");
+        return;
+      }
+
       renderBreadcrumb(sellPath, bc, false);
 
       if (sellPath.length === 0) {
         sellitems.forEach(item => {
-          if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return;
           const btn = document.createElement("button");
           btn.className = "item-btn";
           btn.textContent = item.name;
@@ -525,7 +577,6 @@
         grid.appendChild(peltBtn);
       } else if (sellPath[0] === "Pelts") {
         pelts.forEach(item => {
-          if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return;
           const btn = document.createElement("button");
           btn.className = "item-btn";
           btn.textContent = item.name;
