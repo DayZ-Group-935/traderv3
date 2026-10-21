@@ -379,8 +379,8 @@
       <h3>Configure Player Kit</h3>
       <div id="kitFields"></div>
       <div class="kit-actions">
-        <button class="kit-cancel" onclick="closeKitPanel()">Cancel</button>
-        <button class="kit-save" onclick="saveKit()">Add Kit</button>
+        <button type="button" class="kit-cancel" onclick="closeKitPanel()">Cancel</button>
+        <button type="button" class="kit-save" onclick="saveKit()">Add Kit</button>
       </div>
     </div>
   </div>
@@ -491,25 +491,29 @@
       walk(buyitems);
     })();
 
-    const sellitems = [
-      {name:"Bible",price:10000},{name:"Books",price:338,bulkOptions:[1,5,20]},{name:"Cannabis",price:14,bulkOptions:[1,10,50,100]},
-      {name:"Cigarettes",price:135,bulkOptions:[1,10,50,100]},{name:"Compass",price:500,bulkOptions:[1,2,5]},{name:"Golden Deagle",price:33750},
-      {name:"Faction Flag",price:6750},{name:"Hockey Stick",price:1013,bulkOptions:[1,5,10]},{name:"Mess Tin",price:4000,bulkOptions:[1,5,10]},
-      {name:"Meat Tenderizers",price:405,bulkOptions:[1,5,10]},{name:"Pink Derringer",price:4000,bulkOptions:[1,2,5]},{name:"Powdered Milk",price:10,bulkOptions:[1]},
-      {name:"Punched Card",price:8100},{name:"Set of 4 Teddy Bears",price:2700,bulkOptions:[1,4]},{name:"Set of Leaf Crown",price:1250,bulkOptions:[1,2]},
-      {name:"Syringe",price:900,bulkOptions:[1,5,10]},{name:"Tanned Leather",price:405,bulkOptions:[1,8]}
-    ];
-
-    const pelts = [
-      {name:"Bear Pelt",price:1350,bulkOptions:[1,5,10]},{name:"Boar Pelt",price:810,bulkOptions:[1,5,10]},
-      {name:"Deer Pelt",price:540,bulkOptions:[1,5,10]},{name:"Fox Pelt",price:405,bulkOptions:[1,5,10]},
-      {name:"Rabbit Pelt",price:388,bulkOptions:[1,5,10]},{name:"Wolf Pelt",price:810,bulkOptions:[1,5,10]}
-    ];
+    const sellitems = {
+      "High Value Items": [
+        {name:"Bible",price:10000},{name:"Golden AKM",price:25000},{name:"Golden Deagle",price:20000},
+        {name:"Pink Derringer",price:2500,bulkOptions:[1,2,5]},{name:"Punched Card",price:5000},{name:"Silver Deagle",price:10000}
+      ],
+      "General": [
+        {name:"Books",price:150,bulkOptions:[1,5,20]},{name:"Cannabis",price:10,bulkOptions:[1,10,50,100]},
+        {name:"Cigarettes",price:25,bulkOptions:[1,10,50,100]},{name:"Compass",price:250,bulkOptions:[1,2,5]},
+        {name:"Faction Flag",price:2500},{name:"Hockey Stick",price:500,bulkOptions:[1,5,10]},
+        {name:"Leaf Crown Set",price:1250,bulkOptions:[1,2]},{name:"Meat Tenderizers",price:250,bulkOptions:[1,5,10]},
+        {name:"Mess Tin",price:1000,bulkOptions:[1,5,10]},{name:"Powdered Milk",price:10,bulkOptions:[1]},
+        {name:"Syringe",price:500,bulkOptions:[1,5,10]},{name:"Tanned Leather",price:250,bulkOptions:[1,8]},
+        {name:"Teddy Bear Set",price:2000,bulkOptions:[1,4]}
+      ],
+      "Pelts": [
+        {name:"Goat Pelt",price:750,bulkOptions:[1,4,10]},{name:"Lizard Pelt",price:500,bulkOptions:[1,4,10]}
+      ]
+    };
 
     const roles = {
       "All Your Base":{description:"Raid an enemy flag during scheduled raid hours and turn in to the Trader within one hour.",discounts:{"Faction Flags":100}},
       "Big Game Hunter":{description:"Bring in 6 Bear pelts, 12 wolf pelts, 6 Boar pelts, 20 deer pelts, and 5 Rabbit pelts at the same time.",bonuses:{"Bear Pelt":1500,"Wolf Pelt":900,"Deer Pelt":600,"Boar Pelt":900}},
-      "Build-A-Bear":{description:"Turn in 5 sets of teddy bears at one time (four different colors = a set).",bonuses:{"Set of 4 Teddy Bears":5000}},
+      "Build-A-Bear":{description:"Turn in 5 sets of teddy bears at one time (four different colors = a set).",bonuses:{"Teddy Bear Set":5000}},
       "Click Click Boom":{description:"Kill an enemy player with a claymore.",discounts:{"Grenade":20,"POX Vial":20,"Flashbangs":20,"Land Mines":20,"Claymores":20,"Plastic Explosives":20,"IED Container":20}},
       "Daryl Dixon":{description:"Kill a fully kitted player with a crossbow.",discounts:{"Crossbow":50,"Crossbow Bolts":50}},
       "Deadshot":{description:"Get a sniper kill at a range of over 800m.",discounts:{"Tundra":50,"PU Scope":50,"Hunting Scope":50,"MKII Optic":50,"10Rd VSD Mag":50,".308 WIN":50,"Rangefinder":50}},
@@ -517,7 +521,7 @@
       "Hat Trick":{description:"Sell 50 Hockey Sticks to Trader.",bonuses:{"Hockey Stick":1500}},
       "Head Hunter":{description:"Hit 100 kills by headshot.",discounts:{"5.56x45":50,".308 WIN":50,"7.62x39":50,"12GA Buck":50}},
       "Hotshot":{description:"Get a sniper kill at a range of over 400m.",discounts:{"Tundra":25,"PU Scope":25,"Hunting Scope":25,"MKII Optic":25,"10Rd VSD Mag":25,".308 WIN":25,"Rangefinder":25}},
-      "Julius Caesar":{description:"Collect four sets of all four Leaf Crowns.",bonuses:{"Set of Leaf Crown":5000}},
+      "Julius Caesar":{description:"Collect four sets of all four Leaf Crowns.",bonuses:{"Leaf Crown Set":5000}},
       "Kamikaze":{description:"Blow yourself up, killing 2 enemy players.",discounts:{"Grenade":25}},
       "Librarian":{description:"Sell 350 books and 1 bible in one sale.",bonuses:{"Books":500}},
       "Marlboro Man":{description:"Sell 250 Cigarettes in a single trip.",bonuses:{"Cigarettes":500}},
@@ -699,50 +703,54 @@
     }
 
     function saveKit() {
-      const isGhillie = document.getElementById("kitPanel").dataset.ghillie === "1";
-      const token = document.getElementById("kitTokenToggle").checked;
-      const kitNum = kitConfigs.length + 1;
-      const kitName = (isGhillie ? "Ghillie Kit " : "Player Kit ") + kitNum;
-      const config = { isGhillie, token, name: kitName };
-      kitSlots.forEach(slot => {
-        if (isGhillie && slot.key === "backpack") {
-          config[slot.key] = { item: "Ghillie Suit" };
-          return;
-        }
-        const sel = document.querySelector(`select[data-slot="${slot.key}"]`);
-        if (sel) config[slot.key] = { item: sel.value };
-      });
-      // Weapon overrides
-      const overrides = {
-        "Tundra": { mag: "308 WIN", suppressor: "Bottle Suppressor", scope: "Hunting Scope" },
-        "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Supressor", scope: "Kobra Sights" },
-        "M4A1": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
-        "SCAR-L": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
-        "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
-        "SCAR-H": { mag: "20Rd SCAR Mag", suppressor: "Bottle Suppressor" },
-        "DMR": { mag: "20Rd DMR Mag", suppressor: "Bottle Suppressor" },
-        "R12": { mag: "12GA Buck", suppressor: "None" },
-        "Crossbow": { mag: "Bolts", suppressor: "None" }
-      };
-      ["1","2"].forEach(n => {
-        const w = config["weapon"+n];
-        if (w && overrides[w.item]) {
-          const o = overrides[w.item];
-          config["mag"+n] = { item: o.mag };
-          config["suppressor"+n] = { item: o.suppressor };
-          if (o.scope) config["scope"+n] = { item: o.scope };
-        }
-      });
-      kitFixed.forEach(f => {
-        const cb = document.querySelector(`input[data-omit="${f.key}"]`);
-        config[f.key] = { item: f.label, omitted: !cb.checked };
-      });
-      kitConfigs.push(config);
-      const price = token ? 0 : 16000;
-      addToCart("buy", kitName, 1, price);
-      closeKitPanel();
-      renderKitSummaries();
-      toast(kitName + (token ? " (token)" : "") + " added");
+      try {
+        const isGhillie = document.getElementById("kitPanel").dataset.ghillie === "1";
+        const token = document.getElementById("kitTokenToggle")?.checked || false;
+        const kitNum = kitConfigs.length + 1;
+        const kitName = (isGhillie ? "Ghillie Kit " : "Player Kit ") + kitNum;
+        const config = { isGhillie, token, name: kitName };
+        kitSlots.forEach(slot => {
+          if (isGhillie && slot.key === "backpack") {
+            config[slot.key] = { item: "Ghillie Suit" };
+            return;
+          }
+          const sel = document.querySelector(`select[data-slot="${slot.key}"]`);
+          if (sel) config[slot.key] = { item: sel.value };
+        });
+        const overrides = {
+          "Tundra": { mag: "308 WIN", suppressor: "Bottle Suppressor", scope: "Hunting Scope" },
+          "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Supressor", scope: "Kobra Sights" },
+          "M4A1": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+          "SCAR-L": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+          "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+          "SCAR-H": { mag: "20Rd SCAR Mag", suppressor: "Bottle Suppressor" },
+          "DMR": { mag: "20Rd DMR Mag", suppressor: "Bottle Suppressor" },
+          "R12": { mag: "12GA Buck", suppressor: "None" },
+          "Crossbow": { mag: "Bolts", suppressor: "None" }
+        };
+        ["1","2"].forEach(n => {
+          const w = config["weapon"+n];
+          if (w && overrides[w.item]) {
+            const o = overrides[w.item];
+            config["mag"+n] = { item: o.mag };
+            config["suppressor"+n] = { item: o.suppressor };
+            if (o.scope) config["scope"+n] = { item: o.scope };
+          }
+        });
+        kitFixed.forEach(f => {
+          const cb = document.querySelector(`input[data-omit="${f.key}"]`);
+          config[f.key] = { item: f.label, omitted: cb ? !cb.checked : false };
+        });
+        kitConfigs.push(config);
+        const price = token ? 0 : 16000;
+        addToCart("buy", kitName, 1, price);
+        closeKitPanel();
+        renderKitSummaries();
+        toast(kitName + (token ? " (token)" : "") + " added");
+      } catch (e) {
+        console.error(e);
+        toast("Error adding kit");
+      }
     }
 
     function renderKitSummaries() {
@@ -968,7 +976,7 @@
 
       if (searchTerm) {
         bc.innerHTML = '<span>Search results</span>';
-        const all = [...sellitems, ...pelts];
+        const all = Object.values(sellitems).flat();
         const matches = all.filter(item => item.name.toLowerCase().includes(searchTerm));
         if (matches.length === 0) {
           grid.innerHTML = '<div class="empty">No matches</div>';
@@ -988,20 +996,17 @@
       renderBreadcrumb(sellPath, bc, false);
 
       if (sellPath.length === 0) {
-        sellitems.forEach(item => {
+        Object.keys(sellitems).forEach(cat => {
           const btn = document.createElement("button");
-          btn.className = "item-btn";
-          btn.textContent = itemDisplayName(item);
-          btn.onclick = () => handleSellItem(item);
+          btn.className = "cat-btn";
+          btn.textContent = cat;
+          btn.onclick = () => { sellPath.push(cat); render(); };
           grid.appendChild(btn);
         });
-        const peltBtn = document.createElement("button");
-        peltBtn.className = "cat-btn";
-        peltBtn.textContent = "Pelts";
-        peltBtn.onclick = () => { sellPath.push("Pelts"); render(); };
-        grid.appendChild(peltBtn);
-      } else if (sellPath[0] === "Pelts") {
-        pelts.forEach(item => {
+      } else {
+        const cat = sellPath[0];
+        const items = sellitems[cat] || [];
+        items.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
           btn.textContent = itemDisplayName(item);
@@ -1195,8 +1200,8 @@
           grid.appendChild(btn);
         });
         // Role turn-in for certain items
-        const roleItems = ["Cannabis","Cigarettes","Syringe","Powdered Milk","Pink Derringer","Compass","Set of Leaf Crown","Hockey Stick","Meat Tenderizers","Set of 4 Teddy Bears","Books"];
-        const peltItems = ["Bear Pelt","Boar Pelt","Wolf Pelt","Deer Pelt","Rabbit Pelt"];
+        const roleItems = ["Cannabis","Cigarettes","Syringe","Powdered Milk","Pink Derringer","Compass","Leaf Crown Set","Hockey Stick","Meat Tenderizers","Teddy Bear Set","Books"];
+        const peltItems = ["Bear Pelt","Boar Pelt","Wolf Pelt","Deer Pelt","Rabbit Pelt","Dog Pelt"];
         if (roleItems.includes(item.name) || peltItems.includes(item.name)) {
           const rbtn = document.createElement("button");
           rbtn.className = "item-btn role-turnin";
@@ -1270,10 +1275,6 @@
     loadState();
     document.querySelectorAll(".tab-btn").forEach(btn => {
       btn.onclick = () => {
-        if (btn.dataset.tab === "sell") {
-          toast("UNAVAILABLE");
-          return;
-        }
         currentTab = btn.dataset.tab;
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
