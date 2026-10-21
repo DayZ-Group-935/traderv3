@@ -6,17 +6,17 @@
   <title>935 Trading Calculator</title>
   <style>
     :root {
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --surface-2: #1c1c1c;
-      --border: #2a2a2a;
-      --text: #e8e8e8;
-      --text-dim: #a0a0a0;
-      --accent: #d96057;
-      --accent-hover: #e87a72;
-      --green: #4caf50;
-      --orange: #ff9800;
-      --blue: #64b5f6;
+      --bg: #1a120c;
+      --surface: #2a1f16;
+      --surface-2: #3d2e22;
+      --border: #5a4636;
+      --text: #f0e6d8;
+      --text-dim: #c4b09a;
+      --accent: #c9a227;
+      --accent-hover: #e0b84a;
+      --green: #7a9a4a;
+      --orange: #d48a3a;
+      --blue: #8aa4b8;
       --radius: 12px;
     }
 
@@ -25,7 +25,7 @@
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      background: #0f0c09;
       color: var(--text);
       line-height: 1.4;
       min-height: 100vh;
@@ -34,22 +34,22 @@
     .app {
       max-width: 420px;
       margin: 0 auto;
-      background: var(--bg);
+      background: linear-gradient(180deg, #2a1f16 0%, #1a120c 100%);
       min-height: 100vh;
       position: relative;
+      box-shadow: 0 0 40px rgba(0,0,0,0.6);
     }
 
     .header {
       text-align: center;
-      padding: 12px 16px 8px;
+      padding: 0;
       background: #000;
+      overflow: hidden;
     }
     .header img {
       width: 100%;
-      max-width: 100%;
       height: auto;
       display: block;
-      margin: 0 auto;
     }
     .header a { text-decoration: none; }
 
@@ -73,7 +73,7 @@
     }
     .tab-btn.active {
       background: var(--accent);
-      color: #fff;
+      color: #1a120c;
     }
 
     .content {
@@ -125,6 +125,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .item-btn:active, .cat-btn:active { transform: scale(0.97); background: #252525; }
     .item-btn.role-turnin { border-color: var(--blue); }
@@ -135,6 +136,9 @@
       border-radius: var(--radius);
       border: 1px solid var(--border);
       overflow: hidden;
+      position: sticky;
+      bottom: 70px;
+      z-index: 50;
     }
     .summary-header {
       padding: 10px 14px;
@@ -193,9 +197,9 @@
       min-height: 42px;
     }
     .role-btn.active {
-      background: #2a3a4a;
-      border-color: var(--blue);
-      color: var(--blue);
+      background: #3d2e22;
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     .bottom-bar {
@@ -220,9 +224,9 @@
       font-size: 15px;
       cursor: pointer;
     }
-    #calculateBtn { background: var(--green); color: #000; }
-    #clearAllBtn { background: #e53935; color: #fff; }
-    #clearRolesBtn { background: #555; color: #fff; }
+    #calculateBtn { background: var(--green); color: #1a120c; }
+    #clearAllBtn { background: #a84a3a; color: #fff; }
+    #clearRolesBtn { background: #5a4636; color: #f0e6d8; }
 
     .toast {
       position: fixed;
@@ -254,7 +258,7 @@
   <div class="app">
   <div class="header">
     <a href="http://discord.gg/DayZGroup935" target="_blank" rel="noopener">
-      <img src="logo-enhanced.jpg" alt="935 Trading Calculator">
+      <img src="logo-header.jpg" alt="935 Trading Calculator">
     </a>
   </div>
 
@@ -269,19 +273,21 @@
     <div id="buyPanel">
       <div class="breadcrumb" id="buyBreadcrumb"></div>
       <div class="item-grid" id="buyGrid"></div>
-      <div class="summary" id="buySummaryWrap">
-        <div class="summary-header">Buy Cart</div>
-        <div id="buySummary"></div>
-      </div>
     </div>
 
     <div id="sellPanel" style="display:none;">
       <div class="breadcrumb" id="sellBreadcrumb"></div>
       <div class="item-grid" id="sellGrid"></div>
-      <div class="summary" id="sellSummaryWrap">
-        <div class="summary-header">Sell Cart</div>
-        <div id="sellSummary"></div>
-      </div>
+    </div>
+
+    <div class="summary" id="buySummaryWrap">
+      <div class="summary-header">Buy Cart</div>
+      <div id="buySummary"></div>
+    </div>
+
+    <div class="summary" id="sellSummaryWrap" style="display:none;">
+      <div class="summary-header">Sell Cart</div>
+      <div id="sellSummary"></div>
     </div>
 
     <div class="roles-section">
@@ -306,55 +312,101 @@
         Weapons: [
           {name:"Aug AX",price:3000},{name:"Crossbow",price:1500},{name:"DMR",price:3000},
           {name:"KAM",price:2000},{name:"M4A1",price:3500},{name:"R12",price:2000},
-          {name:"SCAR",price:3000},{name:"Tundra",price:2500},{name:"VSD",price:2500},{name:"Combat Knife",price:250}
+          {name:"SCAR-H",price:3000},{name:"SCAR-L",price:3000},{name:"Tundra",price:2500},{name:"Combat Knife",price:250}
         ],
         Attachments: {
           Suppressors: [{name:"AK Supressor",price:1000},{name:"M4 Suppressor",price:1000},{name:"Bottle Suppressor",price:100}]
         },
         Optics: {
           "Short Range": [{name:"BUIS Optic",price:300},{name:"Holo Optic",price:500},{name:"Kobra Sights",price:300},{name:"PSO-1 Scope",price:300},{name:"Red Dot (Baraka)",price:300}],
-          "Long Range": [{name:"ATOG 4x",price:300},{name:"ATOG 6x",price:300},{name:"MKII Optic",price:500},{name:"Hunting Scope",price:300},{name:"PU Scope",price:300}],
+          "Long Range": [{name:"ATOG 6x",price:300},{name:"MKII Optic",price:500},{name:"Hunting Scope",price:300},{name:"PU Scope",price:300}],
           "NV Optics": [{name:"Starlight NV",price:2000},{name:"Kazuar NV",price:2000}]
         },
         Magazines: {
-          "Auto Mags": [{name:"60Rd C-Mag",price:800},{name:"75Rd KAM Drum Mag",price:600},{name:"20Rd SCAR Mag",price:600}],
+          "Auto Mags": [{name:"40Rd C-Mag",price:500},{name:"60Rd C-Mag",price:800},{name:"75Rd KAM Drum Mag",price:600},{name:"20Rd SCAR Mag",price:600}],
           "Sniper Mags": [{name:"20Rd DMR Mag",price:600},{name:"10Rd VSD Mag",price:300}]
         },
         Ammo: [
           {name:"5.56x45",price:250,bulkOptions:[1,5,10]},{name:"308 WIN",price:500,bulkOptions:[1,5,10]},
-          {name:"7.62x39",price:100,bulkOptions:[1,5,10]},{name:"7.62x54mmR",price:500,bulkOptions:[1,5,10]},
+          {name:"7.62x39",price:100,bulkOptions:[1,5,10]},
           {name:"12GA Buck",price:100,bulkOptions:[1,5,10]},{name:"Crossbow Bolts",price:400,bulkOptions:[1,2,5]}
         ]
       },
       "Clothing": {
-        Headgear: [{name:"Assault Helmet",price:850},{name:"Assault Visor",price:150},{name:"Tactical Helm",price:600},{name:"NV Goggles",price:2500},{name:"NVG Strap",price:300},{name:"BDU Helmet",price:800},{name:"Desert Helmet",price:800},{name:"Woodland Helmet",price:800}],
+        Headgear: [{name:"Assault Helmet",price:850},{name:"Assault Visor",price:150},{name:"Tactical Helm",price:600},{name:"NV Goggles",price:2500},{name:"NVG Strap",price:300},{name:"Ballistic Helmet",price:800},{name:"Desert Helmet",price:800},{name:"Boonie Hat",price:400}],
         Jackets: [{name:"BDU Jacket",price:700},{name:"Field Jacket",price:750},{name:"CUU Jacket",price:750},{name:"Hunter Jacket",price:750},{name:"Tactical Shirt",price:500}],
         Backpacks: [{name:"Long Haul Bag",price:750},{name:"Assault Backpack",price:500},{name:"Drybag Backpack",price:400}],
-        "Plate Carriers": [{name:"Plate Carrier",price:2000},{name:"Pouches",price:250},{name:"Holster",price:50},{name:"Assault Vest",price:1500},{name:"Butt Pack",price:500}],
+        "Plate Carriers": [{name:"Plate Carrier",price:2000},{name:"Pouches",price:250},{name:"Holster",price:50}],
         Pants: [{name:"BDU Pants",price:500},{name:"Cargo Pants",price:500},{name:"CUU Pants",price:500},{name:"Hunter Pants",price:500}],
         "Misc Clothing": [{name:"Gloves",price:250},{name:"Sheath",price:100},{name:"Belt",price:100},{name:"Hip Pack",price:300}],
         Boots: [{name:"Assault Boots",price:500},{name:"Anarchy Boots",price:500},{name:"Tan Jungle Boots",price:300},{name:"Green Jungle Boots",price:300}],
         Ghillie: [{name:"Ghillie Suit",price:2000},{name:"Ghillie Hood",price:750},{name:"Ghillie Rifle Wrap",price:500}],
-        Face: [{name:"Green Bandana",price:250},{name:"Black Bandana",price:250},{name:"Camo Bandana",price:250},{name:"Green Ski Mask",price:400},{name:"Black Ski Mask",price:400},{name:"Skull Ski Mask",price:400},{name:"BDU Ski Mask",price:400},{name:"Chain Ski Mask",price:500},{name:"Piggy Ski Mask",price:500},{name:"Mime Mask",price:350},{name:"Ski Goggles",price:500},{name:"Tactical Goggles",price:500},{name:"Shemagh",price:600},{name:"Santa Beard",price:600}]
+        Face: [{name:"Green Bandana",price:250},{name:"Black Bandana",price:250},{name:"Camo Bandana",price:250},{name:"Keffiyeh",price:500}]
       },
       "Meds & Tools": {
-        Pharmaceuticals: [{name:"NBC Filters",price:1000,bulkOptions:[1,2,5]},{name:"Bandages",price:200},{name:"Saline Bag",price:400},{name:"Tetracycline",price:500},{name:"Charcoal Tablets",price:500},{name:"Multi Vitamins",price:100},{name:"PoX Antidote",price:1000},{name:"Codeine Pills",price:500},{name:"Morphine Injector",price:300},{name:"Blood Test Kit",price:100},{name:"Blood Collection Kit",price:200},{name:"IV Start Kit",price:100},{name:"Chlorine Tablets",price:150}],
-        Miscellaneous: [{name:"Canteen",price:200},{name:"Tourist Map",price:400},{name:"9V Batteries",price:25,bulkOptions:[1,5,10]},{name:"Bear Trap",price:500},{name:"Faction Flags",price:500},{name:"Power Generator",price:800},{name:"Gun Cleaning Kit",price:400},{name:"Duct Tape",price:200},{name:"Sewing Kit",price:300},{name:"Leather Repair Kit",price:300},{name:"Epoxy Putty",price:400},{name:"Rangefinder",price:400},{name:"Canned Bacon",price:200},{name:"Water Bottle",price:100},{name:"Soda",price:100},{name:"Filtering Bottle",price:1000}]
+        Pharmaceuticals: [{name:"NBC Filters",price:1000,bulkOptions:[1,2,5]},{name:"Bandages",price:250},{name:"Saline Bag",price:600},{name:"Tetracycline",price:500},{name:"Charcoal Tablets",price:500},{name:"Multi Vitamins",price:250},{name:"PoX Antidote",price:1000},{name:"Codeine Pills",price:500},{name:"Morphine Injector",price:300},{name:"Blood Test Kit",price:100},{name:"Blood Collection Kit",price:200},{name:"IV Start Kit",price:100},{name:"Chlorine Tablets",price:500}],
+        Miscellaneous: [{name:"Canteen",price:800},{name:"Tourist Map",price:400},{name:"9V Batteries",price:25,bulkOptions:[1,5,10]},{name:"Bear Trap",price:500},{name:"Faction Flags",price:500},{name:"Power Generator",price:800},{name:"Gun Cleaning Kit",price:400},{name:"Duct Tape",price:200},{name:"Sewing Kit",price:300},{name:"Leather Repair Kit",price:300},{name:"Epoxy Putty",price:400},{name:"Rangefinder",price:400},{name:"Canned Peaches",price:250},{name:"Water Bottle",price:400},{name:"Soda",price:100},{name:"Filtering Bottle",price:1000}]
       },
       Explosives: {
-        Explosives: [{name:"IED Container",price:3500},{name:"Plastic Explosives",price:18000},{name:"Detonator",price:500},{name:"IED Complete",price:40000}],
-        "Other Explosives": [{name:"Grenade",price:750,bulkOptions:[1,5,10]},{name:"POX Vial",price:500,bulkOptions:[1,2,5]},{name:"Flashbangs",price:250,bulkOptions:[1,2,5]},{name:"Land Mines",price:750,bulkOptions:[1,5,10]},{name:"Claymores",price:1000},{name:"Bear-Nades",price:15000}]
+        IED: { _outOfStock: true, items: [{name:"IED Container",price:3500},{name:"Plastic Explosives",price:18000},{name:"Detonator",price:500},{name:"IED Complete",price:40000}] },
+        Boom: [{name:"Grenade",price:750,bulkOptions:[1,5,10]},{name:"POX Vial",price:500,bulkOptions:[1,2,5]},{name:"Flashbangs",price:250,bulkOptions:[1,2,5]},{name:"Land Mines",price:750,bulkOptions:[1,5,10]},{name:"Claymores",price:1000},{name:"Bear-Nades",price:15000}]
       },
       Storage: [{name:"Car Tent",price:3500},{name:"Large Tent",price:2500},{name:"Canopy Tent",price:1600},{name:"Medium Tent",price:2000},{name:"Sea Chest",price:800},{name:"Barrel",price:1000,bulkOptions:[1,2,5]}],
-      Building: [{name:"Box of Nails",price:6000,bulkOptions:[1,5]},{name:"Sharpening Stones",price:1000,bulkOptions:[1,5,10,20]},{name:"4Dial Combo Lock",price:1000,bulkOptions:[1,5,10]},{name:"Hatchet",price:1000},{name:"Hacksaws",price:1000},{name:"Sledgehammer",price:1000},{name:"Pickaxe",price:1000},{name:"Field Shovel",price:1000},{name:"Crowbar",price:1000},{name:"Fireaxe",price:1000},{name:"Metal Wire",price:500,bulkOptions:[1,2,5]},{name:"Barbwire",price:1000,bulkOptions:[1,2,5]},{name:"Pliers",price:1000},{name:"Camo Netting",price:500},{name:"Rope",price:250,bulkOptions:[1,5,10]},{name:"Sheet Metal",price:3000}],
+      Building: [{name:"Box of Nails",price:6000,bulkOptions:[1,5]},{name:"Sharpening Stones",price:1000,bulkOptions:[1,5,10,20]},{name:"4Dial Combo Lock",price:1000,bulkOptions:[1,5,10]},{name:"Hatchet",price:1000},{name:"Hacksaws",price:1000},{name:"Sledgehammer",price:1000},{name:"Pickaxe",price:1000},{name:"Field Shovel",price:1000},{name:"Crowbar",price:1000},{name:"Fireaxe",price:1000},{name:"Trowel",price:1000},{name:"Metal Wire",price:500,bulkOptions:[1,2,5]},{name:"Barbwire",price:1000,bulkOptions:[1,2,5]},{name:"Pliers",price:1000},{name:"Camo Netting",price:500},{name:"Rope",price:250,bulkOptions:[1,5,10]},{name:"Sheet Metal",price:3000}],
       Vehicles: {
         Vehicles: [{name:"Trader Truck",price:200000},{name:"Trader Car",price:75000}],
-        Repair: [{name:"Jerry Can",price:200},{name:"Blowtorch",price:500},{name:"Gas Canister",price:250},{name:"Tire Repair Kit",price:250},{name:"Battery Charger",price:500}],
+        Repair: [{name:"Jerry Can",price:500},{name:"Blowtorch",price:500},{name:"Gas Canister",price:250},{name:"Tire Repair Kit",price:250},{name:"Battery Charger",price:500},{name:"Electrical Repair Kit",price:800}],
         Parts: [{name:"Spark Plug",price:200},{name:"Glow Plug",price:500},{name:"Car Battery",price:200},{name:"Truck Battery",price:400},{name:"Car Radiator",price:500},{name:"Headlight Bulb",price:100}],
-        Tires: [{name:"Car Tires",price:500},{name:"Humvee Tires",price:800},{name:"Truck Tires",price:500}]
+        Tires: [{name:"Car Tires",price:500},{name:"Humvee Tires",price:800},{name:"Truck Tires",price:500},{name:"Motorbike Tires",price:300}]
       },
       "Player Kit": [{name:"Player Kit",price:16000},{name:"Ghillie Kit",price:16000}]
     };
+
+    
+    // Sort all item arrays alphabetically
+    function sortItems(node) {
+      if (Array.isArray(node)) {
+        node.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (node && typeof node === "object") {
+        Object.keys(node).forEach(k => {
+          if (!k.startsWith("_")) sortItems(node[k]);
+        });
+      }
+    }
+    sortItems(buyitems);
+
+    
+    // Normalize every buy item with inStock / salePrice
+    function normalizeItems(node) {
+      if (Array.isArray(node)) {
+        node.forEach(item => {
+          if (typeof item === "object" && item.name) {
+            if (item.inStock === undefined) item.inStock = true;
+            if (item.salePrice === undefined) item.salePrice = null;
+          }
+        });
+      } else if (node && typeof node === "object") {
+        Object.keys(node).forEach(k => {
+          if (!k.startsWith("_")) normalizeItems(node[k]);
+        });
+      }
+    }
+    normalizeItems(buyitems);
+
+    // Test: Canteen on sale, Bear-Nades out of stock
+    (function setTestFlags() {
+      function walk(node) {
+        if (Array.isArray(node)) {
+          node.forEach(item => {
+            if (item.name === "Canteen") item.salePrice = 400;
+            if (item.name === "Bear-Nades") item.inStock = false;
+          });
+        } else if (node && typeof node === "object") {
+          Object.keys(node).forEach(k => { if (!k.startsWith("_")) walk(node[k]); });
+        }
+      }
+      walk(buyitems);
+    })();
 
     const sellitems = [
       {name:"Bible",price:10000},{name:"Books",price:338,bulkOptions:[1,5,20]},{name:"Cannabis",price:14,bulkOptions:[1,10,50,100]},
@@ -377,11 +429,11 @@
       "Build-A-Bear":{description:"Turn in 5 sets of teddy bears at one time (four different colors = a set).",bonuses:{"Set of 4 Teddy Bears":5000}},
       "Click Click Boom":{description:"Kill an enemy player with a claymore.",discounts:{"Grenade":20,"POX Vial":20,"Flashbangs":20,"Land Mines":20,"Claymores":20,"Plastic Explosives":20,"IED Container":20}},
       "Daryl Dixon":{description:"Kill a fully kitted player with a crossbow.",discounts:{"Crossbow":50,"Crossbow Bolts":50}},
-      "Deadshot":{description:"Get a sniper kill at a range of over 800m.",discounts:{"VSD":50,"Tundra":50,"PU Scope":50,"Hunting Scope":50,"MKII Optic":50,"10Rd VSD Mag":50,"7.62x54mmR":50,".308 WIN":50,"Rangefinder":50}},
+      "Deadshot":{description:"Get a sniper kill at a range of over 800m.",discounts:{"Tundra":50,"PU Scope":50,"Hunting Scope":50,"MKII Optic":50,"10Rd VSD Mag":50,".308 WIN":50,"Rangefinder":50}},
       "Dr. Greenthumb":{description:"Sell 1200 pieces of Cannabis in a single trip.",bonuses:{"Cannabis":30}},
       "Hat Trick":{description:"Sell 50 Hockey Sticks to Trader.",bonuses:{"Hockey Stick":1500}},
-      "Head Hunter":{description:"Hit 100 kills by headshot.",discounts:{"5.56x45":50,".308 WIN":50,"7.62x39":50,"7.62x54mmR":50,"12GA Buck":50}},
-      "Hotshot":{description:"Get a sniper kill at a range of over 400m.",discounts:{"VSD":25,"Tundra":25,"PU Scope":25,"Hunting Scope":25,"MKII Optic":25,"10Rd VSD Mag":25,"7.62x54mmR":25,".308 WIN":25,"Rangefinder":25}},
+      "Head Hunter":{description:"Hit 100 kills by headshot.",discounts:{"5.56x45":50,".308 WIN":50,"7.62x39":50,"12GA Buck":50}},
+      "Hotshot":{description:"Get a sniper kill at a range of over 400m.",discounts:{"Tundra":25,"PU Scope":25,"Hunting Scope":25,"MKII Optic":25,"10Rd VSD Mag":25,".308 WIN":25,"Rangefinder":25}},
       "Julius Caesar":{description:"Collect four sets of all four Leaf Crowns.",bonuses:{"Set of Leaf Crown":5000}},
       "Kamikaze":{description:"Blow yourself up, killing 2 enemy players.",discounts:{"Grenade":25}},
       "Librarian":{description:"Sell 350 books and 1 bible in one sale.",bonuses:{"Books":500}},
@@ -471,6 +523,42 @@
       });
     }
 
+    const weaponCompat = {
+      "aug ax": ["60Rd C-Mag","40Rd C-Mag","5.56x45","Starlight NV","M4 Suppressor","Holo Optic","Red Dot (Baraka)","ATOG 6x","Ghillie Rifle Wrap"],
+      "crossbow": ["Holo Optic","Red Dot (Baraka)","ATOG 6x","Starlight NV","Crossbow Bolts","MKII Optic","Ghillie Rifle Wrap"],
+      "dmr": ["ATOG 6x","Starlight NV","MKII Optic","Ghillie Rifle Wrap","Bottle Suppressor","20Rd DMR Mag","308 WIN"],
+      "kam": ["Kobra Sights","Kazuar NV","AK Supressor","75Rd KAM Drum Mag","7.62x39","Ghillie Rifle Wrap"],
+      "m4a1": ["60Rd C-Mag","40Rd C-Mag","5.56x45","Starlight NV","M4 Suppressor","Holo Optic","Red Dot (Baraka)","ATOG 6x","Ghillie Rifle Wrap","BUIS Optic"],
+      "r12": ["Holo Optic","Red Dot (Baraka)","Ghillie Rifle Wrap","12GA Buck"],
+      "scar-h": ["ATOG 6x","Starlight NV","MKII Optic","Ghillie Rifle Wrap","Bottle Suppressor","20Rd SCAR Mag","308 WIN"],
+      "scar-l": ["60Rd C-Mag","40Rd C-Mag","5.56x45","Starlight NV","M4 Suppressor","Holo Optic","Red Dot (Baraka)","ATOG 6x","Ghillie Rifle Wrap","MKII Optic"],
+      "tundra": ["308 WIN","Bottle Suppressor","Hunting Scope","Ghillie Rifle Wrap"]
+    };
+
+    function itemDisplayName(item) {
+      const name = item.salePrice != null ? `*${item.name}*` : item.name;
+      return item.inStock === false ? name : name;
+    }
+
+    function styleOutOfStock(btn, item) {
+      if (item.inStock === false) {
+        btn.style.textDecoration = "line-through";
+        btn.style.opacity = "0.5";
+      }
+    }
+
+    function getCategoryForItem(name) {
+      const map = {
+        "Aug AX":"Weapons","Crossbow":"Weapons","DMR":"Weapons","KAM":"Weapons","M4A1":"Weapons","R12":"Weapons","SCAR-H":"Weapons","SCAR-L":"Weapons","Tundra":"Weapons","Combat Knife":"Weapons",
+        "60Rd C-Mag":"Magazines","40Rd C-Mag":"Magazines","20Rd DMR Mag":"Magazines","20Rd SCAR Mag":"Magazines","75Rd KAM Drum Mag":"Magazines","10Rd VSD Mag":"Magazines",
+        "5.56x45":"Ammo","308 WIN":"Ammo","7.62x39":"Ammo","12GA Buck":"Ammo","Crossbow Bolts":"Ammo",
+        "Starlight NV":"Optics","Kazuar NV":"Optics","Holo Optic":"Optics","Red Dot (Baraka)":"Optics","ATOG 6x":"Optics","MKII Optic":"Optics","BUIS Optic":"Optics","Kobra Sights":"Optics","Hunting Scope":"Optics","PU Scope":"Optics","PSO-1 Scope":"Optics",
+        "M4 Suppressor":"Attachments","AK Supressor":"Attachments","Bottle Suppressor":"Attachments",
+        "Ghillie Rifle Wrap":"Clothing"
+      };
+      return map[name] || "Other";
+    }
+
     function flattenBuyItems(node, out = []) {
       if (Array.isArray(node)) {
         node.forEach(item => out.push(item));
@@ -488,16 +576,46 @@
       if (searchTerm) {
         bc.innerHTML = '<span>Search results</span>';
         const all = flattenBuyItems(buyitems);
-        const matches = all.filter(item => item.name.toLowerCase().includes(searchTerm));
+        let matches = all.filter(item => item.name.toLowerCase().includes(searchTerm));
+
+        // Weapon compatibility: if search matches a weapon, add its attachments
+        const term = searchTerm.toLowerCase();
+        let compatNames = [];
+        Object.keys(weaponCompat).forEach(key => {
+          if (key.includes(term) || term.includes(key)) compatNames = compatNames.concat(weaponCompat[key]);
+        });
+        if (compatNames.length) {
+          const extra = all.filter(item => compatNames.includes(item.name));
+          const seen = new Set(matches.map(m => m.name));
+          extra.forEach(e => { if (!seen.has(e.name)) matches.push(e); });
+        }
+
         if (matches.length === 0) {
           grid.innerHTML = '<div class="empty">No matches</div>';
         } else {
+          // Group by category in fixed order, sort items alphabetically within
+          const groups = {};
           matches.forEach(item => {
-            const btn = document.createElement("button");
-            btn.className = "item-btn";
-            btn.textContent = item.name;
-            btn.onclick = () => handleBuyItem(item);
-            grid.appendChild(btn);
+            const cat = getCategoryForItem(item.name);
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(item);
+          });
+          const catOrder = ["Weapons","Magazines","Ammo","Optics","Attachments","Clothing","Other"];
+          catOrder.forEach(cat => {
+            if (!groups[cat]) return;
+            groups[cat].sort((a, b) => a.name.localeCompare(b.name));
+            const header = document.createElement("div");
+            header.style.cssText = "grid-column:1/-1;font-size:12px;color:var(--text-dim);margin-top:8px;font-weight:600;";
+            header.textContent = cat;
+            grid.appendChild(header);
+            groups[cat].forEach(item => {
+              const btn = document.createElement("button");
+              btn.className = "item-btn";
+              btn.textContent = itemDisplayName(item);
+              styleOutOfStock(btn, item);
+              btn.onclick = () => handleBuyItem(item);
+              grid.appendChild(btn);
+            });
           });
         }
         renderSummary("buy");
@@ -512,16 +630,25 @@
         node.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
-          btn.textContent = item.name;
+          btn.textContent = itemDisplayName(item);
+          styleOutOfStock(btn, item);
           btn.onclick = () => handleBuyItem(item);
           grid.appendChild(btn);
         });
       } else {
         Object.keys(node).forEach(key => {
+          if (key.startsWith("_")) return;
           const btn = document.createElement("button");
           btn.className = "cat-btn";
           btn.textContent = key;
-          btn.onclick = () => { buyPath.push(key); render(); };
+          btn.onclick = () => {
+            if (node[key] && node[key]._outOfStock) {
+              toast("OUT OF STOCK");
+              return;
+            }
+            buyPath.push(key);
+            render();
+          };
           grid.appendChild(btn);
         });
       }
@@ -551,7 +678,7 @@
           matches.forEach(item => {
             const btn = document.createElement("button");
             btn.className = "item-btn";
-            btn.textContent = item.name;
+            btn.textContent = itemDisplayName(item);
             btn.onclick = () => handleSellItem(item);
             grid.appendChild(btn);
           });
@@ -566,7 +693,7 @@
         sellitems.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
-          btn.textContent = item.name;
+          btn.textContent = itemDisplayName(item);
           btn.onclick = () => handleSellItem(item);
           grid.appendChild(btn);
         });
@@ -579,7 +706,7 @@
         pelts.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
-          btn.textContent = item.name;
+          btn.textContent = itemDisplayName(item);
           btn.onclick = () => handleSellItem(item);
           grid.appendChild(btn);
         });
@@ -596,15 +723,27 @@
     function renderSummary(type) {
       const cart = type === "buy" ? buyCart : sellCart;
       const el = document.getElementById(type + "Summary");
+      const wrap = document.getElementById(type + "SummaryWrap");
       el.innerHTML = "";
       const keys = Object.keys(cart);
+
+      // Update header with live total
+      const header = wrap.querySelector(".summary-header");
+      let liveTotal = 0;
+      keys.forEach(name => {
+        const {qty, base, salePrice} = cart[name];
+        const unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
+        liveTotal += unit * qty;
+      });
+      header.textContent = keys.length ? `${type === "buy" ? "Buy" : "Sell"} Cart — ${Math.round(liveTotal)} Cr` : `${type === "buy" ? "Buy" : "Sell"} Cart`;
+
       if (keys.length === 0) {
         el.innerHTML = '<div class="empty">Empty</div>';
         return;
       }
       keys.forEach(name => {
-        const {qty, base} = cart[name];
-        let unit = getDiscountedPrice(name, base);
+        const {qty, base, salePrice} = cart[name];
+        let unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
         let total;
         if (name === "Bible" && type === "sell") {
           total = getBibleTotal(qty);
@@ -613,9 +752,12 @@
         }
         const div = document.createElement("div");
         div.className = "summary-item";
+        const priceHtml = salePrice != null
+          ? `<s style="opacity:0.5">${base * qty}</s> ${Math.round(total)}`
+          : `${Math.round(total)}`;
         div.innerHTML = `
           <span class="name">${name} × ${qty}</span>
-          <span class="price">${Math.round(total)} Cr</span>
+          <span class="price">${priceHtml} Cr</span>
           <div class="controls">
             <button class="remove-one">−</button>
             <button class="remove-all">×</button>
@@ -623,11 +765,13 @@
         div.querySelector(".remove-one").onclick = () => {
           if (cart[name].qty > 1) cart[name].qty--;
           else delete cart[name];
-          saveState(); render();
+          saveState();
+          render();
         };
         div.querySelector(".remove-all").onclick = () => {
           delete cart[name];
-          saveState(); render();
+          saveState();
+          render();
         };
         el.appendChild(div);
       });
@@ -656,21 +800,27 @@
     function render() {
       document.getElementById("buyPanel").style.display = currentTab === "buy" ? "block" : "none";
       document.getElementById("sellPanel").style.display = currentTab === "sell" ? "block" : "none";
+      document.getElementById("buySummaryWrap").style.display = currentTab === "buy" ? "block" : "none";
+      document.getElementById("sellSummaryWrap").style.display = currentTab === "sell" ? "block" : "none";
       if (currentTab === "buy") renderBuy();
       else renderSell();
       renderRoles();
     }
 
     // ===== ITEM HANDLERS =====
-    function addToCart(type, name, qty, base) {
+    function addToCart(type, name, qty, base, salePrice) {
       const cart = type === "buy" ? buyCart : sellCart;
       if (cart[name]) cart[name].qty += qty;
-      else cart[name] = {qty, base};
+      else cart[name] = {qty, base, salePrice: salePrice ?? null};
       saveState();
       render();
     }
 
     function handleBuyItem(item) {
+      if (item.inStock === false) {
+        toast("OUT OF STOCK");
+        return;
+      }
       if (item.bulkOptions) {
         // show bulk buttons temporarily
         const grid = document.getElementById("buyGrid");
@@ -679,7 +829,7 @@
           const btn = document.createElement("button");
           btn.className = "item-btn";
           btn.textContent = `${item.name} ×${q}`;
-          btn.onclick = () => addToCart("buy", item.name, q, item.price);
+          btn.onclick = () => addToCart("buy", item.name, q, item.price, item.salePrice);
           grid.appendChild(btn);
         });
         const back = document.createElement("button");
@@ -697,14 +847,8 @@
         toast("LIMITED TIME ONLY");
         return;
       }
-      if (item.name === "Trader Truck") {
-        addToCart("buy", "Trader Truck", 1, item.price);
-        toast("Trader will deploy at rear of building. Stand clear of drop zone.");
-        return;
-      }
-      if (item.name === "Trader Car") {
-        addToCart("buy", "Trader Car", 1, item.price);
-        toast("Only sell with admin approval!");
+      if (item.name === "Trader Truck" || item.name === "Trader Car") {
+        toast("OUT OF STOCK");
         return;
       }
       if (item.name === "Ghillie Kit") {
@@ -713,12 +857,7 @@
         toast("Ghillie Hood and Suit in place of helmet and backpack. Ghillie wraps are sold separately.");
         return;
       }
-      if (item.name === "Santa Beard") {
-        addToCart("buy", "Santa Beard", 1, item.price);
-        toast("Only available with player kits - limited time only!");
-        return;
-      }
-      addToCart("buy", item.name, 1, item.price);
+      addToCart("buy", item.name, 1, item.price, item.salePrice);
     }
 
     function handleSellItem(item) {
@@ -788,8 +927,9 @@
 
     function calculate() {
       let buyTotal = 0;
-      Object.entries(buyCart).forEach(([name, {qty, base}]) => {
-        buyTotal += getDiscountedPrice(name, base) * qty;
+      Object.entries(buyCart).forEach(([name, {qty, base, salePrice}]) => {
+        const unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
+        buyTotal += unit * qty;
       });
       if (activeRoles.has("Day One")) buyTotal *= 0.9;
 
