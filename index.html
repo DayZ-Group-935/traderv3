@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>935 Trading Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #1a120c;
@@ -20,11 +21,12 @@
       --radius: 12px;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: inherit; }
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
       background: #0f0c09;
       color: var(--text);
       line-height: 1.4;
@@ -415,7 +417,7 @@
         Headgear: [{name:"Assault Helmet",price:850},{name:"Assault Visor",price:150},{name:"Tactical Helm",price:600},{name:"NV Goggles",price:2500},{name:"NVG Strap",price:300},{name:"Ballistic Helmet",price:800},{name:"Desert Helmet",price:800},{name:"Boonie Hat",price:400}],
         Jackets: [{name:"Desert CUU",price:600},{name:"Desert Hunter",price:600},{name:"FNO Jacket",price:750},{name:"ORM Jacket",price:750},{name:"T-Shirt",price:250}],
         Backpacks: [{name:"Assault Backpack",price:500},{name:"Canvas Bag",price:600},{name:"Combat Backpack",price:600},{name:"Tactical Backpack",price:750}],
-        "Plate Carriers": [{name:"Plate Carrier",price:2000},{name:"Pouches",price:250},{name:"Holster",price:50}],
+        "Plate Carriers": [{name:"Plate Carrier (Black)",price:2000},{name:"Plate Carrier (Desert)",price:2000},{name:"Pouches",price:250},{name:"Holster",price:50}],
         Pants: [{name:"Capri Pants",price:500},{name:"Desert CUU",price:600},{name:"Desert Hunter",price:600},{name:"FNO Pants",price:750},{name:"ORM Pants",price:750}],
         "Misc Clothing": [{name:"Gloves",price:250},{name:"Sheath",price:100},{name:"Belt",price:100},{name:"Hip Pack",price:300}],
         Boots: [{name:"Assault Boots",price:500},{name:"Sneakers",price:300},{name:"Tan Jungle Boots",price:400}],
@@ -550,20 +552,22 @@
     let kitConfigs = [];
 
     const kitSlots = [
-      {key:"weapon1", label:"Weapon 1", items:["Aug AX","Crossbow","DMR","KAM","M4A1","R12","SCAR-H","SCAR-L","Tundra"]},
-      {key:"mag1", label:"Mag 1 (×2)", items:["40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag"]},
-      {key:"weapon2", label:"Weapon 2", items:["Aug AX","Crossbow","DMR","KAM","M4A1","R12","SCAR-H","SCAR-L","Tundra"]},
-      {key:"mag2", label:"Mag 2 (×2)", items:["40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag"]},
-      {key:"scope", label:"Scope", items:["None","ATOG 6x","MKII Optic","Hunting Scope","PU Scope","Holo Optic","Red Dot (Baraka)","BUIS Optic","Kobra Sights","Starlight NV","Kazuar NV"]},
-      {key:"suppressor", label:"Suppressor", items:["None","M4 Suppressor","AK Supressor","Bottle Suppressor"]},
-      {key:"helmet", label:"Helmet", items:["Tactical Helm + NV Goggles","Assault Helmet + NVG Strap","Ballistic Helmet + NVG Strap","Desert Helmet + NVG Strap","Boonie Hat + NVG Strap","Ghillie Hood + NVG Strap"]},
-      {key:"jacket", label:"Jacket", items:["Desert CUU","Desert Hunter","FNO Jacket","ORM Jacket","T-Shirt"]},
-      {key:"pants", label:"Pants", items:["Capri Pants","Desert CUU","Desert Hunter","FNO Pants","ORM Pants"]},
-      {key:"boots", label:"Boots", items:["Assault Boots","Sneakers","Tan Jungle Boots"]},
-      {key:"plate", label:"Plate Carrier", items:["Plate Carrier"]},
-      {key:"backpack", label:"Backpack/Ghillie", items:["Assault Backpack","Canvas Bag","Combat Backpack","Tactical Backpack","Ghillie Suit"]},
-      {key:"gloves", label:"Gloves", items:["Tan Tactical","Black Tactical"]},
-      {key:"goggles", label:"Goggles", items:["Dust Goggles","Ski Goggles","Tac Goggles"]},
+      {key:"weapon1", label:"Weapon 1", items:["(select)","Aug AX","Crossbow","DMR","KAM","M4A1","R12","SCAR-H","SCAR-L","Tundra"]},
+      {key:"mag1", label:"Ammo/Mag ×2", items:["- -","40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag","12GA Buck","308 WIN"]},
+      {key:"suppressor1", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Supressor","Bottle Suppressor"]},
+      {key:"scope1", label:"Scope", items:["- -","(select)","None","ATOG 6x","MKII Optic","Hunting Scope","PU Scope","Holo Optic","Red Dot (Baraka)","BUIS Optic","Kobra Sights","Starlight NV","Kazuar NV"]},
+      {key:"weapon2", label:"Weapon 2", items:["(select)","Aug AX","Crossbow","DMR","KAM","M4A1","R12","SCAR-H","SCAR-L","Tundra"]},
+      {key:"mag2", label:"Ammo/Mag ×2", items:["- -","40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag","12GA Buck","308 WIN"]},
+      {key:"suppressor2", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Supressor","Bottle Suppressor"]},
+      {key:"scope2", label:"Scope", items:["- -","(select)","None","ATOG 6x","MKII Optic","Hunting Scope","PU Scope","Holo Optic","Red Dot (Baraka)","BUIS Optic","Kobra Sights","Starlight NV","Kazuar NV"]},
+      {key:"plate", label:"Plate Carrier", items:["(select)","Plate Carrier (Black)","Plate Carrier (Desert)"]},
+      {key:"helmet", label:"Helmet", items:["(select)","Tactical Helm + NV Goggles","Assault Helmet + NVG Strap","Ballistic Helmet + NVG Strap","Desert Helmet + NVG Strap","Boonie Hat + NVG Strap","Ghillie Hood + NVG Strap"]},
+      {key:"jacket", label:"Jacket", items:["(select)","Desert CUU","Desert Hunter","FNO Jacket","ORM Jacket","T-Shirt"]},
+      {key:"pants", label:"Pants", items:["(select)","Capri Pants","Desert CUU","Desert Hunter","FNO Pants","ORM Pants"]},
+      {key:"boots", label:"Boots", items:["(select)","Assault Boots","Sneakers","Tan Jungle Boots"]},
+      {key:"backpack", label:"Backpack/Ghillie", items:["(select)","Assault Backpack","Canvas Bag","Combat Backpack","Tactical Backpack","Ghillie Suit"]},
+      {key:"gloves", label:"Gloves", items:["(select)","Tan Tactical","Black Tactical"]},
+      {key:"goggles", label:"Goggles", items:["(select)","Dust Goggles","Ski Goggles","Tac Goggles"]},
       {key:"belt", label:"Belt/Hip", items:["Belt + Sheath","Hip Pack"]},
       {key:"drink", label:"Drink", items:["Canteen","Filtering Bottle"]}
     ];
@@ -571,17 +575,17 @@
     const kitFixed = [
       {key:"knife", label:"Combat Knife"},
       {key:"candy", label:"Candy Cane"},
+      {key:"rangefinder", label:"Rangefinder"},
       {key:"bandages", label:"Bandages ×2"},
-      {key:"tetra", label:"Tetracycline"},
       {key:"batteries", label:"9V Batteries ×3"},
-      {key:"codeine", label:"Codeine"},
-      {key:"morphine", label:"Morphine"},
-      {key:"leather", label:"Leather Sewing Kit"},
-      {key:"sewing", label:"Sewing Kit"},
       {key:"cleaning", label:"Weapon Cleaning Kit"},
+      {key:"codeine", label:"Codeine"},
+      {key:"leather", label:"Leather Sewing Kit"},
+      {key:"morphine", label:"Morphine"},
       {key:"saline", label:"Saline Bag"},
-      {key:"vitamins", label:"Vitamin Bottle"},
-      {key:"rangefinder", label:"Rangefinder"}
+      {key:"sewing", label:"Sewing Kit"},
+      {key:"tetra", label:"Tetracycline"},
+      {key:"vitamins", label:"Vitamin Bottle"}
     ];
 
     function openKitPanel(isGhillie) {
@@ -627,18 +631,46 @@
       document.getElementById("kitPanel").dataset.ghillie = isGhillie ? "1" : "0";
       document.getElementById("kitPanel").style.display = "flex";
 
-      // Tundra lock: force scope/suppressor when Tundra selected
-      fields.querySelectorAll('select[data-slot^="weapon"]').forEach(sel => {
-        sel.onchange = () => {
-          const isTundra = [...fields.querySelectorAll('select[data-slot^="weapon"]')].some(s => s.value === "Tundra");
-          const scopeSel = fields.querySelector('select[data-slot="scope"]');
-          const suppSel = fields.querySelector('select[data-slot="suppressor"]');
-          if (isTundra) {
-            if (scopeSel) { scopeSel.value = "Hunting Scope"; scopeSel.disabled = true; }
-            if (suppSel) { suppSel.value = "Bottle Suppressor"; suppSel.disabled = true; }
-          } else {
-            if (scopeSel) scopeSel.disabled = false;
+      // Initially disable mag/suppressor/scope until weapon chosen
+      ["1","2"].forEach(n => {
+        ["mag","suppressor","scope"].forEach(k => {
+          const sel = fields.querySelector(`select[data-slot="${k}${n}"]`);
+          if (sel) sel.disabled = true;
+        });
+      });
+
+      // Weapon override locks
+      const overrides = {
+        "Tundra": { mag: "308 WIN", suppressor: "Bottle Suppressor", scope: "Hunting Scope" },
+        "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Supressor", scope: "Kobra Sights" },
+        "M4A1": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+        "SCAR-L": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+        "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+        "SCAR-H": { mag: "20Rd SCAR Mag", suppressor: "Bottle Suppressor" },
+        "DMR": { mag: "20Rd DMR Mag", suppressor: "Bottle Suppressor" },
+        "R12": { mag: "12GA Buck", suppressor: "None" }
+      };
+      ["1","2"].forEach(n => {
+        const wSel = fields.querySelector(`select[data-slot="weapon${n}"]`);
+        if (!wSel) return;
+        wSel.onchange = () => {
+          const o = overrides[wSel.value];
+          const magSel = fields.querySelector(`select[data-slot="mag${n}"]`);
+          const suppSel = fields.querySelector(`select[data-slot="suppressor${n}"]`);
+          const scopeSel = fields.querySelector(`select[data-slot="scope${n}"]`);
+          if (o) {
+            if (magSel) { magSel.value = o.mag; magSel.disabled = true; }
+            if (suppSel) { suppSel.value = o.suppressor; suppSel.disabled = true; }
+            if (scopeSel && o.scope) { scopeSel.value = o.scope; scopeSel.disabled = true; }
+            else if (scopeSel) { scopeSel.value = "(select)"; scopeSel.disabled = false; }
+          } else if (wSel.value !== "(select)") {
+            if (magSel) magSel.disabled = false;
             if (suppSel) suppSel.disabled = false;
+            if (scopeSel) { scopeSel.value = "(select)"; scopeSel.disabled = false; }
+          } else {
+            if (magSel) { magSel.value = "- -"; magSel.disabled = true; }
+            if (suppSel) { suppSel.value = "- -"; suppSel.disabled = true; }
+            if (scopeSel) { scopeSel.value = "- -"; scopeSel.disabled = true; }
           }
         };
       });
@@ -662,12 +694,24 @@
         const sel = document.querySelector(`select[data-slot="${slot.key}"]`);
         if (sel) config[slot.key] = { item: sel.value };
       });
-      // Tundra special: force hunting scope, bottle suppressor, 2x 308
-      ["weapon1","weapon2"].forEach(wk => {
-        if (config[wk] && config[wk].item === "Tundra") {
-          config.scope = { item: "Hunting Scope" };
-          config.suppressor = { item: "Bottle Suppressor" };
-          config.tundraAmmo = { item: "308 WIN ×2" };
+      // Weapon overrides
+      const overrides = {
+        "Tundra": { mag: "308 WIN", suppressor: "Bottle Suppressor", scope: "Hunting Scope" },
+        "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Supressor", scope: "Kobra Sights" },
+        "M4A1": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+        "SCAR-L": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+        "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
+        "SCAR-H": { mag: "20Rd SCAR Mag", suppressor: "Bottle Suppressor" },
+        "DMR": { mag: "20Rd DMR Mag", suppressor: "Bottle Suppressor" },
+        "R12": { mag: "12GA Buck", suppressor: "None" }
+      };
+      ["1","2"].forEach(n => {
+        const w = config["weapon"+n];
+        if (w && overrides[w.item]) {
+          const o = overrides[w.item];
+          config["mag"+n] = { item: o.mag };
+          config["suppressor"+n] = { item: o.suppressor };
+          if (o.scope) config["scope"+n] = { item: o.scope };
         }
       });
       kitFixed.forEach(f => {
@@ -694,7 +738,7 @@
       box.style.display = "block";
       box.innerHTML = "<h4>Kit Definitions</h4>" + kitConfigs.map((cfg, i) => {
         const selLines = kitSlots.filter(s => cfg[s.key]).map(s => `<div>${s.label}: ${cfg[s.key].item}</div>`).join("");
-        const ammoLine = cfg.tundraAmmo ? `<div>Ammo: ${cfg.tundraAmmo.item}</div>` : "";
+        const ammoLine = "";
         const fixedLines = kitFixed.filter(f => cfg[f.key] && !cfg[f.key].omitted).map(f => `<div>${f.label}</div>`).join("");
         const tokenTag = cfg.token ? " <span style='color:var(--accent)'>(TOKEN)</span>" : "";
         return `<div style="margin-bottom:8px;"><strong>${cfg.name}${tokenTag}</strong>${selLines}${ammoLine}${fixedLines}</div>`;
