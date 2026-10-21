@@ -1030,67 +1030,66 @@
       const cart = type === "buy" ? buyCart : sellCart;
       const el = document.getElementById(type + "Summary");
       const wrap = document.getElementById(type + "SummaryWrap");
-      el.innerHTML = "";
+      if (!el || !wrap) return;
       const keys = Object.keys(cart);
-
-      // Update header with live total
-      const header = wrap.querySelector(".summary-header");
       let liveTotal = 0;
-      keys.forEach(name => {
-        const {qty, base, salePrice} = cart[name];
-        const unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
-        liveTotal += unit * qty;
-      });
-      header.textContent = keys.length ? `${type === "buy" ? "Buy" : "Sell"} Cart — ${Math.round(liveTotal)} Cr` : `${type === "buy" ? "Buy" : "Sell"} Cart`;
-
+      let html = "";
       if (keys.length === 0) {
-        el.innerHTML = '<div class="empty">Empty</div>';
-        return;
-      }
-      keys.forEach(name => {
-        const {qty, base, salePrice} = cart[name];
-        let unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
-        let total;
-        if (name === "Bible" && type === "sell") {
-          total = getBibleTotal(qty);
-        } else {
-          total = unit * qty;
-        }
-        const div = document.createElement("div");
-        div.className = "summary-item";
-        const priceHtml = salePrice != null
-          ? `<s style="opacity:0.5">${base * qty}</s> ${Math.round(total)}`
-          : `${Math.round(total)}`;
-        div.innerHTML = `
-          <span class="name">${name} × ${qty}</span>
-          <span class="price">${priceHtml} Cr</span>
-          <div class="controls">
-            <button class="remove-one">−</button>
-            <button class="remove-all">×</button>
-          </div>`;
-        div.querySelector(".remove-one").onclick = () => {
-          if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
-            kitConfigs = kitConfigs.filter(k => k.name !== name);
-            delete cart[name];
-            renderKitSummaries();
-          } else if (cart[name].qty > 1) {
-            cart[name].qty--;
+        html = '<div class="empty">Empty</div>';
+      } else {
+        keys.forEach(name => {
+          const {qty, base, salePrice} = cart[name];
+          const isKit = name.startsWith("Player Kit") || name.startsWith("Ghillie Kit");
+          let unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
+          let total = (name === "Bible" && type === "sell") ? getBibleTotal(qty) : unit * qty;
+          liveTotal += total;
+          let priceHtml, nameHtml;
+          if (isKit) {
+            nameHtml = name;
+            priceHtml = base === 0 ? `<s style="opacity:0.5">16000</s> TOKEN` : `${base} Cr`;
           } else {
-            delete cart[name];
+            nameHtml = `${name} × ${qty}`;
+            priceHtml = salePrice != null
+              ? `<s style="opacity:0.5">${base * qty}</s> ${Math.round(total)} Cr`
+              : `${Math.round(total)} Cr`;
           }
+          html += `<div class="summary-item">
+            <span class="name">${nameHtml}</span>
+            <span class="price">${priceHtml}</span>
+            <div class="controls">
+              ${isKit ? "" : `<button class="remove-one" data-name="${name}">−</button>`}
+              <button class="remove-all" data-name="${name}">×</button>
+            </div>
+          </div>`;
+        });
+      }
+      el.innerHTML = html;
+      const header = wrap.querySelector(".summary-header");
+      if (header) header.textContent = keys.length ? `${type === "buy" ? "Buy" : "Sell"} Cart — ${Math.round(liveTotal)} Cr` : `${type === "buy" ? "Buy" : "Sell"} Cart`;
+      el.querySelectorAll(".remove-one").forEach(btn => {
+        btn.onclick = () => {
+          const n = btn.dataset.name;
+          if (n.startsWith("Player Kit") || n.startsWith("Ghillie Kit")) {
+            kitConfigs = kitConfigs.filter(k => k.name !== n);
+            delete cart[n];
+            renderKitSummaries();
+          } else if (cart[n] && cart[n].qty > 1) cart[n].qty--;
+          else delete cart[n];
           saveState();
           renderSummary(type);
         };
-        div.querySelector(".remove-all").onclick = () => {
-          if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
-            kitConfigs = kitConfigs.filter(k => k.name !== name);
+      });
+      el.querySelectorAll(".remove-all").forEach(btn => {
+        btn.onclick = () => {
+          const n = btn.dataset.name;
+          if (n.startsWith("Player Kit") || n.startsWith("Ghillie Kit")) {
+            kitConfigs = kitConfigs.filter(k => k.name !== n);
             renderKitSummaries();
           }
-          delete cart[name];
+          delete cart[n];
           saveState();
           renderSummary(type);
         };
-        el.appendChild(div);
       });
     }
 
