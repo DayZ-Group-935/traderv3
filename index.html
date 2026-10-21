@@ -592,7 +592,7 @@
       // Single kit-level token toggle
       const tokenRow = document.createElement("div");
       tokenRow.className = "kit-row";
-      tokenRow.innerHTML = `<label style="flex:1;color:var(--accent);font-weight:600;">Kit Token (makes kit free)</label><input type="checkbox" id="kitTokenToggle">`;
+      tokenRow.innerHTML = `<label style="flex:1;color:var(--accent);font-weight:600;">Use Kit Token</label><input type="checkbox" id="kitTokenToggle">`;
       fields.appendChild(tokenRow);
 
       kitSlots.forEach(slot => {
@@ -626,6 +626,22 @@
 
       document.getElementById("kitPanel").dataset.ghillie = isGhillie ? "1" : "0";
       document.getElementById("kitPanel").style.display = "flex";
+
+      // Tundra lock: force scope/suppressor when Tundra selected
+      fields.querySelectorAll('select[data-slot^="weapon"]').forEach(sel => {
+        sel.onchange = () => {
+          const isTundra = [...fields.querySelectorAll('select[data-slot^="weapon"]')].some(s => s.value === "Tundra");
+          const scopeSel = fields.querySelector('select[data-slot="scope"]');
+          const suppSel = fields.querySelector('select[data-slot="suppressor"]');
+          if (isTundra) {
+            if (scopeSel) { scopeSel.value = "Hunting Scope"; scopeSel.disabled = true; }
+            if (suppSel) { suppSel.value = "Bottle Suppressor"; suppSel.disabled = true; }
+          } else {
+            if (scopeSel) scopeSel.disabled = false;
+            if (suppSel) suppSel.disabled = false;
+          }
+        };
+      });
     }
 
     function closeKitPanel() {
@@ -635,7 +651,9 @@
     function saveKit() {
       const isGhillie = document.getElementById("kitPanel").dataset.ghillie === "1";
       const token = document.getElementById("kitTokenToggle").checked;
-      const config = { isGhillie, token };
+      const kitNum = kitConfigs.length + 1;
+      const kitName = (isGhillie ? "Ghillie Kit " : "Player Kit ") + kitNum;
+      const config = { isGhillie, token, name: kitName };
       kitSlots.forEach(slot => {
         if (isGhillie && slot.key === "backpack") {
           config[slot.key] = { item: "Ghillie Suit" };
@@ -644,16 +662,24 @@
         const sel = document.querySelector(`select[data-slot="${slot.key}"]`);
         if (sel) config[slot.key] = { item: sel.value };
       });
+      // Tundra special: force hunting scope, bottle suppressor, 2x 308
+      ["weapon1","weapon2"].forEach(wk => {
+        if (config[wk] && config[wk].item === "Tundra") {
+          config.scope = { item: "Hunting Scope" };
+          config.suppressor = { item: "Bottle Suppressor" };
+          config.tundraAmmo = { item: "308 WIN ×2" };
+        }
+      });
       kitFixed.forEach(f => {
         const cb = document.querySelector(`input[data-omit="${f.key}"]`);
         config[f.key] = { item: f.label, omitted: !cb.checked };
       });
       kitConfigs.push(config);
       const price = token ? 0 : 16000;
-      addToCart("buy", isGhillie ? "Ghillie Kit" : "Player Kit", 1, price);
+      addToCart("buy", kitName, 1, price);
       closeKitPanel();
       renderKitSummaries();
-      toast((isGhillie ? "Ghillie" : "Player") + " Kit" + (token ? " (token)" : "") + " added");
+      toast(kitName + (token ? " (token)" : "") + " added");
     }
 
     function renderKitSummaries() {
@@ -668,9 +694,10 @@
       box.style.display = "block";
       box.innerHTML = "<h4>Kit Definitions</h4>" + kitConfigs.map((cfg, i) => {
         const selLines = kitSlots.filter(s => cfg[s.key]).map(s => `<div>${s.label}: ${cfg[s.key].item}</div>`).join("");
+        const ammoLine = cfg.tundraAmmo ? `<div>Ammo: ${cfg.tundraAmmo.item}</div>` : "";
         const fixedLines = kitFixed.filter(f => cfg[f.key] && !cfg[f.key].omitted).map(f => `<div>${f.label}</div>`).join("");
         const tokenTag = cfg.token ? " <span style='color:var(--accent)'>(TOKEN)</span>" : "";
-        return `<div style="margin-bottom:8px;"><strong>Kit ${i+1}${tokenTag}</strong>${selLines}${fixedLines}</div>`;
+        return `<div style="margin-bottom:8px;"><strong>${cfg.name}${tokenTag}</strong>${selLines}${ammoLine}${fixedLines}</div>`;
       }).join("");
     }
 
@@ -971,12 +998,23 @@
             <button class="remove-all">×</button>
           </div>`;
         div.querySelector(".remove-one").onclick = () => {
-          if (cart[name].qty > 1) cart[name].qty--;
-          else delete cart[name];
+          if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
+            kitConfigs = kitConfigs.filter(k => k.name !== name);
+            delete cart[name];
+            renderKitSummaries();
+          } else if (cart[name].qty > 1) {
+            cart[name].qty--;
+          } else {
+            delete cart[name];
+          }
           saveState();
           render();
         };
         div.querySelector(".remove-all").onclick = () => {
+          if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
+            kitConfigs = kitConfigs.filter(k => k.name !== name);
+            renderKitSummaries();
+          }
           delete cart[name];
           saveState();
           render();
@@ -1018,9 +1056,15 @@
     // ===== ITEM HANDLERS =====
     function addToCart(type, name, qty, base, salePrice) {
       const cart = type === "buy" ? buyCart : sellCart;
-      if (cart[name]) cart[name].qty += qty;
-      else cart[name] = {qty, base, salePrice: salePrice ?? null};
+      if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
+        cart[name] = {qty: 1, base, salePrice: salePrice ?? null};
+      } else if (cart[name]) {
+        cart[name].qty += qty;
+      } else {
+        cart[name] = {qty, base, salePrice: salePrice ?? null};
+      }
       saveState();
+      toast(`${qty} x ${name} Added`);
       render();
     }
 
@@ -1181,7 +1225,8 @@
     };
     document.getElementById("calculateBtn").onclick = calculate;
     document.getElementById("clearAllBtn").onclick = () => {
-      buyCart = {}; sellCart = {}; saveState(); render();
+      buyCart = {}; sellCart = {}; kitConfigs = []; saveState(); render();
+      renderKitSummaries();
       toast("Carts cleared");
     };
     document.getElementById("clearRolesBtn").onclick = () => {
