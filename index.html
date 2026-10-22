@@ -52,6 +52,9 @@
       width: 100%;
       height: auto;
       display: block;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
     .header a { text-decoration: none; }
 
@@ -130,6 +133,7 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .item-btn:active, .cat-btn:active { transform: scale(0.97); background: #252525; }
+    .cat-btn { font-weight: 700; }
     .item-btn.role-turnin { border-color: var(--blue); }
 
     .summary {
@@ -138,9 +142,6 @@
       border-radius: var(--radius);
       border: 1px solid var(--border);
       overflow: hidden;
-      position: sticky;
-      bottom: 70px;
-      z-index: 50;
     }
     .summary-header {
       padding: 10px 14px;
@@ -336,7 +337,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="buy">Buy</button>
-    <button class="tab-btn" data-tab="sell" style="text-decoration:line-through;opacity:0.5;">Sell</button>
+    <button class="tab-btn" data-tab="sell">Sell</button>
   </div>
 
   <div class="content">
@@ -439,7 +440,7 @@
       Storage: [{name:"Car Tent",price:3500},{name:"Large Tent",price:2500},{name:"Canopy Tent",price:1600},{name:"Medium Tent",price:2000},{name:"Sea Chest",price:800},{name:"Barrel",price:1000,bulkOptions:[1,2,5]}],
       Building: [{name:"Box of Nails",price:6000,bulkOptions:[1,5]},{name:"Sharpening Stones",price:1000,bulkOptions:[1,5,10,20]},{name:"4Dial Combo Lock",price:1000,bulkOptions:[1,5,10]},{name:"Digital Code Lock",price:2500},{name:"Mortar Mix",price:7500},{name:"Hatchet",price:1000},{name:"Hacksaws",price:1000},{name:"Sledgehammer",price:1000},{name:"Pickaxe",price:1000},{name:"Field Shovel",price:1000},{name:"Crowbar",price:1000},{name:"Fireaxe",price:1000},{name:"Trowel",price:1000},{name:"Metal Wire",price:500,bulkOptions:[1,2,5]},{name:"Barbwire",price:1000,bulkOptions:[1,2,5]},{name:"Pliers",price:1000},{name:"Camo Netting",price:500},{name:"Rope",price:250,bulkOptions:[1,5,10]},{name:"Sheet Metal",price:3000}],
       Vehicles: {
-        Vehicles: [{name:"Trader Truck",price:200000},{name:"Trader Car",price:75000}],
+        Vehicles: [{name:"Trader Truck",price:200000,inStock:false},{name:"Trader Car",price:75000,inStock:false}],
         Repair: [{name:"Jerry Can",price:500},{name:"Blowtorch",price:500},{name:"Gas Canister",price:250},{name:"Tire Repair Kit",price:250},{name:"Battery Charger",price:500},{name:"Electrical Repair Kit",price:800}],
         Parts: [{name:"Spark Plug",price:200},{name:"Glow Plug",price:500},{name:"Car Battery",price:200},{name:"Truck Battery",price:400},{name:"Car Radiator",price:500},{name:"Headlight Bulb",price:100}],
         Tires: [{name:"Car Tires",price:500},{name:"Humvee Tires",price:800},{name:"Truck Tires",price:500},{name:"Motorbike Tires",price:300}]
@@ -849,8 +850,9 @@
     };
 
     function itemDisplayName(item) {
-      const name = item.salePrice != null ? `*${item.name}*` : item.name;
-      return item.inStock === false ? name : name;
+      let name = item.salePrice != null ? `*${item.name}*` : item.name;
+      if (item.inStock === false) name = `<s>${name}</s>`;
+      return name;
     }
 
     function styleOutOfStock(btn, item) {
@@ -924,7 +926,7 @@
             groups[cat].forEach(item => {
               const btn = document.createElement("button");
               btn.className = "item-btn";
-              btn.textContent = itemDisplayName(item);
+              btn.innerHTML = itemDisplayName(item);
               styleOutOfStock(btn, item);
               btn.onclick = () => handleBuyItem(item);
               grid.appendChild(btn);
@@ -943,7 +945,7 @@
         node.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
-          btn.textContent = itemDisplayName(item);
+          btn.innerHTML = itemDisplayName(item);
           styleOutOfStock(btn, item);
           btn.onclick = () => handleBuyItem(item);
           grid.appendChild(btn);
@@ -954,6 +956,10 @@
           const btn = document.createElement("button");
           btn.className = "cat-btn";
           btn.textContent = key;
+          if (node[key] && node[key]._outOfStock) {
+            btn.style.textDecoration = "line-through";
+            btn.style.opacity = "0.5";
+          }
           btn.onclick = () => {
             if (node[key] && node[key]._outOfStock) {
               toast("OUT OF STOCK");
@@ -991,7 +997,7 @@
           matches.forEach(item => {
             const btn = document.createElement("button");
             btn.className = "item-btn";
-            btn.textContent = itemDisplayName(item);
+            btn.innerHTML = itemDisplayName(item);
             btn.onclick = () => handleSellItem(item);
             grid.appendChild(btn);
           });
@@ -1016,7 +1022,7 @@
         items.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
-          btn.textContent = itemDisplayName(item);
+          btn.innerHTML = itemDisplayName(item);
           btn.onclick = () => handleSellItem(item);
           grid.appendChild(btn);
         });
