@@ -7,17 +7,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #1a120c;
-      --surface: #2a1f16;
-      --surface-2: #3d2e22;
-      --border: #5a4636;
-      --text: #f0e6d8;
-      --text-dim: #c4b09a;
+      --bg: #3d2b1c;
+      --surface: #5a4030;
+      --surface-2: #6e5240;
+      --border: #8a6d58;
+      --text: #fff8ee;
+      --text-dim: #e8d4c0;
       --accent: #c9a227;
       --accent-hover: #e0b84a;
-      --green: #7a9a4a;
-      --orange: #d48a3a;
-      --blue: #8aa4b8;
+      --green: #8fb84a;
+      --orange: #e89a3a;
+      --blue: #6ab0d4;
       --radius: 12px;
     }
 
@@ -27,7 +27,7 @@
       margin: 0;
       font-family: "Share Tech Mono", monospace;
       font-weight: 400;
-      background: #0f0c09;
+      background: #2a1c12;
       color: var(--text);
       line-height: 1.4;
       min-height: 100vh;
@@ -36,7 +36,7 @@
     .app {
       max-width: 420px;
       margin: 0 auto;
-      background: linear-gradient(180deg, #2a1f16 0%, #1a120c 100%);
+      background: linear-gradient(180deg, #5a4030 0%, #3d2b1c 100%);
       min-height: 100vh;
       position: relative;
       box-shadow: 0 0 40px rgba(0,0,0,0.6);
@@ -132,7 +132,7 @@
       justify-content: center;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
-    .item-btn:active, .cat-btn:active { transform: scale(0.97); background: #252525; }
+    .item-btn:active, .cat-btn:active { transform: scale(0.97); background: #5a4636; }
     .cat-btn { font-weight: 700; }
     .item-btn.role-turnin { border-color: var(--blue); }
 
@@ -173,6 +173,27 @@
     }
     .remove-one { background: var(--orange); color: #000; }
     .remove-all { background: #e53935; color: #fff; }
+
+    .order-code-box {
+      margin-top: 12px;
+      padding: 10px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .order-code-row { display: flex; gap: 6px; }
+    .order-code-row button, .order-code-row input, #orderCodeOut {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 12px;
+    }
+    .order-code-row button { cursor: pointer; font-weight: 600; }
+    #genCodeBtn { background: var(--accent); color: #1a120c; }
+    #loadCodeBtn { background: var(--blue); color: #1a120c; }
 
     .roles-section {
       margin-top: 20px;
@@ -325,6 +346,118 @@
     @media (min-width: 600px) {
       .roles-grid { grid-template-columns: 1fr 1fr; }
     }
+      /* ===== 935 Glass theme: visual layer only ===== */
+    :root {
+      --bg: #0e1016;
+      --surface: rgba(255,255,255,0.07);
+      --surface-2: rgba(255,255,255,0.10);
+      --border: rgba(255,255,255,0.14);
+      --text: #f5f5f7;
+      --text-dim: rgba(235,235,245,0.62);
+      --glass-hi: rgba(255,255,255,0.18);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+      background: #07080c;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app {
+      background:
+        radial-gradient(60% 40% at 15% 8%, rgba(201,162,39,0.38), transparent 70%),
+        radial-gradient(55% 45% at 95% 30%, rgba(88,86,214,0.40), transparent 70%),
+        radial-gradient(60% 50% at 10% 75%, rgba(10,132,255,0.28), transparent 70%),
+        radial-gradient(50% 40% at 90% 95%, rgba(232,120,58,0.30), transparent 70%),
+        linear-gradient(180deg, #151826 0%, #0c0e15 100%);
+      background-attachment: fixed;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 30px 80px rgba(0,0,0,0.7);
+    }
+    .header { background: transparent; padding: 10px 10px 0; }
+    .header img { border: 1px solid rgba(255,255,255,0.18); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+    /* frosted glass recipe shared by panels and controls */
+    .tabs, .search-box, .item-btn, .cat-btn, .role-btn, .summary, .order-code-box,
+    .order-code-row input, #orderCodeOut, .bottom-bar, .kit-box, .toast {
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+    }
+
+    /* macOS segmented control */
+    .tabs {
+      margin: 12px 14px 0; padding: 3px; gap: 3px;
+      background: rgba(118,118,128,0.24); border-radius: 11px; border-bottom: none;
+      box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.08);
+    }
+    .tab-btn { background: transparent; border: none; border-radius: 8px; color: var(--text); font-weight: 600; }
+    .tab-btn.active {
+      background: var(--accent); color: #1a1404;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+
+    .search-box {
+      background: rgba(118,118,128,0.22); border: 1px solid transparent; border-radius: 10px;
+    }
+    .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201,162,39,0.30); }
+    input::placeholder { color: var(--text-dim) !important; opacity: 1; }
+
+    .breadcrumb, .roles-title {
+      color: var(--text-dim); font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+    }
+
+    /* glass tiles */
+    .item-btn, .cat-btn, .role-btn {
+      background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.12);
+      border-top-color: rgba(255,255,255,0.22);
+      border-radius: 14px;
+      color: var(--text);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10);
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .cat-btn { font-weight: 600; }
+    .item-btn:hover, .cat-btn:hover, .role-btn:hover {
+      background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.09));
+    }
+    .item-btn:active, .cat-btn:active, .role-btn:active {
+      transform: scale(0.97); background: rgba(255,255,255,0.05);
+    }
+    .item-btn.role-turnin { border-color: rgba(106,176,212,0.6); }
+    .role-btn.active {
+      background: linear-gradient(180deg, rgba(201,162,39,0.32), rgba(201,162,39,0.16));
+      border-color: rgba(201,162,39,0.75); color: #f3d77a;
+      box-shadow: 0 0 0 1px rgba(201,162,39,0.25), 0 6px 18px rgba(201,162,39,0.18);
+    }
+
+    /* cart and order-code cards */
+    .summary, .order-code-box {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .summary-header { background: transparent; border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: 600; }
+    .summary-item { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .order-code-row input, #orderCodeOut {
+      background: rgba(118,118,128,0.22); border: 1px solid transparent; color: var(--text); border-radius: 8px;
+    }
+    .order-code-row button { border-radius: 8px; border: none; }
+    #clearCodeBtn, #copyCodeBtn { background: rgba(118,118,128,0.3); color: var(--text); }
+    #genCodeBtn { background: var(--accent); color: #1a1404; }
+    #loadCodeBtn { background: #0a84ff; color: #fff; }
+
+    /* bottom bar: translucent toolbar */
+    .bottom-bar {
+      background: rgba(20,22,30,0.55);
+      border-top: 0.5px solid rgba(255,255,255,0.14);
+    }
+    .bottom-bar button { border-radius: 12px; border: none; font-weight: 600; white-space: nowrap; }
+    #calculateBtn { background: #30d158; color: #04140a; box-shadow: 0 6px 18px rgba(48,209,88,0.35); }
+    #clearAllBtn { background: rgba(255,69,58,0.85); color: #fff; }
+    #clearRolesBtn { background: rgba(118,118,128,0.35); color: var(--text); }
+
+    .kit-panel { background: rgba(0,0,0,0.45); }
+    .kit-box { background: rgba(30,32,42,0.72); border: 1px solid rgba(255,255,255,0.14); border-radius: 18px; }
+    .kit-row select { background: rgba(118,118,128,0.24); color: var(--text); border: 1px solid transparent; border-radius: 8px; }
+    .toast { background: rgba(30,32,42,0.8); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; }
   </style>
 </head>
 <body>
@@ -356,6 +489,19 @@
     <div class="summary" id="buySummaryWrap">
       <div class="summary-header">Buy Cart</div>
       <div id="buySummary"></div>
+    </div>
+
+    <div class="order-code-box" id="orderCodeBox">
+      <div class="order-code-row">
+        <button id="genCodeBtn">Generate Order Code</button>
+        <button id="copyCodeBtn" style="display:none;flex:0;padding:8px 12px;" title="Copy">📋</button>
+        <button id="clearCodeBtn" style="flex:0;padding:8px 12px;" title="Clear">✕</button>
+      </div>
+      <input type="text" id="orderCodeOut" readonly placeholder="Code appears here..." style="display:none;">
+      <div class="order-code-row" style="margin-top:8px;">
+        <input type="text" id="orderCodeIn" placeholder="Paste order code...">
+        <button id="loadCodeBtn">Load</button>
+      </div>
     </div>
 
     <div class="summary" id="sellSummaryWrap" style="display:none;">
@@ -419,7 +565,7 @@
       "Clothing": {
         Headgear: [{name:"Assault Helmet",price:850},{name:"Assault Visor",price:150},{name:"Tactical Helm",price:600},{name:"NV Goggles",price:2500},{name:"NVG Strap",price:300},{name:"Ballistic Helmet",price:800},{name:"Desert Helmet",price:800},{name:"Boonie Hat",price:400},{name:"Baseball Cap",price:400}],
         Jackets: [{name:"Desert CUU",price:600},{name:"Desert Hunter",price:600},{name:"FNO Jacket",price:750},{name:"ORM Jacket",price:750},{name:"T-Shirt",price:250}],
-        Backpacks: [{name:"Assault Backpack",price:500},{name:"Canvas Bag",price:600},{name:"Combat Backpack",price:600},{name:"Tactical Backpack",price:750}],
+        Backpacks: [{name:"Assault Backpack",price:500},{name:"Canvas Bag",price:600},{name:"Combat Backpack",price:600},{name:"Tactical Backpack",price:750},{name:"Army Pouch",price:600}],
         "Plate Carriers": [{name:"Plate Carrier (Black)",price:2000},{name:"Plate Carrier (Desert)",price:2000},{name:"Pouches",price:250},{name:"Holster",price:50}],
         Pants: [{name:"Capri Pants",price:500},{name:"Desert CUU",price:600},{name:"Desert Hunter",price:600},{name:"FNO Pants",price:750},{name:"ORM Pants",price:750}],
         "Misc Clothing": [{name:"Gloves",price:250},{name:"Sheath",price:100},{name:"Belt",price:100},{name:"Hip Pack",price:300}],
@@ -440,10 +586,10 @@
       Storage: [{name:"Car Tent",price:3500},{name:"Large Tent",price:2500},{name:"Canopy Tent",price:1600},{name:"Medium Tent",price:2000},{name:"Sea Chest",price:800},{name:"Barrel",price:1000,bulkOptions:[1,2,5]}],
       Building: [{name:"Box of Nails",price:6000,bulkOptions:[1,5]},{name:"Sharpening Stones",price:1000,bulkOptions:[1,5,10,20]},{name:"4Dial Combo Lock",price:1000,bulkOptions:[1,5,10]},{name:"Digital Code Lock",price:2500},{name:"Mortar Mix",price:7500},{name:"Hatchet",price:1000},{name:"Hacksaws",price:1000},{name:"Sledgehammer",price:1000},{name:"Pickaxe",price:1000},{name:"Field Shovel",price:1000},{name:"Crowbar",price:1000},{name:"Fireaxe",price:1000},{name:"Trowel",price:1000},{name:"Metal Wire",price:500,bulkOptions:[1,2,5]},{name:"Barbwire",price:1000,bulkOptions:[1,2,5]},{name:"Pliers",price:1000},{name:"Camo Netting",price:500},{name:"Rope",price:250,bulkOptions:[1,5,10]},{name:"Sheet Metal",price:3000}],
       Vehicles: {
-        Vehicles: [{name:"Trader Truck",price:200000},{name:"Trader Car",price:75000,inStock:false}],
+        Vehicles: [{name:"Trader Truck",price:250000},{name:"Trader Car",price:75000,inStock:false}],
         Repair: [{name:"Jerry Can",price:3000},{name:"Blowtorch",price:500},{name:"Gas Canister",price:250},{name:"Tire Repair Kit",price:250},{name:"Battery Charger",price:500},{name:"Electrical Repair Kit",price:800}],
         Parts: [{name:"Spark Plug",price:200},{name:"Glow Plug",price:500},{name:"Car Battery",price:200},{name:"Truck Battery",price:400},{name:"Car Radiator",price:500},{name:"Headlight Bulb",price:100}],
-        Tires: [{name:"Car Tires",price:500},{name:"Humvee Tires",price:800},{name:"Truck Tires",price:500},{name:"Motorbike Tires",price:300}]
+        Tires: [{name:"Car Tires",price:500},{name:"Humvee Tires",price:800},{name:"Moped Tires",price:800},{name:"Truck Tires",price:500},{name:"Motorbike Tires",price:300}]
       },
       "Player Kit": [{name:"Player Kit",price:16000},{name:"Ghillie Kit",price:16000}]
     };
@@ -1290,6 +1436,45 @@
       searchTerm = e.target.value.toLowerCase().trim();
       render();
     };
+    document.getElementById("genCodeBtn").onclick = () => {
+      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); return; }
+      const data = JSON.stringify(buyCart);
+      const code = btoa(unescape(encodeURIComponent(data)));
+      const out = document.getElementById("orderCodeOut");
+      out.value = code;
+      out.style.display = "block";
+      document.getElementById("copyCodeBtn").style.display = "block";
+      toast("Code generated");
+    };
+    document.getElementById("copyCodeBtn").onclick = () => {
+      const out = document.getElementById("orderCodeOut");
+      out.select();
+      navigator.clipboard.writeText(out.value).then(() => toast("Copied!")).catch(() => toast("Copy failed"));
+    };
+    document.getElementById("loadCodeBtn").onclick = () => {
+      const code = document.getElementById("orderCodeIn").value.trim();
+      if (!code) { toast("Paste a code first"); return; }
+      try {
+        const data = decodeURIComponent(escape(atob(code)));
+        const loaded = JSON.parse(data);
+        buyCart = loaded;
+        saveState();
+        renderSummary("buy");
+        toast("Order loaded");
+      } catch(e) {
+        toast("Invalid code");
+      }
+    };
+    document.getElementById("clearCodeBtn").onclick = () => {
+      const out = document.getElementById("orderCodeOut");
+      const copyBtn = document.getElementById("copyCodeBtn");
+      const inp = document.getElementById("orderCodeIn");
+      if (out) { out.value = ""; out.style.display = "none"; }
+      if (copyBtn) copyBtn.style.display = "none";
+      if (inp) inp.value = "";
+      toast("Code cleared");
+    };
+
     document.getElementById("calculateBtn").onclick = calculate;
     document.getElementById("clearAllBtn").onclick = () => {
       buyCart = {}; sellCart = {}; kitConfigs = []; saveState(); render();
