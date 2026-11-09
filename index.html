@@ -343,6 +343,7 @@
     }
     .kit-summary-box h4 { margin: 0 0 6px; font-size: 13px; }
     .kit-omitted { text-decoration: line-through; opacity: 0.55; }
+    .kit-hint { font-size: 12px; color: var(--text-dim); margin: -2px 0 8px 108px; }
 
     @media (min-width: 600px) {
       .roles-grid { grid-template-columns: 1fr 1fr; }
@@ -497,7 +498,7 @@
   </div>
 
   <div class="content">
-    <input type="search" class="search-box" id="search" placeholder="Search items...">
+    <input type="search" class="search-box" id="search" placeholder="Search items..." autocomplete="off">
 
     <div id="buyPanel">
       <div class="breadcrumb" id="buyBreadcrumb"></div>
@@ -520,9 +521,9 @@
         <button id="copyCodeBtn" style="display:none;flex:0;padding:8px 12px;" title="Copy">📋</button>
         <button id="clearCodeBtn" style="flex:0;padding:8px 12px;" title="Clear">✕</button>
       </div>
-      <input type="text" id="orderCodeOut" readonly placeholder="Code appears here..." style="display:none;">
+      <input type="text" id="orderCodeOut" readonly placeholder="Code appears here..." style="display:none;" autocomplete="off">
       <div class="order-code-row" style="margin-top:8px;">
-        <input type="text" id="orderCodeIn" placeholder="Paste order code...">
+        <input type="text" id="orderCodeIn" placeholder="Paste order code..." autocomplete="off">
         <button id="loadCodeBtn">Load</button>
       </div>
     </div>
@@ -595,7 +596,7 @@
         Boots: [{name:"Assault Boots",price:500},{name:"Sneakers",price:300},{name:"Tan Jungle Boots",price:400}],
         Gloves: [{name:"Tan Tactical",price:350},{name:"Black Tactical",price:350}],
         Ghillie: [{name:"Ghillie Suit",price:2000},{name:"Ghillie Hood",price:750},{name:"Ghillie Rifle Wrap",price:500}],
-        Face: [{name:"Keffiyeh",price:500}],
+        Face: [{name:"Keffiyeh",price:500},{name:"Bandana",price:500}],
         Goggles: [{name:"Dust Goggles",price:500},{name:"Ski Goggles",price:500},{name:"Tac Goggles",price:500}]
       },
       "Meds & Tools": {
@@ -711,8 +712,16 @@
     const LEGACY_NAMES = {"AK Supressor": "AK Suppressor", "Desert CUU": "CUU Jacket", "Desert Hunter": "Hunter Jacket"};
     const LEGACY_BY_SLOT = {jacket: {"Desert CUU": "CUU Jacket", "Desert Hunter": "Hunter Jacket"}, pants: {"Desert CUU": "CUU Pants", "Desert Hunter": "Hunter Pants"}};
     const TRADER_CHOICE = "- -";   // shown for any empty / unselected kit slot
+    // An NVG on the head (strap or NV goggles) takes the goggle slot.
+    function headHasNVG(v) { return /NVG|NV Goggles/i.test(String(v || "")); }
     function migrateKit(k) {
       if (!k || typeof k !== "object") return k;
+      // Older kits had Bandana/Keffiyeh in the goggle slot and no Face slot.
+      if (k.goggles && typeof k.goggles === "object" && (k.goggles.item === "Bandana" || k.goggles.item === "Keffiyeh")) {
+        if (!k.face || !k.face.item || k.face.item === "- -" || k.face.item === "(select)") k.face = { item: k.goggles.item };
+        k.goggles = { item: "- -" };
+      }
+      if ((k.helmet || k.goggles) && !k.face) k.face = { item: "- -" };
       Object.keys(k).forEach(slot => {
         const v = k[slot];
         if (!v || typeof v !== "object" || typeof v.item !== "string") return;
@@ -720,8 +729,10 @@
         if (bySlot) v.item = bySlot;
         else if (LEGACY_NAMES[v.item]) v.item = LEGACY_NAMES[v.item];
         if (v.item === "(select)" || v.item === "- -" || v.item === "" || v.item === "Trader's choice") v.item = TRADER_CHOICE;
+        if (slot === "drink" && (v.item === "Filtering Bottle" || v.item === TRADER_CHOICE)) v.item = "Canteen";   // kits now use Canteen only
         if ("omitted" in v) v.omitted = v.omitted === true;   // display-only flag, kept through codes and reloads
       });
+      if (k.helmet && headHasNVG(k.helmet.item) && k.goggles) k.goggles = { item: TRADER_CHOICE };
       return k;
     }
     function migrateCart(cart) {
@@ -756,15 +767,16 @@
       {key:"mag2", label:"Ammo/Mag ×2", items:["- -","40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag","12GA Buck","308 WIN","Bolts"]},
       {key:"suppressor2", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Suppressor","Bottle Suppressor"]},
       {key:"plate", label:"Plate Carrier", items:["(select)","Plate Carrier (Black)","Plate Carrier (Desert)"]},
-      {key:"helmet", label:"Helmet", items:["(select)","Tactical Helm + NV Goggles","Assault Helmet + NVG Strap","Ballistic Helmet + NVG Strap","Desert Helmet + NVG Strap","Boonie Hat + NVG Strap","Baseball Cap + NVG Strap","Ghillie Hood + NVG Strap"]},
+      {key:"helmet", label:"Head", items:["(select)","Tactical Helm + NV Goggles","Assault Helmet + NVG Strap","Ballistic Helmet + NVG Strap","Desert Helmet + NVG Strap","Boonie Hat + NVG Strap","Baseball Cap + NVG Strap","Ghillie Hood + NVG Strap","Keffiyeh","Bandana"]},
       {key:"jacket", label:"Jacket", items:["(select)","CUU Jacket","Hunter Jacket","FNO Jacket","ORM Jacket","T-Shirt"]},
       {key:"pants", label:"Pants", items:["(select)","Capri Pants","CUU Pants","Hunter Pants","FNO Pants","ORM Pants"]},
       {key:"boots", label:"Boots", items:["(select)","Assault Boots","Sneakers","Tan Jungle Boots"]},
       {key:"backpack", label:"Backpack", items:["(select)","Assault Backpack","Canvas Bag","Combat Backpack","Tactical Backpack","Ghillie Suit"]},
       {key:"gloves", label:"Gloves", items:["(select)","Tan Tactical","Black Tactical"]},
       {key:"goggles", label:"Goggles", items:["(select)","Dust Goggles","Ski Goggles","Tac Goggles"]},
+      {key:"face", label:"Face", items:["(select)","Bandana","Keffiyeh"]},
       {key:"belt", label:"Belt/Hip", items:["Belt + Sheath","Hip Pack"]},
-      {key:"drink", label:"Drink", items:["Canteen","Filtering Bottle"]}
+      {key:"drink", label:"Drink", items:["Canteen"], fixed:true}   // Canteen only (Filtering Bottle stays in the shop, not in kits)
     ];
 
     const kitFixed = [
@@ -791,7 +803,7 @@
       // Single kit-level token toggle
       const tokenRow = document.createElement("div");
       tokenRow.className = "kit-row";
-      tokenRow.innerHTML = `<label for="kitTokenToggle" style="flex:1;color:var(--accent);font-weight:600;">Use Kit Token</label><label class="kit-token kit-include"><input type="checkbox" id="kitTokenToggle"> Token</label>`;
+      tokenRow.innerHTML = `<label for="kitTokenToggle" style="flex:1;color:var(--accent);font-weight:600;">Use Kit Token</label><label class="kit-token kit-include"><input type="checkbox" id="kitTokenToggle" autocomplete="off"> Token</label>`;
       fields.appendChild(tokenRow);
 
       kitSlots.forEach(slot => {
@@ -799,7 +811,7 @@
         const row = document.createElement("div");
         row.className = "kit-row";
         const opts = slot.items.map(i => `<option value="${i}">${i === "(select)" ? TRADER_CHOICE : i}</option>`).join("");
-        row.innerHTML = `<label>${slot.label}</label><select data-slot="${slot.key}">${opts}</select>`;
+        row.innerHTML = `<label>${slot.label}</label><select data-slot="${slot.key}" autocomplete="off"${slot.fixed ? " disabled" : ""}>${opts}</select>`;
         fields.appendChild(row);
       });
 
@@ -819,12 +831,28 @@
       kitFixed.forEach(f => {
         const row = document.createElement("div");
         row.className = "kit-row";
-        row.innerHTML = `<label style="flex:1;">${f.label}</label><label class="kit-token kit-include"><input type="checkbox" data-omit="${f.key}" checked> Include</label>`;
+        row.innerHTML = `<label style="flex:1;">${f.label}</label><label class="kit-token kit-include"><input type="checkbox" data-omit="${f.key}" checked autocomplete="off"> Include</label>`;
         fields.appendChild(row);
       });
 
       document.getElementById("kitPanel").dataset.ghillie = isGhillie ? "1" : "0";
       document.getElementById("kitPanel").style.display = "flex";
+
+      // NVG rule: a Head choice with an NVG takes the goggle slot
+      const headSel = fields.querySelector('select[data-slot="helmet"]');
+      const gogSel = fields.querySelector('select[data-slot="goggles"]');
+      if (headSel && gogSel) {
+        const hint = document.createElement("div");
+        hint.className = "kit-hint"; hint.id = "nvgHint"; hint.style.display = "none";
+        hint.textContent = "Goggles: - - (NVG strap uses the goggle slot)";
+        gogSel.closest(".kit-row").after(hint);
+        headSel.addEventListener("change", () => {
+          const locked = headHasNVG(headSel.value);
+          if (locked) gogSel.value = "(select)";
+          gogSel.disabled = locked;
+          hint.style.display = locked ? "block" : "none";
+        });
+      }
 
       // Initially disable mag/suppressor/scope until weapon chosen
       ["1","2"].forEach(n => {
@@ -920,6 +948,7 @@
           "R12": { mag: "12GA Buck", suppressor: "None" },
           "Crossbow": { mag: "Bolts", suppressor: "None" }
         };
+        if (config.helmet && headHasNVG(config.helmet.item)) config.goggles = { item: TRADER_CHOICE };
         ["1","2"].forEach(n => {
           const w = config["weapon"+n];
           if (w && overrides[w.item]) {
@@ -959,7 +988,10 @@
       if (kitConfigs.length === 0) { box.style.display = "none"; return; }
       box.style.display = "block";
       box.innerHTML = "<h4>Kit Definitions</h4>" + kitConfigs.map((cfg, i) => {
-        const selLines = kitSlots.filter(s => cfg[s.key]).map(s => `<div>${esc(s.label)}: ${esc(cfg[s.key].item)}</div>`).join("");
+        const selLines = kitSlots.filter(s => cfg[s.key]).map(s => {
+          const nvgNote = s.key === "goggles" && cfg.helmet && headHasNVG(cfg.helmet.item) ? " (NVG strap)" : "";
+          return `<div>${esc(s.label)}: ${esc(cfg[s.key].item)}${nvgNote}</div>`;
+        }).join("");
         const ammoLine = "";
         // Default-included items (Include checkboxes) are taken by everyone, so only omitted ones are listed, struck through.
         // Display only: price, token and the stored omitted flags are unaffected.
@@ -994,22 +1026,29 @@
       return 10000 * qty;
     }
 
-    function saveState() {
+    // A page refresh starts completely fresh: nothing is saved between loads.
+    // saveState() is kept as a no-op so existing call sites stay unchanged.
+    function saveState() {}
+    function clearStoredState() {
       try {
-        localStorage.setItem("935calc", JSON.stringify({buyCart, sellCart, activeRoles: [...activeRoles], kitConfigs}));
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("935calc")) localStorage.removeItem(k);   // wipes state saved by older versions
+        }
       } catch(e) {}
     }
-    function loadState() {
-      try {
-        const s = JSON.parse(localStorage.getItem("935calc") || "{}");
-        buyCart = s.buyCart || {};
-        sellCart = s.sellCart || {};
-        activeRoles = new Set((s.activeRoles || []).filter(r => roles[r]));
-        if (!buyCart || typeof buyCart !== "object" || Array.isArray(buyCart)) buyCart = {};
-        if (!sellCart || typeof sellCart !== "object" || Array.isArray(sellCart)) sellCart = {};
-        kitConfigs = (s.kitConfigs || []).map(migrateKit);
-        buyCart = migrateCart(buyCart);
-      } catch(e) {}
+    function resetToFresh() {
+      clearStoredState();
+      currentTab = "buy"; buyPath = []; sellPath = [];
+      buyCart = {}; sellCart = {}; kitConfigs = []; activeRoles = new Set(); searchTerm = "";
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "buy"));
+      ["search", "orderCodeIn", "orderCodeOut"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+      const out = document.getElementById("orderCodeOut"); if (out) out.style.display = "none";
+      const copyBtn = document.getElementById("copyCodeBtn"); if (copyBtn) copyBtn.style.display = "none";
+      const kp = document.getElementById("kitPanel"); if (kp) { kp.style.display = "none"; delete kp.dataset.ghillie; }
+      const kf = document.getElementById("kitFields"); if (kf) kf.innerHTML = "";   // kit form is rebuilt fresh on open
+      const t = document.getElementById("toast"); if (t) { t.classList.remove("show"); t.textContent = ""; }
+      ["buy", "sell"].forEach(type => { const h = document.querySelector(`#${type}SummaryWrap .summary-header`); if (h) h.textContent = type === "buy" ? "Buy Cart" : "Sell Cart"; });
     }
 
     // ===== RENDER =====
@@ -1510,7 +1549,7 @@
     }
 
     // ===== INIT =====
-    loadState();
+    resetToFresh();
     document.querySelectorAll(".tab-btn").forEach(btn => {
       btn.onclick = () => {
         currentTab = btn.dataset.tab;
@@ -1601,6 +1640,9 @@
 
     render();
     renderKitSummaries();
+    // pageshow also fires when the page comes back from the back/forward cache and after the browser
+    // restores form fields, so reset again there.
+    window.addEventListener("pageshow", () => { resetToFresh(); render(); renderKitSummaries(); });
   </script>
 </body>
 </html>
