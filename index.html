@@ -342,6 +342,7 @@
       border: 1px dashed var(--border);
     }
     .kit-summary-box h4 { margin: 0 0 6px; font-size: 13px; }
+    .kit-omitted { text-decoration: line-through; opacity: 0.55; }
 
     @media (min-width: 600px) {
       .roles-grid { grid-template-columns: 1fr 1fr; }
@@ -458,6 +459,28 @@
     .kit-box { background: rgba(30,32,42,0.72); border: 1px solid rgba(255,255,255,0.14); border-radius: 18px; }
     .kit-row select { background: rgba(118,118,128,0.24); color: var(--text); border: 1px solid transparent; border-radius: 8px; }
     .toast { background: rgba(30,32,42,0.8); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; }
+
+    /* round 2: cart stepper, raised toast, phone tap targets */
+    .add-one { background: #30d158; color: #04140a; }
+    .summary-item .price { font-variant-numeric: tabular-nums; }
+    /* toast sits at the top so it never covers cart rows above the bottom bar */
+    .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 10px); }
+    .kit-include { cursor: pointer; }
+    @media (max-width: 600px), (pointer: coarse) {
+      .tab-btn { min-height: 44px; }
+      .role-btn { min-height: 44px; }
+      .summary-item { padding: 6px 10px 6px 14px; }
+      .summary-item .controls { gap: 4px; }
+      .summary-item button { width: 44px; height: 44px; border-radius: 10px; font-size: 18px; }
+      .summary-item .price { margin: 0 6px; }
+      .order-code-row button, .order-code-row input, #orderCodeOut { min-height: 44px; font-size: 14px; }
+      #copyCodeBtn, #clearCodeBtn { min-width: 44px; }
+      .kit-include { min-height: 44px; min-width: 88px; justify-content: flex-end; padding: 0 4px; font-size: 13px; }
+      .kit-include input { width: 22px; height: 22px; accent-color: var(--accent); }
+      .kit-row { margin-bottom: 4px; }
+      .kit-row select { min-height: 44px; font-size: 15px; min-width: 0; width: 0; text-overflow: ellipsis; }
+      .kit-actions button { min-height: 44px; }
+    }
   </style>
 </head>
 <body>
@@ -545,7 +568,7 @@
           {name:"SCAR-H",price:3000},{name:"SCAR-L",price:3000},{name:"Tundra",price:2500},{name:"Combat Knife",price:250}
         ],
         Attachments: {
-          Suppressors: [{name:"AK Supressor",price:1000},{name:"M4 Suppressor",price:1000},{name:"Bottle Suppressor",price:100}]
+          Suppressors: [{name:"AK Suppressor",price:1000},{name:"M4 Suppressor",price:1000},{name:"Bottle Suppressor",price:100}]
         },
         Optics: {
           "Short Range": [{name:"BUIS Optic",price:300},{name:"Holo Optic",price:500},{name:"Kobra Sights",price:300},{name:"PSO-1 Scope",price:300},{name:"Red Dot (Baraka)",price:300}],
@@ -564,10 +587,10 @@
       },
       "Clothing": {
         Headgear: [{name:"Assault Helmet",price:850},{name:"Assault Visor",price:150},{name:"Tactical Helm",price:600},{name:"NV Goggles",price:2500},{name:"NVG Strap",price:300},{name:"Ballistic Helmet",price:800},{name:"Desert Helmet",price:800},{name:"Boonie Hat",price:400},{name:"Baseball Cap",price:400}],
-        Jackets: [{name:"Desert CUU",price:600},{name:"Desert Hunter",price:600},{name:"FNO Jacket",price:750},{name:"ORM Jacket",price:750},{name:"T-Shirt",price:250}],
+        Jackets: [{name:"CUU Jacket",price:600},{name:"Hunter Jacket",price:600},{name:"FNO Jacket",price:750},{name:"ORM Jacket",price:750},{name:"T-Shirt",price:250}],
         Backpacks: [{name:"Assault Backpack",price:500},{name:"Canvas Bag",price:600},{name:"Combat Backpack",price:600},{name:"Tactical Backpack",price:750},{name:"Army Pouch",price:600}],
         "Plate Carriers": [{name:"Plate Carrier (Black)",price:2000},{name:"Plate Carrier (Desert)",price:2000},{name:"Pouches",price:250},{name:"Holster",price:50}],
-        Pants: [{name:"Capri Pants",price:500},{name:"Desert CUU",price:600},{name:"Desert Hunter",price:600},{name:"FNO Pants",price:750},{name:"ORM Pants",price:750}],
+        Pants: [{name:"Capri Pants",price:500},{name:"CUU Pants",price:600},{name:"Hunter Pants",price:600},{name:"FNO Pants",price:750},{name:"ORM Pants",price:750}],
         "Misc Clothing": [{name:"Gloves",price:250},{name:"Sheath",price:100},{name:"Belt",price:100},{name:"Hip Pack",price:300}],
         Boots: [{name:"Assault Boots",price:500},{name:"Sneakers",price:300},{name:"Tan Jungle Boots",price:400}],
         Gloves: [{name:"Tan Tactical",price:350},{name:"Black Tactical",price:350}],
@@ -618,6 +641,7 @@
           }
         });
       } else if (node && typeof node === "object") {
+        if (node._outOfStock && Array.isArray(node.items)) node.items.forEach(i => { i.inStock = false; });
         Object.keys(node).forEach(k => {
           if (!k.startsWith("_")) normalizeItems(node[k]);
         });
@@ -650,11 +674,11 @@
       "Build-A-Bear":{description:"Turn in 5 sets of teddy bears at one time (four different colors = a set).",bonuses:{"Teddy Bear Set":5000}},
       "Click Click Boom":{description:"Kill an enemy player with a claymore.",discounts:{"Grenade":20,"POX Vial":20,"Flashbangs":20,"Land Mines":20,"Claymores":20,"Plastic Explosives":20,"IED Container":20}},
       "Daryl Dixon":{description:"Kill a fully kitted player with a crossbow.",discounts:{"Crossbow":50,"Crossbow Bolts":50}},
-      "Deadshot":{description:"Get a sniper kill at a range of over 800m.",discounts:{"Tundra":50,"PU Scope":50,"Hunting Scope":50,"MKII Optic":50,"10Rd VSD Mag":50,".308 WIN":50,"Rangefinder":50}},
+      "Deadshot":{description:"Get a sniper kill at a range of over 800m.",discounts:{"Tundra":50,"PU Scope":50,"Hunting Scope":50,"MKII Optic":50,"10Rd VSD Mag":50,"308 WIN":50,"Rangefinder":50}},
       "Dr. Greenthumb":{description:"Sell 1200 pieces of Cannabis in a single trip.",bonuses:{"Cannabis":30}},
       "Hat Trick":{description:"Sell 50 Hockey Sticks to Trader.",bonuses:{"Hockey Stick":1500}},
-      "Head Hunter":{description:"Hit 100 kills by headshot.",discounts:{"5.56x45":50,".308 WIN":50,"7.62x39":50,"12GA Buck":50}},
-      "Hotshot":{description:"Get a sniper kill at a range of over 400m.",discounts:{"Tundra":25,"PU Scope":25,"Hunting Scope":25,"MKII Optic":25,"10Rd VSD Mag":25,".308 WIN":25,"Rangefinder":25}},
+      "Head Hunter":{description:"Hit 100 kills by headshot.",discounts:{"5.56x45":50,"308 WIN":50,"7.62x39":50,"12GA Buck":50}},
+      "Hotshot":{description:"Get a sniper kill at a range of over 400m.",discounts:{"Tundra":25,"PU Scope":25,"Hunting Scope":25,"MKII Optic":25,"10Rd VSD Mag":25,"308 WIN":25,"Rangefinder":25}},
       "Julius Caesar":{description:"Collect four sets of all four Leaf Crowns.",bonuses:{"Leaf Crown Set":5000}},
       "Kamikaze":{description:"Blow yourself up, killing 2 enemy players.",discounts:{"Grenade":25}},
       "Librarian":{description:"Sell 350 books and 1 bible in one sale.",bonuses:{"Books":500}},
@@ -664,9 +688,9 @@
       "The Milkman":{description:"Turn in 50 Powdered Milk to Trader.",discounts:{"Saline Bag":50,"Canteen":50}},
       "Negan":{description:"Kill a fully geared player with a barbed or nail bat.",discounts:{"Box of Nails":20}},
       "Pathfinder":{description:"Turn in 50 Compasses to Trader",bonuses:{"Compass":1000},discounts:{"Rangefinder":100,"Tourist Map":100}},
-      "Roadkill":{description:"Flatten a player with a vehicle at a speed of 70km/h or more.",discounts:{"Car Radiator":25,"Car Battery":25,"Truck Battery":25,"Spark Plug":25,"Glow Plug":25,"Car Tires":25,"Humvee Tires":25,"Humvee":10,"Truck Tires":25}},
+      "Roadkill":{description:"Flatten a player with a vehicle at a speed of 70km/h or more.",discounts:{"Car Radiator":25,"Car Battery":25,"Truck Battery":25,"Spark Plug":25,"Glow Plug":25,"Car Tires":25,"Humvee Tires":25,"Moped Tires":25,"Truck Tires":25}},
       "Rose Reaper":{description:"Turn in 30 Pink Derringers to Trader.",bonuses:{"Pink Derringer":6500}},
-      "The Vaccinator":{description:"Turn in 100 Syringes to Trader.",bonuses:{"Syringe":1500},discounts:{"NBC Filters":50,"POX Antidote":50}},
+      "The Vaccinator":{description:"Turn in 100 Syringes to Trader.",bonuses:{"Syringe":1500},discounts:{"NBC Filters":50,"PoX Antidote":50}},
       "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{}}
     };
 
@@ -680,6 +704,39 @@
     let searchTerm = "";
 
     // ===== HELPERS =====
+    function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+    function fmt(n) { return Math.round(Number(n) || 0).toLocaleString("en-US"); }
+    const ROADKILL_EXCLUDED = new Set(["Trader Truck", "Trader Car"]);
+    // Old names -> new names. Old carts/codes can't tell jacket from pants, so they map to the jacket.
+    const LEGACY_NAMES = {"AK Supressor": "AK Suppressor", "Desert CUU": "CUU Jacket", "Desert Hunter": "Hunter Jacket"};
+    const LEGACY_BY_SLOT = {jacket: {"Desert CUU": "CUU Jacket", "Desert Hunter": "Hunter Jacket"}, pants: {"Desert CUU": "CUU Pants", "Desert Hunter": "Hunter Pants"}};
+    const TRADER_CHOICE = "- -";   // shown for any empty / unselected kit slot
+    function migrateKit(k) {
+      if (!k || typeof k !== "object") return k;
+      Object.keys(k).forEach(slot => {
+        const v = k[slot];
+        if (!v || typeof v !== "object" || typeof v.item !== "string") return;
+        const bySlot = LEGACY_BY_SLOT[slot] && LEGACY_BY_SLOT[slot][v.item];
+        if (bySlot) v.item = bySlot;
+        else if (LEGACY_NAMES[v.item]) v.item = LEGACY_NAMES[v.item];
+        if (v.item === "(select)" || v.item === "- -" || v.item === "" || v.item === "Trader's choice") v.item = TRADER_CHOICE;
+        if ("omitted" in v) v.omitted = v.omitted === true;   // display-only flag, kept through codes and reloads
+      });
+      return k;
+    }
+    function migrateCart(cart) {
+      const out = {};
+      Object.entries(cart || {}).forEach(([name, v]) => {
+        const nn = LEGACY_NAMES[name] || name;
+        if (out[nn] && v && out[nn].base === v.base) out[nn].qty += v.qty; else out[nn] = v;
+      });
+      return out;
+    }
+    function catalogItem(type, name) {
+      if (type === "buy") return flattenBuyItems(buyitems).find(i => i && i.name === name) || null;
+      return Object.values(sellitems).flat().find(i => i.name === name) || null;
+    }
+    function isKitName(n) { return /^(Player|Ghillie) Kit \d+$/.test(n); }
     function toast(msg) {
       const t = document.getElementById("toast");
       t.textContent = msg;
@@ -693,15 +750,15 @@
       {key:"weapon1", label:"Weapon 1", items:["(select)","Aug AX","Crossbow","DMR","KAM","M4A1","R12","SCAR-H","SCAR-L","Tundra"]},
       {key:"scope1", label:"Scope", items:["- -","(select)","None","ATOG 6x","MKII Optic","Hunting Scope","PU Scope","Holo Optic","Red Dot (Baraka)","BUIS Optic","Kobra Sights","Starlight NV","Kazuar NV"]},
       {key:"mag1", label:"Ammo/Mag ×2", items:["- -","40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag","12GA Buck","308 WIN","Bolts"]},
-      {key:"suppressor1", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Supressor","Bottle Suppressor"]},
+      {key:"suppressor1", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Suppressor","Bottle Suppressor"]},
       {key:"weapon2", label:"Weapon 2", items:["(select)","Aug AX","Crossbow","DMR","KAM","M4A1","R12","SCAR-H","SCAR-L","Tundra"]},
       {key:"scope2", label:"Scope", items:["- -","(select)","None","ATOG 6x","MKII Optic","Hunting Scope","PU Scope","Holo Optic","Red Dot (Baraka)","BUIS Optic","Kobra Sights","Starlight NV","Kazuar NV"]},
       {key:"mag2", label:"Ammo/Mag ×2", items:["- -","40Rd C-Mag","60Rd C-Mag","20Rd DMR Mag","20Rd SCAR Mag","75Rd KAM Drum Mag","12GA Buck","308 WIN","Bolts"]},
-      {key:"suppressor2", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Supressor","Bottle Suppressor"]},
+      {key:"suppressor2", label:"Suppressor", items:["- -","None","M4 Suppressor","AK Suppressor","Bottle Suppressor"]},
       {key:"plate", label:"Plate Carrier", items:["(select)","Plate Carrier (Black)","Plate Carrier (Desert)"]},
       {key:"helmet", label:"Helmet", items:["(select)","Tactical Helm + NV Goggles","Assault Helmet + NVG Strap","Ballistic Helmet + NVG Strap","Desert Helmet + NVG Strap","Boonie Hat + NVG Strap","Baseball Cap + NVG Strap","Ghillie Hood + NVG Strap"]},
-      {key:"jacket", label:"Jacket", items:["(select)","Desert CUU","Desert Hunter","FNO Jacket","ORM Jacket","T-Shirt"]},
-      {key:"pants", label:"Pants", items:["(select)","Capri Pants","Desert CUU","Desert Hunter","FNO Pants","ORM Pants"]},
+      {key:"jacket", label:"Jacket", items:["(select)","CUU Jacket","Hunter Jacket","FNO Jacket","ORM Jacket","T-Shirt"]},
+      {key:"pants", label:"Pants", items:["(select)","Capri Pants","CUU Pants","Hunter Pants","FNO Pants","ORM Pants"]},
       {key:"boots", label:"Boots", items:["(select)","Assault Boots","Sneakers","Tan Jungle Boots"]},
       {key:"backpack", label:"Backpack", items:["(select)","Assault Backpack","Canvas Bag","Combat Backpack","Tactical Backpack","Ghillie Suit"]},
       {key:"gloves", label:"Gloves", items:["(select)","Tan Tactical","Black Tactical"]},
@@ -734,14 +791,14 @@
       // Single kit-level token toggle
       const tokenRow = document.createElement("div");
       tokenRow.className = "kit-row";
-      tokenRow.innerHTML = `<label style="flex:1;color:var(--accent);font-weight:600;">Use Kit Token</label><input type="checkbox" id="kitTokenToggle">`;
+      tokenRow.innerHTML = `<label for="kitTokenToggle" style="flex:1;color:var(--accent);font-weight:600;">Use Kit Token</label><label class="kit-token kit-include"><input type="checkbox" id="kitTokenToggle"> Token</label>`;
       fields.appendChild(tokenRow);
 
       kitSlots.forEach(slot => {
         if (isGhillie && slot.key === "backpack") return;
         const row = document.createElement("div");
         row.className = "kit-row";
-        const opts = slot.items.map(i => `<option value="${i}">${i}</option>`).join("");
+        const opts = slot.items.map(i => `<option value="${i}">${i === "(select)" ? TRADER_CHOICE : i}</option>`).join("");
         row.innerHTML = `<label>${slot.label}</label><select data-slot="${slot.key}">${opts}</select>`;
         fields.appendChild(row);
       });
@@ -762,7 +819,7 @@
       kitFixed.forEach(f => {
         const row = document.createElement("div");
         row.className = "kit-row";
-        row.innerHTML = `<label style="flex:1;">${f.label}</label><label class="kit-token"><input type="checkbox" data-omit="${f.key}" checked> Include</label>`;
+        row.innerHTML = `<label style="flex:1;">${f.label}</label><label class="kit-token kit-include"><input type="checkbox" data-omit="${f.key}" checked> Include</label>`;
         fields.appendChild(row);
       });
 
@@ -780,7 +837,7 @@
       // Weapon override locks
       const overrides = {
         "Tundra": { mag: "308 WIN", suppressor: "Bottle Suppressor", scope: "Hunting Scope" },
-        "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Supressor", scope: "Kobra Sights" },
+        "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Suppressor", scope: "Kobra Sights" },
         "M4A1": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
         "SCAR-L": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
         "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
@@ -807,6 +864,7 @@
           const magSel = fields.querySelector(`select[data-slot="mag${n}"]`);
           const suppSel = fields.querySelector(`select[data-slot="suppressor${n}"]`);
           const scopeSel = fields.querySelector(`select[data-slot="scope${n}"]`);
+          if (scopeSel) scopeSel.innerHTML = allScopes.map(s => `<option value="${s}">${s === "(select)" ? TRADER_CHOICE : s}</option>`).join("");
           if (o) {
             if (magSel) { magSel.value = o.mag; magSel.disabled = true; }
             if (suppSel) { suppSel.value = o.suppressor; suppSel.disabled = true; }
@@ -825,7 +883,7 @@
           if (scopeSel && !scopeSel.disabled) {
             const allowed = scopeCompat[wSel.value] || allScopes;
             const cur = scopeSel.value;
-            scopeSel.innerHTML = allowed.map(s => `<option value="${s}">${s}</option>`).join("");
+            scopeSel.innerHTML = allowed.map(s => `<option value="${s}">${s === "(select)" ? TRADER_CHOICE : s}</option>`).join("");
             if (allowed.includes(cur)) scopeSel.value = cur;
           }
         };
@@ -840,7 +898,7 @@
       try {
         const isGhillie = document.getElementById("kitPanel").dataset.ghillie === "1";
         const token = document.getElementById("kitTokenToggle")?.checked || false;
-        const kitNum = kitConfigs.length + 1;
+        const kitNum = kitConfigs.reduce((m, k) => Math.max(m, parseInt(String(k.name).split(" ").pop(), 10) || 0), 0) + 1;
         const kitName = (isGhillie ? "Ghillie Kit " : "Player Kit ") + kitNum;
         const config = { isGhillie, token, name: kitName };
         kitSlots.forEach(slot => {
@@ -849,11 +907,11 @@
             return;
           }
           const sel = document.querySelector(`select[data-slot="${slot.key}"]`);
-          if (sel) config[slot.key] = { item: sel.value };
+          if (sel) config[slot.key] = { item: (sel.value === "(select)" || sel.value === "- -" || sel.value === "") ? TRADER_CHOICE : sel.value };
         });
         const overrides = {
           "Tundra": { mag: "308 WIN", suppressor: "Bottle Suppressor", scope: "Hunting Scope" },
-          "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Supressor", scope: "Kobra Sights" },
+          "KAM": { mag: "75Rd KAM Drum Mag", suppressor: "AK Suppressor", scope: "Kobra Sights" },
           "M4A1": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
           "SCAR-L": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
           "Aug AX": { mag: "60Rd C-Mag", suppressor: "M4 Suppressor" },
@@ -882,7 +940,8 @@
         saveState();
         try { renderSummary("buy"); } catch(e) { console.error("summary", e); }
         try { renderKitSummaries(); } catch(e) { console.error("kitsum", e); }
-        toast(kitName + (token ? " (token)" : "") + " added");
+        const omittedNames = kitFixed.filter(f => config[f.key] && config[f.key].omitted).map(f => f.label + " (omitted)");
+        toast(kitName + (token ? " (token)" : "") + " added" + (omittedNames.length ? " — " + omittedNames.join(", ") : ""));
       } catch (e) {
         console.error(e);
         toast("Error: " + e.message);
@@ -900,11 +959,14 @@
       if (kitConfigs.length === 0) { box.style.display = "none"; return; }
       box.style.display = "block";
       box.innerHTML = "<h4>Kit Definitions</h4>" + kitConfigs.map((cfg, i) => {
-        const selLines = kitSlots.filter(s => cfg[s.key]).map(s => `<div>${s.label}: ${cfg[s.key].item}</div>`).join("");
+        const selLines = kitSlots.filter(s => cfg[s.key]).map(s => `<div>${esc(s.label)}: ${esc(cfg[s.key].item)}</div>`).join("");
         const ammoLine = "";
-        const fixedLines = kitFixed.filter(f => cfg[f.key] && !cfg[f.key].omitted).map(f => `<div>${f.label}</div>`).join("");
+        // Default-included items (Include checkboxes) are taken by everyone, so only omitted ones are listed, struck through.
+        // Display only: price, token and the stored omitted flags are unaffected.
+        const fixedLines = kitFixed.filter(f => cfg[f.key] && cfg[f.key].omitted)
+          .map(f => `<div class="kit-omitted" title="Omitted">${esc(f.label)}</div>`).join("");
         const tokenTag = cfg.token ? " <span style='color:var(--accent)'>(TOKEN)</span>" : "";
-        return `<div style="margin-bottom:8px;"><strong>${cfg.name}${tokenTag}</strong>${selLines}${ammoLine}${fixedLines}</div>`;
+        return `<div style="margin-bottom:8px;"><strong>${esc(cfg.name)}${tokenTag}</strong>${selLines}${ammoLine}${fixedLines}</div>`;
       }).join("");
     }
 
@@ -912,6 +974,8 @@
       let price = base;
       activeRoles.forEach(role => {
         const r = roles[role];
+        if (!r) return;
+        if (role === "Roadkill" && ROADKILL_EXCLUDED.has(name)) return; // Roadkill is car parts only, never the vehicles
         if (r.discounts && r.discounts[name]) {
           price = Math.min(price, base * (1 - r.discounts[name] / 100));
         }
@@ -940,8 +1004,11 @@
         const s = JSON.parse(localStorage.getItem("935calc") || "{}");
         buyCart = s.buyCart || {};
         sellCart = s.sellCart || {};
-        activeRoles = new Set(s.activeRoles || []);
-        kitConfigs = s.kitConfigs || [];
+        activeRoles = new Set((s.activeRoles || []).filter(r => roles[r]));
+        if (!buyCart || typeof buyCart !== "object" || Array.isArray(buyCart)) buyCart = {};
+        if (!sellCart || typeof sellCart !== "object" || Array.isArray(sellCart)) sellCart = {};
+        kitConfigs = (s.kitConfigs || []).map(migrateKit);
+        buyCart = migrateCart(buyCart);
       } catch(e) {}
     }
 
@@ -972,7 +1039,7 @@
       "aug ax": ["60Rd C-Mag","40Rd C-Mag","5.56x45","Starlight NV","M4 Suppressor","Holo Optic","Red Dot (Baraka)","ATOG 6x","Ghillie Rifle Wrap"],
       "crossbow": ["Holo Optic","Red Dot (Baraka)","ATOG 6x","Starlight NV","Crossbow Bolts","MKII Optic","Ghillie Rifle Wrap"],
       "dmr": ["ATOG 6x","Starlight NV","MKII Optic","Ghillie Rifle Wrap","Bottle Suppressor","20Rd DMR Mag","308 WIN"],
-      "kam": ["Kobra Sights","Kazuar NV","AK Supressor","75Rd KAM Drum Mag","7.62x39","Ghillie Rifle Wrap"],
+      "kam": ["Kobra Sights","Kazuar NV","AK Suppressor","75Rd KAM Drum Mag","7.62x39","Ghillie Rifle Wrap"],
       "m4a1": ["60Rd C-Mag","40Rd C-Mag","5.56x45","Starlight NV","M4 Suppressor","Holo Optic","Red Dot (Baraka)","ATOG 6x","Ghillie Rifle Wrap","BUIS Optic"],
       "r12": ["Holo Optic","Red Dot (Baraka)","Ghillie Rifle Wrap","12GA Buck"],
       "scar-h": ["ATOG 6x","Starlight NV","MKII Optic","Ghillie Rifle Wrap","Bottle Suppressor","20Rd SCAR Mag","308 WIN"],
@@ -999,7 +1066,7 @@
         "60Rd C-Mag":"Magazines","40Rd C-Mag":"Magazines","20Rd DMR Mag":"Magazines","20Rd SCAR Mag":"Magazines","75Rd KAM Drum Mag":"Magazines","10Rd VSD Mag":"Magazines",
         "5.56x45":"Ammo","308 WIN":"Ammo","7.62x39":"Ammo","12GA Buck":"Ammo","Crossbow Bolts":"Ammo",
         "Starlight NV":"Optics","Kazuar NV":"Optics","Holo Optic":"Optics","Red Dot (Baraka)":"Optics","ATOG 6x":"Optics","MKII Optic":"Optics","BUIS Optic":"Optics","Kobra Sights":"Optics","Hunting Scope":"Optics","PU Scope":"Optics","PSO-1 Scope":"Optics",
-        "M4 Suppressor":"Attachments","AK Supressor":"Attachments","Bottle Suppressor":"Attachments",
+        "M4 Suppressor":"Attachments","AK Suppressor":"Attachments","Bottle Suppressor":"Attachments",
         "Ghillie Rifle Wrap":"Clothing"
       };
       return map[name] || "Other";
@@ -1180,33 +1247,50 @@
       } else {
         keys.forEach(name => {
           const {qty, base, salePrice} = cart[name];
+          const item = cart[name].item || name;
           const isKit = name.startsWith("Player Kit") || name.startsWith("Ghillie Kit");
-          let unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
-          let total = (name === "Bible" && type === "sell") ? getBibleTotal(qty) : unit * qty;
+          let unit = salePrice != null ? salePrice : getDiscountedPrice(item, base);
+          let total = (item === "Bible" && type === "sell") ? getBibleTotal(qty) : unit * qty;
           liveTotal += total;
           let priceHtml, nameHtml;
           if (isKit) {
-            nameHtml = name;
-            priceHtml = base === 0 ? `<s style="opacity:0.5">16000</s> TOKEN` : `${base} Cr`;
+            nameHtml = esc(name);
+            priceHtml = base === 0 ? `<s style="opacity:0.5">${fmt(16000)}</s> TOKEN` : `${fmt(base)} Cr`;
           } else {
-            nameHtml = `${name} × ${qty}`;
+            nameHtml = `${esc(name)} × ${qty}`;
             priceHtml = salePrice != null
-              ? `<s style="opacity:0.5">${base * qty}</s> ${Math.round(total)} Cr`
-              : `${Math.round(total)} Cr`;
+              ? `<s style="opacity:0.5">${fmt(base * qty)}</s> ${fmt(total)} Cr`
+              : `${fmt(total)} Cr`;
           }
+          const cat = isKit ? null : catalogItem(type, item);
+          const canPlus = !isKit && cat && cat.inStock !== false && cart[name].base === cat.price && !cart[name].item;
           html += `<div class="summary-item">
             <span class="name">${nameHtml}</span>
             <span class="price">${priceHtml}</span>
             <div class="controls">
-              ${isKit ? "" : `<button class="remove-one" data-name="${name}">−</button>`}
-              <button class="remove-all" data-name="${name}">×</button>
+              ${isKit ? "" : `<button class="remove-one" data-name="${esc(name)}" aria-label="Remove one">−</button>`}
+              ${canPlus ? `<button class="add-one" data-name="${esc(name)}" aria-label="Add one">+</button>` : ""}
+              <button class="remove-all" data-name="${esc(name)}">×</button>
             </div>
           </div>`;
         });
       }
       el.innerHTML = html;
+      const fm = type === "buy" && activeRoles.has("Day One");
+      if (fm) liveTotal *= 0.9;
       const header = wrap.querySelector(".summary-header");
-      if (header) header.textContent = keys.length ? `${type === "buy" ? "Buy" : "Sell"} Cart — ${Math.round(liveTotal)} Cr` : `${type === "buy" ? "Buy" : "Sell"} Cart`;
+      if (header) header.textContent = keys.length ? `${type === "buy" ? "Buy" : "Sell"} Cart — ${fmt(liveTotal)} Cr${fm ? " (FM)" : ""}` : `${type === "buy" ? "Buy" : "Sell"} Cart`;
+      el.querySelectorAll(".add-one").forEach(btn => {
+        btn.onclick = () => {
+          const n = btn.dataset.name;
+          const it = catalogItem(type, n);
+          if (!it || it.inStock === false || !cart[n]) { toast("OUT OF STOCK"); return; }
+          const step = Array.isArray(it.bulkOptions) && it.bulkOptions.length ? Math.min(...it.bulkOptions) : 1;
+          cart[n].qty += step;
+          saveState();
+          renderSummary(type);
+        };
+      });
       el.querySelectorAll(".remove-one").forEach(btn => {
         btn.onclick = () => {
           const n = btn.dataset.name;
@@ -1269,8 +1353,13 @@
       const cart = type === "buy" ? buyCart : sellCart;
       if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
         cart[name] = {qty: 1, base, salePrice: salePrice ?? null};
-      } else if (cart[name]) {
+      } else if (cart[name] && cart[name].base === base) {
         cart[name].qty += qty;
+      } else if (cart[name]) {
+        // same item at a different unit price (e.g. Role Turn-In): keep it on its own line
+        const key = name + " (turn-in)";
+        if (cart[key] && cart[key].base === base) cart[key].qty += qty;
+        else cart[key] = {qty, base, salePrice: salePrice ?? null, item: name};
       } else {
         cart[name] = {qty, base, salePrice: salePrice ?? null};
       }
@@ -1371,10 +1460,10 @@
         "Powdered Milk": () => addToCart("sell", "Powdered Milk", 50, 1000),
         "Pink Derringer": () => addToCart("sell", "Pink Derringer", 30, 4000),
         "Compass": () => addToCart("sell", "Compass", 50, 500),
-        "Set of Leaf Crown": () => addToCart("sell", "Set of Leaf Crown", 4, 1250),
+        "Leaf Crown Set": () => addToCart("sell", "Leaf Crown Set", 4, 1250),
         "Hockey Stick": () => addToCart("sell", "Hockey Stick", 50, 1013),
         "Meat Tenderizers": () => addToCart("sell", "Meat Tenderizers", 50, 405),
-        "Set of 4 Teddy Bears": () => addToCart("sell", "Set of 4 Teddy Bears", 5, 2700),
+        "Teddy Bear Set": () => addToCart("sell", "Teddy Bear Set", 5, 2700),
         "Books": () => { addToCart("sell", "Books", 350, 338); addToCart("sell", "Bible", 1, 10000); },
         "Bear Pelt": () => addPelts(),
         "Boar Pelt": () => addPelts(),
@@ -1398,26 +1487,26 @@
 
     function calculate() {
       let buyTotal = 0;
-      Object.entries(buyCart).forEach(([name, {qty, base, salePrice}]) => {
-        const unit = salePrice != null ? salePrice : getDiscountedPrice(name, base);
+      Object.entries(buyCart).forEach(([name, {qty, base, salePrice, item}]) => {
+        const unit = salePrice != null ? salePrice : getDiscountedPrice(item || name, base);
         buyTotal += unit * qty;
       });
       if (activeRoles.has("Day One")) buyTotal *= 0.9;
 
       let sellTotal = 0;
-      Object.entries(sellCart).forEach(([name, {qty, base}]) => {
-        if (name === "Bible") sellTotal += getBibleTotal(qty);
-        else sellTotal += getDiscountedPrice(name, base) * qty;
+      Object.entries(sellCart).forEach(([name, {qty, base, item}]) => {
+        if ((item || name) === "Bible") sellTotal += getBibleTotal(qty);
+        else sellTotal += getDiscountedPrice(item || name, base) * qty;
       });
 
       const fm = activeRoles.has("Day One") ? " (FM)" : "";
-      const msg = `Buy${fm}: ${Math.round(buyTotal)} Cr | Sell: ${Math.round(sellTotal)} Cr`;
+      const msg = `Buy${fm}: ${fmt(buyTotal)} Cr | Sell: ${fmt(sellTotal)} Cr`;
       toast(msg);
       // Also flash the cart headers
       const bh = document.querySelector("#buySummaryWrap .summary-header");
       const sh = document.querySelector("#sellSummaryWrap .summary-header");
-      if (bh) bh.textContent = `Buy Cart — ${Math.round(buyTotal)} Cr${fm}`;
-      if (sh) sh.textContent = `Sell Cart — ${Math.round(sellTotal)} Cr`;
+      if (bh) bh.textContent = `Buy Cart — ${fmt(buyTotal)} Cr${fm}`;
+      if (sh) sh.textContent = `Sell Cart — ${fmt(sellTotal)} Cr`;
     }
 
     // ===== INIT =====
@@ -1438,7 +1527,7 @@
     };
     document.getElementById("genCodeBtn").onclick = () => {
       if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); return; }
-      const data = JSON.stringify(buyCart);
+      const data = JSON.stringify({v: 2, cart: buyCart, kits: kitConfigs});
       const code = btoa(unescape(encodeURIComponent(data)));
       const out = document.getElementById("orderCodeOut");
       out.value = code;
@@ -1456,10 +1545,32 @@
       if (!code) { toast("Paste a code first"); return; }
       try {
         const data = decodeURIComponent(escape(atob(code)));
-        const loaded = JSON.parse(data);
-        buyCart = loaded;
+        const parsed = JSON.parse(data);
+        const isObj = o => o && typeof o === "object" && !Array.isArray(o);
+        if (!isObj(parsed)) throw new Error("not an object");
+        let rawCart = parsed.v === 2 ? parsed.cart : parsed;   // v1 codes were the bare cart
+        const kits = (parsed.v === 2 && Array.isArray(parsed.kits) ? parsed.kits : []).map(migrateKit);
+        if (!isObj(rawCart)) throw new Error("bad cart");
+        rawCart = migrateCart(rawCart);
+        const catalog = {};
+        flattenBuyItems(buyitems).forEach(i => { if (i && i.name) catalog[i.name] = i; });
+        const clean = {};
+        for (const [name, v] of Object.entries(rawCart)) {
+          if (!isObj(v) || !Number.isInteger(v.qty) || v.qty < 1 || v.qty > 100000) throw new Error("bad qty " + name);
+          if (isKitName(name)) {
+            const kit = kits.find(k => k && k.name === name);
+            clean[name] = {qty: 1, base: kit && kit.token ? 0 : 16000, salePrice: null};
+          } else {
+            const it = catalog[name];
+            if (!it || it.inStock === false) throw new Error("unknown item " + name);
+            clean[name] = {qty: v.qty, base: it.price, salePrice: it.salePrice ?? null};   // always re-price from catalog
+          }
+        }
+        buyCart = clean;
+        kitConfigs = kits.filter(k => k && clean[k.name]);
         saveState();
         renderSummary("buy");
+        renderKitSummaries();
         toast("Order loaded");
       } catch(e) {
         toast("Invalid code");
@@ -1479,6 +1590,8 @@
     document.getElementById("clearAllBtn").onclick = () => {
       buyCart = {}; sellCart = {}; kitConfigs = []; saveState(); render();
       renderKitSummaries();
+      const out = document.getElementById("orderCodeOut"); out.value = ""; out.style.display = "none";
+      document.getElementById("copyCodeBtn").style.display = "none";
       toast("Carts cleared");
     };
     document.getElementById("clearRolesBtn").onclick = () => {
