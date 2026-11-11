@@ -90,7 +90,7 @@ const CUSTOMERS = {
   '333': {
     id: '333', username: 'jordan', global_name: 'Jordan Hale', nick: 'Jordan Hale', roles: ['role-customer'],
     balance: balance(4200, 800),
-    pricing_roles: ['Deadshot', 'Dr. Greenthumb', 'Pathfinder', 'Kamikaze']
+    pricing_roles: ['Deadshot', 'Dr. Greenthumb', 'Pathfinder', 'Kamikaze', 'Day One']
   },
   '444444444444444444': {
     id: '444444444444444444', username: 'jonah', global_name: 'Jonah Pike', nick: 'Jonah Pike', roles: ['role-customer'],
@@ -205,7 +205,7 @@ function readBar() {
   const app = document.querySelector('.app');
   return {
     status: document.getElementById('accountStatus').innerText.replace(/\s+/g, ' ').trim(),
-    who: (document.querySelector('#accountStatus .account-who') || {}).textContent || '',
+    who: ((document.querySelector('#accountStatus .account-who') || {}).textContent || '').replace(/★/g, '').trim(),
     meta: meta.hidden ? '' : meta.textContent,
     fixture: document.getElementById('accountFixture').hidden ? '' : document.getElementById('accountFixture').textContent.trim(),
     traderMode: document.body.classList.contains('trader-mode'),
@@ -468,92 +468,124 @@ function readBar() {
   await staff.page.close();
 
   const roles = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 390 });
-  await roles.page.waitForFunction(() => document.getElementById('rolesChip').textContent === 'Roles 4/23');
+  await roles.page.waitForFunction(() => document.getElementById('rolesBtn').textContent === 'Roles 4');
   await roles.page.evaluate(() => {
     const banner = document.createElement('div');
     banner.textContent = 'MOCK DATA';
     banner.style.cssText = 'position:fixed;top:0;left:0;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
     document.body.appendChild(banner);
   });
-  const mineChip = await roles.page.evaluate(() => ({
-    text: document.getElementById('rolesChip').textContent,
-    quiet: document.getElementById('rolesChip').classList.contains('is-quiet'),
-    disabled: document.getElementById('rolesChip').disabled
-  }));
-  check('my-account-roles-chip', mineChip.text === 'Roles 4/23' && !mineChip.quiet && !mineChip.disabled, mineChip);
-  await shot(roles.page, 'roles-my-account-390-mock');
-  await roles.page.click('#rolesChip');
-  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 23);
-  await roles.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  const sheet = await roles.page.evaluate(() => {
-    const grid = document.getElementById('earnRolesGrid');
-    const road = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Roadkill'));
-    const julius = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Julius Caesar'));
-    const held = grid.querySelectorAll('.earn-role.is-held').length;
+  const mineBtn = await roles.page.evaluate(() => {
+    const btn = document.getElementById('rolesBtn');
+    const change = document.getElementById('customerChangeBtn');
     return {
-      open: document.body.classList.contains('roles-open'),
-      count: grid.querySelectorAll('.earn-role').length,
-      held,
-      road: road ? road.textContent.replace(/\s+/g, ' ').trim() : '',
-      roadHeld: !!(road && road.classList.contains('is-held')),
-      julius: julius ? julius.textContent.replace(/\s+/g, ' ').trim() : '',
-      juliusHeld: !!(julius && julius.classList.contains('is-held')),
-      controls: grid.querySelectorAll('input, select, textarea, button, [role="switch"], .role-btn').length,
-      note: document.getElementById('rolesSheetNote').textContent
+      text: btn.textContent,
+      quiet: btn.classList.contains('is-quiet'),
+      disabled: btn.disabled,
+      changeHidden: change.hidden,
+      star: !!document.querySelector('.day-one-star'),
+      beside: btn.parentElement === change.parentElement
     };
   });
-  check('roles-sheet-lists-held-and-missing',
-    sheet.open && sheet.count === 23 && sheet.held === 4 && sheet.roadHeld && /25% off car parts/.test(sheet.road) &&
-    !sheet.juliusHeld && /No Discord role/.test(sheet.julius) && sheet.controls === 0 && /Read only/.test(sheet.note) && /Riley Chen/.test(sheet.note),
-    sheet);
-  await shot(roles.page, 'roles-sheet-390-mock');
-  const beforeClick = sheet.held;
-  await roles.page.click('#earnRolesGrid .earn-role');
-  const afterClick = await roles.page.evaluate(() => ({
-    held: document.querySelectorAll('#earnRolesGrid .earn-role.is-held').length,
-    chip: document.getElementById('rolesChip').textContent,
-    mode: document.body.classList.contains('mode-self')
-  }));
-  check('roles-sheet-is-read-only', afterClick.held === beforeClick && afterClick.chip === 'Roles 4/23' && afterClick.mode, afterClick);
-  await roles.page.click('#rolesSheetClose');
+  check('my-account-roles-button',
+    mineBtn.text === 'Roles 4' && !mineBtn.quiet && !mineBtn.disabled && mineBtn.changeHidden && !mineBtn.star && mineBtn.beside,
+    mineBtn);
+  await roles.page.click('#rolesBtn');
+  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 22);
+  const popup = await roles.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const buttons = [...grid.querySelectorAll('.earn-role')];
+    const road = buttons.find(row => row.textContent.includes('Roadkill'));
+    const pop = document.getElementById('rolesPop').getBoundingClientRect();
+    const view = document.documentElement.clientHeight;
+    return {
+      open: document.body.classList.contains('roles-open'),
+      count: buttons.length,
+      dayOne: buttons.some(row => row.textContent.includes('Day One')),
+      road: road ? road.textContent.replace(/\s+/g, ' ').trim() : '',
+      roadHeld: !!(road && road.classList.contains('is-held')),
+      inputs: grid.querySelectorAll('input, select, textarea, [role="switch"]').length,
+      detail: grid.querySelectorAll('.earn-role-detail').length,
+      short: pop.height < view * 0.85
+    };
+  });
+  check('roles-popup-names-only',
+    popup.open && popup.count === 22 && !popup.dayOne && popup.roadHeld && popup.road === '✓Roadkill' &&
+    popup.inputs === 0 && popup.detail === 0 && popup.short,
+    popup);
+  await roles.page.evaluate(() => [...document.querySelectorAll('#earnRolesGrid .earn-role')].find(item => item.textContent.includes('Roadkill')).click());
+  const roleDetail = await roles.page.evaluate(() => {
+    const detail = document.querySelector('#earnRolesGrid .earn-role-detail');
+    return {
+      text: detail ? detail.innerText.replace(/\s+/g, ' ').trim() : '',
+      held: document.querySelectorAll('#earnRolesGrid .earn-role.is-held').length,
+      label: document.getElementById('rolesBtn').textContent
+    };
+  });
+  check('roles-popup-reveals-detail',
+    /Flatten a player/.test(roleDetail.text) && /25% off car parts/.test(roleDetail.text) && roleDetail.held === 4 && roleDetail.label === 'Roles 4',
+    roleDetail);
+  await roles.page.evaluate(() => [...document.querySelectorAll('#earnRolesGrid .earn-role')].find(item => item.textContent.includes('Roadkill')).click());
+  const collapsed = await roles.page.evaluate(() => document.querySelectorAll('#earnRolesGrid .earn-role-detail').length);
+  check('roles-popup-collapses-detail', collapsed === 0, collapsed);
+  await roles.page.click('#rolesPopClose');
   await roles.page.waitForFunction(() => !document.body.classList.contains('roles-open'));
-  const back = await roles.page.evaluate(() => document.getElementById('accountStatus').innerText.includes('Riley Chen') && !document.body.classList.contains('roles-open'));
-  check('roles-sheet-closes-to-my-account', back);
+  check('roles-popup-closes-to-my-account', await roles.page.evaluate(() => document.getElementById('accountStatus').innerText.includes('Riley Chen') && !document.querySelector('.day-one-star')));
   await roles.page.click('#modeTraderBtn');
   await roles.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
-  const hiddenWhilePicking = await roles.page.evaluate(() => document.getElementById('rolesChip').hidden);
-  check('roles-chip-hidden-until-customer', hiddenWhilePicking === true);
+  check('roles-button-hidden-until-customer', await roles.page.evaluate(() => document.getElementById('rolesBtn').hidden === true));
   await roles.page.type('#customerSearch', 'jor');
   await roles.page.waitForFunction(() => [...document.querySelectorAll('#customerResults [role="option"]')].some(b => b.textContent === 'Jordan Hale'));
   await roles.page.click('#customerResults [role="option"]');
-  await roles.page.waitForFunction(() => document.getElementById('rolesChip').textContent === 'Roles 4/23' && document.getElementById('accountStatus').innerText.includes('Jordan Hale'));
-  await shot(roles.page, 'roles-trader-customer-390-mock');
-  await roles.page.click('#rolesChip');
-  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open'));
-  const customerSheet = await roles.page.evaluate(() => {
-    const grid = document.getElementById('earnRolesGrid');
-    const text = (name) => {
-      const row = [...grid.querySelectorAll('.earn-role')].find(item => item.textContent.includes(name));
-      return row ? row.classList.contains('is-held') : false;
-    };
+  await roles.page.waitForFunction(() => document.getElementById('rolesBtn').textContent === 'Roles 4' && document.querySelector('.day-one-star'));
+  const header = await roles.page.evaluate(() => {
+    const rolesBtn = document.getElementById('rolesBtn');
+    const change = document.getElementById('customerChangeBtn');
+    const star = document.querySelector('.day-one-star');
     return {
-      deadshot: text('Deadshot'),
-      roadkill: text('Roadkill'),
-      note: document.getElementById('rolesSheetNote').textContent,
-      border: getComputedStyle(document.body).boxShadow
+      roles: rolesBtn.textContent,
+      change: change.textContent,
+      changeHidden: change.hidden,
+      sameRow: rolesBtn.parentElement === change.parentElement && !change.hidden && !rolesBtn.hidden,
+      star: star ? star.getAttribute('aria-label') : '',
+      title: star ? star.title : '',
+      heightGap: Math.abs(rolesBtn.getBoundingClientRect().height - change.getBoundingClientRect().height)
     };
   });
-  check('customer-roles-follow-server-list',
-    customerSheet.deadshot && !customerSheet.roadkill && /Jordan Hale/.test(customerSheet.note) && /61,\s*220,\s*151/.test(customerSheet.border),
-    customerSheet);
-  await roles.page.click('#rolesSheetClose');
+  check('trader-roles-beside-change-with-star',
+    header.roles === 'Roles 4' && header.change === 'Change' && header.sameRow && header.star === 'Day One' && header.title === 'Day One' && header.heightGap < 2,
+    header);
+  await shot(roles.page, 'roles-trader-header-390-mock');
+  await roles.page.click('#rolesBtn');
+  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open') && !document.querySelector('.earn-role-detail'));
+  await shot(roles.page, 'roles-popup-390-mock');
+  const customerPopup = await roles.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const held = (name) => {
+      const row = [...grid.querySelectorAll('.earn-role')].find(item => item.textContent.includes(name));
+      return !!(row && row.classList.contains('is-held'));
+    };
+    return {
+      deadshot: held('Deadshot'),
+      roadkill: held('Roadkill'),
+      dayOne: [...grid.querySelectorAll('.earn-role')].some(item => item.textContent.includes('Day One'))
+    };
+  });
+  check('customer-roles-follow-server-list', customerPopup.deadshot && !customerPopup.roadkill && !customerPopup.dayOne, customerPopup);
+  await roles.page.evaluate(() => [...document.querySelectorAll('#earnRolesGrid .earn-role')].find(item => item.textContent.includes('Deadshot')).click());
+  await roles.page.waitForFunction(() => {
+    const detail = document.querySelector('.earn-role-detail');
+    return detail && detail.innerText.includes('50% off 7 items');
+  });
+  await shot(roles.page, 'roles-popup-detail-390-mock');
+  await roles.page.click('#rolesPopClose');
   await roles.page.evaluate(() => document.getElementById('customerChangeBtn').click());
   await roles.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Select a customer'));
   await roles.page.evaluate(() => { document.getElementById('customerIdRow').hidden = false; document.getElementById('customerIdInput').value = '444444444444444444'; });
   await roles.page.click('#customerIdBtn');
   await roles.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Jonah Pike'));
   const unavailable = await roles.page.evaluate(() => ({
-    chip: document.getElementById('rolesChip').textContent,
+    chip: document.getElementById('rolesBtn').textContent,
     who: document.getElementById('accountStatus').innerText,
     meta: document.getElementById('accountMeta').textContent,
     dock: !!document.getElementById('calculateBtn')
@@ -576,28 +608,30 @@ function readBar() {
   await widePage.page.type('#customerSearch', 'jor');
   await widePage.page.waitForFunction(() => [...document.querySelectorAll('#customerResults [role="option"]')].some(b => b.textContent === 'Jordan Hale'));
   await widePage.page.click('#customerResults [role="option"]');
-  await widePage.page.waitForFunction(() => document.getElementById('rolesChip').textContent === 'Roles 4/23' && document.getElementById('accountStatus').innerText.includes('Jordan Hale'));
-  await widePage.page.click('#rolesChip');
-  await widePage.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 23);
-  await widePage.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await widePage.page.waitForFunction(() => document.getElementById('rolesBtn').textContent === 'Roles 4' && document.getElementById('accountStatus').innerText.includes('Jordan Hale'));
+  await widePage.page.click('#rolesBtn');
+  await widePage.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 22);
   const wide = await widePage.page.evaluate(() => {
     const grid = document.getElementById('earnRolesGrid');
     const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
-    const sheet = document.getElementById('rolesSheet').getBoundingClientRect();
+    const pop = document.getElementById('rolesPop').getBoundingClientRect();
     const deadshot = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Deadshot'));
+    const a = grid.querySelector('.earn-role').getBoundingClientRect();
+    const b = grid.querySelectorAll('.earn-role')[1].getBoundingClientRect();
     return {
       cols,
-      width: Math.round(sheet.width),
+      width: Math.round(pop.width),
+      height: Math.round(pop.height),
       open: document.body.classList.contains('roles-open'),
-      note: document.getElementById('rolesSheetNote').textContent,
       deadshot: !!(deadshot && deadshot.classList.contains('is-held')),
-      controls: grid.querySelectorAll('input, select, textarea, button, [role="switch"], .role-btn').length
+      dayOne: [...grid.querySelectorAll('.earn-role')].some(row => row.textContent.includes('Day One')),
+      equal: Math.abs(a.width - b.width) < 2
     };
   });
-  check('roles-sheet-two-columns-at-1280',
-    wide.open && wide.cols === 2 && wide.width > 500 && /Jordan Hale/.test(wide.note) && wide.deadshot && wide.controls === 0,
+  check('roles-popup-two-columns-at-1280',
+    wide.open && wide.cols === 2 && wide.width > 400 && wide.width < 700 && wide.height < 700 && wide.deadshot && !wide.dayOne && wide.equal,
     wide);
-  await shot(widePage.page, 'roles-sheet-1280-mock');
+  await shot(widePage.page, 'roles-popup-1280-mock');
   check('roles-wide-console', widePage.errors.length === 0, widePage.errors.slice(0, 4));
   await widePage.page.close();
 
