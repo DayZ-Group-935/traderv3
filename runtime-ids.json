@@ -1,0 +1,24 @@
+{
+  "discord_client_id": "1569978589556904077",
+  "discord_guild_id": "1213578527522431046",
+  "discord_trader_role_id": "1215060053191819324",
+  "discord_server_owner_role_id": "1215040829186383912",
+  "discord_high_level_staff_role_id": "1215042184764723251",
+  "discord_redirect_uri": "http://localhost:8787/auth/discord/callback",
+  "bot_user_id": "1569978589556904077",
+  "bot_username": "Group 935 Calculator",
+  "discount_role_map": {},
+  "amounts_mapped": false,
+  "aliases_merged": false,
+  "high_level_staff": {
+    "configured": true,
+    "discord_role_id": "1215042184764723251",
+    "verified_discord_label": "High Lvl Staff",
+    "user_phrase": "High Level Staff",
+    "literal_exact_name_match": false,
+    "interpretation": "Design interpretation of Alex's 12:24 policy: the user phrase 'High Level Staff' refers to the verified unique Discord role 'High Lvl Staff'. This is a known label abbreviation, not a claim that the literal exact name exists, and not a fuzzy mapping onto neighboring admin or staff roles.",
+    "other_aliases": false,
+    "source": "official Get Roles 200 on 2026-11-11; unique exact live name 'High Lvl Staff'"
+  },
+  "notes": "Nonsecret IDs only. Trader and Server Owner IDs are exact Get Roles names. High Level Staff grant is the verified unique Discord role 'High Lvl Staff' 1215042184764723251: a Design interpretation of Alex's 12:24 phrase 'High Level Staff' as that known abbreviation, not a literal exact-name claim and not an alias of any other staff/admin role. Discord Administrator and other admin/staff labels are not grants. Discount map left empty: exact name/ID evidence is in live/discord-verify-2026-11-11.json. Aliases and discount percentages are not authorized. Secrets stay in process environment, not this file."
+}

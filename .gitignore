@@ -1,3 +1,10 @@
 node_modules/
 sim/node_modules/
 sim/out/
+.env
+.env.*
+!.env.example
+secrets/
+live/
+*.pid
+*.log

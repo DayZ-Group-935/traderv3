@@ -1,0 +1,15 @@
+{
+  "name": "935-balance-poc",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Same-origin Group 935 calculator and read-only account gateway. No npm dependencies. Not deployed by this repository.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/mock-tests.js",
+    "test:account": "node sim/account-mode.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

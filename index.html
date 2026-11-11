@@ -1186,8 +1186,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       return 10000 * qty;
     }
 
-    // Account gateway. Production leaves window.__935AccountGateway unset, so this
-    // page stays offline and shows no balance. There is no public host in this file.
+    // Account gateway. The file served by GitHub Pages leaves
+    // window.__935AccountGateway unset, so that site stays offline and shows no
+    // balance. The Node process injects window.location.origin only into the
+    // HTML it serves, which keeps the API on the same origin. There is no
+    // public host in this file.
     // When a base origin is set, the only calls are the implemented POC routes:
     //   GET  {origin}/api/me
     //   GET  {origin}/api/trader/search?q=
