@@ -7,7 +7,8 @@
     "icons": "node icons-check.js",
     "geometry": "node ui-geometry.js",
     "nav": "node nav-dock.js",
-    "order": "node order-open.js"
+    "order": "node order-open.js",
+    "account": "node account-mode.js"
   },
   "devDependencies": {
     "puppeteer-core": "24.43.1"

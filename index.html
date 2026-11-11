@@ -45,6 +45,8 @@
   --tool: 56px;
   --cat: 52px;
   --dock: 156px;
+  --account: 44px;
+  --amber: #e07a1f;
   --kb: 0px;
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -109,8 +111,60 @@ img, svg { display: block; }
 }
 
 /* ----- Buy / Sell + search. Selected is an olive surface, not a filled hover. ----- */
+.account {
+  position: sticky; top: 0; z-index: 7;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px;
+  min-height: var(--account); padding: 0 10px 4px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.account-modes { flex: 1 1 auto; display: flex; align-items: stretch; }
+.mode-btn {
+  min-width: 44px; min-height: 44px; height: auto; padding: 0 10px;
+  border: 1px solid var(--line-2); background: transparent; color: var(--dim);
+  font-family: ui-monospace, monospace; font-size: 11px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.mode-btn + .mode-btn { border-left: 0; }
+.mode-btn.is-on { background: var(--sel-bg); color: var(--ink); border-color: var(--sel-border); }
+.mode-btn[aria-disabled="true"] { color: var(--faint); }
+.mode-btn:hover, .mode-btn:active { background: transparent; color: var(--dim); }
+.mode-btn.is-on:hover, .mode-btn.is-on:active { background: var(--sel-bg); color: var(--ink); }
+.account-readout { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 2px 0 4px; }
+.account-fixture {
+  margin: 0; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+}
+.account-status, .account-meta { margin: 0; min-width: 0; }
+.account-status { font-size: 13px; font-weight: 600; color: var(--ink); }
+.account-who { display: block; white-space: normal; }
+.account-meta { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-flag { display: block; color: var(--amber); font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.account-change {
+  flex: none; align-self: center; min-width: 44px; min-height: 44px; padding: 0 10px;
+  border: 1px solid var(--line-2); background: transparent; color: var(--dim);
+  font-family: ui-monospace, monospace; font-size: 11px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.account-search {
+  flex: 1 1 100%; position: relative; z-index: 8;
+  padding: 0 0 6px; background: transparent; border: 0;
+}
+.account-search input {
+  width: 100%; height: 44px; min-height: 44px; border: 1px solid var(--line-2);
+  background: var(--bg); padding: 0 10px; font-size: 16px;
+}
+.account-search [role="listbox"] { margin-top: 6px; max-height: 220px; overflow: auto; }
+.account-search [role="option"] {
+  display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0 10px;
+  border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink);
+  text-align: left;
+}
+body.trader-mode { box-shadow: inset 0 0 0 3px var(--amber); }
+body.trader-mode .dock { border-color: var(--amber); }
+body.trader-mode .account { border-bottom-color: var(--amber); }
+body.trader-mode .mode-btn.is-on { background: transparent; border-color: var(--amber); color: var(--ink); }
 .tool {
-  position: sticky; top: 0; z-index: 6;
+  position: sticky; top: var(--account); z-index: 6;
   display: flex; align-items: center; gap: 8px;
   height: var(--tool); padding: 6px 16px;
   border-bottom: 1px solid var(--line); background: var(--surf);
@@ -151,7 +205,7 @@ img, svg { display: block; }
 #buyPanel, #sellPanel { min-width: 0; }
 
 .catstack {
-  position: sticky; top: var(--tool); z-index: 5;
+  position: sticky; top: calc(var(--account) + var(--tool)); z-index: 5;
   background: var(--bg); border-bottom: 1px solid var(--line);
 }
 .catrow {
@@ -517,6 +571,25 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
 </svg>
 </div>
     </header>
+    <div class="account" id="accountBar">
+      <div class="account-modes" role="group" aria-label="Account mode">
+        <button class="mode-btn is-on" id="modeSelfBtn" type="button" aria-pressed="true">My account</button>
+        <button class="mode-btn" id="modeTraderBtn" type="button" aria-pressed="false" aria-disabled="true">Trader</button>
+        <a class="mode-btn" id="accountSignIn" href="" hidden>Sign in</a>
+        <button class="mode-btn" id="accountSignOut" type="button" hidden>Sign out</button>
+      </div>
+      <div class="account-readout" id="accountReadout">
+        <p class="account-fixture" id="accountFixture" hidden>Test fixture</p>
+        <p class="account-status" id="accountStatus">Sign-in is not configured</p>
+        <p class="account-meta" id="accountMeta" hidden></p>
+      </div>
+      <button class="account-change" id="customerChangeBtn" type="button" hidden>Change</button>
+      <div class="account-search" id="accountSearch" hidden>
+        <label class="sr-only" for="customerSearch">Search customers</label>
+        <input id="customerSearch" type="search" autocomplete="off" placeholder="Search customers" enterkeyhint="search">
+        <div id="customerResults" role="listbox" aria-label="Customers" hidden></div>
+      </div>
+    </div>
     <div class="tool">
       <div class="tabs" role="tablist" aria-label="Mode">
         <button class="tab-btn active" data-tab="buy" type="button">Buy</button>
@@ -1113,6 +1186,334 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       return 10000 * qty;
     }
 
+    // Account gateway. Production leaves window.__935AccountGateway unset, so this
+    // page stays offline and shows no balance. There is no public host in this file.
+    // When a base origin is set, the only calls are the implemented POC routes:
+    //   GET  {origin}/api/me
+    //   GET  {origin}/api/trader/search?q=
+    //   GET  {origin}/api/trader/players/{id}
+    //   POST {origin}/auth/logout
+    //   link {origin}/auth/discord/login
+    // Cookies travel with credentials: "include". No Authorization header is sent.
+    // Trader mode is offered only when access.trader_mode_allowed is true.
+    // Role ids, usernames, and is_trader / is_server_owner / is_high_level_staff
+    // are display data from the server. They do not grant the mode.
+    let accountMode = "self";
+    let accountCustomer = null;
+    let accountMe = null;
+    let accountAuth = "unconfigured";
+    let accountPicking = false;
+    let customerSearchToken = 0;
+    function accountGatewayBase() {
+      const raw = window.__935AccountGateway;
+      if (typeof raw !== "string" || !raw.trim()) return null;
+      let url;
+      try { url = new URL(raw); } catch (e) { return null; }
+      if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+      return url.origin;
+    }
+    function resetAccountView() {
+      accountMode = "self";
+      accountCustomer = null;
+      accountMe = null;
+      accountAuth = accountGatewayBase() ? "offline" : "unconfigured";
+      accountPicking = false;
+      customerSearchToken++;
+      renderAccount();
+    }
+    function traderAllowed() {
+      return accountAuth === "signedin" && !!(accountMe && accountMe.access && accountMe.access.trader_mode_allowed === true);
+    }
+    function memberLabel(person) {
+      if (!person) return "";
+      return String(person.nick || person.global_name || person.username || person.id || "");
+    }
+    function balanceLine(balance) {
+      if (!balance || balance.available !== true || balance.mapped !== true) return "";
+      const cash = balance.cash_str != null ? String(balance.cash_str) : (balance.cash != null ? String(balance.cash) : "");
+      const bank = balance.bank_str != null ? String(balance.bank_str) : (balance.bank != null ? String(balance.bank) : "");
+      if (!cash && !bank) return "";
+      return "Cash " + cash + " · Bank " + bank;
+    }
+    function standingLine(me) {
+      const roles = me && me.roles;
+      if (!roles) return "";
+      const parts = [];
+      if (roles.is_server_owner === true) parts.push("Server Owner");
+      if (roles.is_high_level_staff === true) parts.push("High Level Staff");
+      if (roles.is_trader === true) parts.push("Trader");
+      return parts.join(", ");
+    }
+    async function gatewayJSON(path, options) {
+      const base = accountGatewayBase();
+      if (!base) return { unconfigured: true };
+      const method = (options && options.method) || "GET";
+      const headers = { accept: "application/json" };
+      let response;
+      try {
+        response = await fetch(base + path, { method, credentials: "include", headers });
+      } catch (e) {
+        return { offline: true };
+      }
+      let body = null;
+      try { body = await response.json(); } catch (e) { body = null; }
+      return { status: response.status, body };
+    }
+    function renderAccount() {
+      const configured = !!accountGatewayBase();
+      const allowed = traderAllowed();
+      if (!allowed) {
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+      }
+      const traderOn = accountMode === "trader" && allowed;
+      document.body.classList.toggle("trader-mode", traderOn);
+      const selfBtn = document.getElementById("modeSelfBtn");
+      const traderBtn = document.getElementById("modeTraderBtn");
+      if (selfBtn) {
+        selfBtn.classList.toggle("is-on", !traderOn);
+        selfBtn.setAttribute("aria-pressed", traderOn ? "false" : "true");
+      }
+      if (traderBtn) {
+        traderBtn.classList.toggle("is-on", traderOn);
+        traderBtn.setAttribute("aria-pressed", traderOn ? "true" : "false");
+        traderBtn.setAttribute("aria-disabled", allowed ? "false" : "true");
+      }
+      const signIn = document.getElementById("accountSignIn");
+      const signOut = document.getElementById("accountSignOut");
+      if (signIn) {
+        const showIn = configured && accountAuth === "signedout";
+        signIn.hidden = !showIn;
+        signIn.href = showIn ? accountGatewayBase() + "/auth/discord/login" : "";
+      }
+      if (signOut) signOut.hidden = accountAuth !== "signedin";
+      const fixture = document.getElementById("accountFixture");
+      if (fixture) fixture.hidden = window.__935AccountFixture !== true;
+      const status = document.getElementById("accountStatus");
+      if (status) {
+        status.replaceChildren();
+        if (!configured || accountAuth === "unconfigured") status.textContent = "Sign-in is not configured";
+        else if (accountAuth === "offline") status.textContent = "Account service is unavailable";
+        else if (accountAuth !== "signedin" || !accountMe) status.textContent = "Signed out";
+        else if (traderOn) {
+          const flag = document.createElement("span");
+          flag.className = "account-flag";
+          flag.textContent = "TRADER MODE";
+          const who = document.createElement("span");
+          who.className = "account-who";
+          who.textContent = accountCustomer ? accountCustomer.label : "Select a customer";
+          status.append(flag, who);
+        } else {
+          const who = document.createElement("span");
+          who.className = "account-who";
+          who.textContent = memberLabel(accountMe.identity) || "My account";
+          status.append(who);
+        }
+      }
+      const meta = document.getElementById("accountMeta");
+      let metaText = "";
+      if (traderOn && accountCustomer) metaText = accountCustomer.balanceText || "";
+      else if (!traderOn && accountAuth === "signedin" && accountMe) {
+        metaText = [balanceLine(accountMe.balance), standingLine(accountMe)].filter(Boolean).join(" · ");
+      }
+      if (meta) {
+        meta.hidden = !metaText;
+        meta.textContent = metaText;
+      }
+      const readout = document.getElementById("accountReadout");
+      if (readout) {
+        const name = status ? status.textContent.replace(/\s+/g, " ").trim() : "My account";
+        readout.setAttribute("aria-label", [window.__935AccountFixture === true ? "Test fixture" : "", name, metaText].filter(Boolean).join(". "));
+      }
+      const change = document.getElementById("customerChangeBtn");
+      if (change) change.hidden = !(traderOn && accountCustomer);
+      const search = document.getElementById("accountSearch");
+      const showSearch = traderOn && (accountPicking || !accountCustomer);
+      if (search) search.hidden = !showSearch;
+      if (!showSearch) {
+        const results = document.getElementById("customerResults");
+        if (results) { results.hidden = true; results.replaceChildren(); }
+      }
+      const bar = document.getElementById("accountBar");
+      if (bar) document.documentElement.style.setProperty("--account", Math.max(44, Math.ceil(bar.getBoundingClientRect().height)) + "px");
+    }
+    async function refreshAccount() {
+      if (!accountGatewayBase()) {
+        accountAuth = "unconfigured";
+        accountMe = null;
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      const res = await gatewayJSON("/api/me");
+      if (res.unconfigured || res.offline || !res.status || res.status >= 500) {
+        accountAuth = "offline";
+        accountMe = null;
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      if (res.status === 401 || !res.body || !res.body.identity) {
+        accountAuth = "signedout";
+        accountMe = null;
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      accountAuth = "signedin";
+      accountMe = res.body;
+      if (!(res.body.access && res.body.access.trader_mode_allowed === true)) {
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+      }
+      renderAccount();
+    }
+    async function enterTraderMode() {
+      await refreshAccount();
+      if (!traderAllowed()) {
+        const msg = (accountAuth === "unconfigured" || accountAuth === "offline")
+          ? "Trader mode is unavailable until account sign-in is configured."
+          : (accountAuth === "signedout"
+            ? "Sign in is required for Trader mode."
+            : "Trader mode is not authorized for this account.");
+        toast(msg);
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      if (accountMode === "trader") return;
+      accountMode = "trader";
+      accountCustomer = null;
+      accountPicking = true;
+      renderAccount();
+    }
+    function exitTraderMode() {
+      accountMode = "self";
+      accountCustomer = null;
+      accountPicking = false;
+      customerSearchToken++;
+      const input = document.getElementById("customerSearch");
+      if (input) input.value = "";
+      renderAccount();
+    }
+    async function signOutAccount() {
+      accountMode = "self";
+      accountCustomer = null;
+      accountPicking = false;
+      customerSearchToken++;
+      if (accountGatewayBase()) {
+        try { await gatewayJSON("/auth/logout", { method: "POST" }); } catch (e) {}
+      }
+      await refreshAccount();
+    }
+    async function chooseCustomer(id) {
+      if (accountMode !== "trader" || !traderAllowed()) {
+        accountCustomer = null;
+        renderAccount();
+        return;
+      }
+      const res = await gatewayJSON("/api/trader/players/" + encodeURIComponent(id));
+      if (accountMode !== "trader" || !traderAllowed()) {
+        accountCustomer = null;
+        renderAccount();
+        return;
+      }
+      const member = res && res.status === 200 && res.body && res.body.lookup && res.body.lookup.member;
+      if (!member) {
+        accountCustomer = null;
+        if (res && res.status === 403) {
+          accountMode = "self";
+          accountPicking = false;
+          toast("Trader mode is not authorized for this account.");
+        } else toast("That customer is not available");
+        renderAccount();
+        return;
+      }
+      accountCustomer = {
+        id: String(member.id || id),
+        label: memberLabel(member) || "Customer",
+        balanceText: balanceLine(res.body.balance)
+      };
+      accountPicking = false;
+      const input = document.getElementById("customerSearch");
+      if (input) input.value = "";
+      renderAccount();
+    }
+    function bindAccountControls() {
+      const selfBtn = document.getElementById("modeSelfBtn");
+      const traderBtn = document.getElementById("modeTraderBtn");
+      const change = document.getElementById("customerChangeBtn");
+      const signOut = document.getElementById("accountSignOut");
+      const input = document.getElementById("customerSearch");
+      if (selfBtn) selfBtn.onclick = () => exitTraderMode();
+      if (traderBtn) traderBtn.onclick = () => { enterTraderMode(); };
+      if (signOut) signOut.onclick = () => { signOutAccount(); };
+      if (change) change.onclick = () => {
+        accountCustomer = null;
+        accountPicking = true;
+        customerSearchToken++;
+        renderAccount();
+      };
+      if (input) input.addEventListener("input", () => {
+        const q = input.value.trim();
+        const token = ++customerSearchToken;
+        const box = document.getElementById("customerResults");
+        if (!box) return;
+        if (accountMode !== "trader" || !traderAllowed() || !q) {
+          box.hidden = true;
+          box.replaceChildren();
+          return;
+        }
+        gatewayJSON("/api/trader/search?q=" + encodeURIComponent(q)).then(res => {
+          if (token !== customerSearchToken || accountMode !== "trader") return;
+          if (res && res.status === 403) {
+            accountMode = "self";
+            accountCustomer = null;
+            accountPicking = false;
+            toast("Trader mode is not authorized for this account.");
+            renderAccount();
+            return;
+          }
+          box.replaceChildren();
+          const list = res && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : [];
+          if (!list.length) {
+            const empty = document.createElement("div");
+            empty.className = "account-meta";
+            empty.textContent = "No customers";
+            box.appendChild(empty);
+          } else list.forEach(row => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.setAttribute("role", "option");
+            btn.textContent = memberLabel(row) || String(row.id);
+            btn.onclick = () => chooseCustomer(row.id);
+            box.appendChild(btn);
+          });
+          box.hidden = false;
+        }).catch(() => {
+          if (token !== customerSearchToken) return;
+          box.replaceChildren();
+          const err = document.createElement("div");
+          err.className = "account-meta";
+          err.textContent = "Customer search is unavailable";
+          box.appendChild(err);
+          box.hidden = false;
+        });
+      });
+    }
+    window.__935AccountRefresh = refreshAccount;
+
+
     // A page refresh starts completely fresh: nothing is saved between loads.
     // saveState() is kept as a no-op so existing call sites stay unchanged.
     function saveState() {}
@@ -1137,6 +1538,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const t = document.getElementById("toast"); if (t) { t.classList.remove("show"); t.textContent = ""; }
       document.body.classList.remove("code-open");
       ["buy", "sell"].forEach(type => { const h = document.querySelector(`#${type}SummaryWrap .summary-header`); if (h) h.textContent = type === "buy" ? "Buy Cart" : "Sell Cart"; });
+      resetAccountView();
     }
 
     // ===== RENDER =====
@@ -2044,11 +2446,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       toast("Roles cleared");
     };
 
+    bindAccountControls();
     render();
     renderKitSummaries();
     // pageshow also fires when the page comes back from the back/forward cache and after the browser
     // restores form fields, so reset again there.
-    window.addEventListener("pageshow", () => { resetToFresh(); render(); renderKitSummaries(); importOrderFromLocation(); });
+    window.addEventListener("pageshow", () => { resetToFresh(); render(); renderKitSummaries(); importOrderFromLocation(); refreshAccount(); });
   </script>
 </body>
 </html>
