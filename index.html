@@ -407,11 +407,21 @@ body.mode-admin .mode-btn.is-on { color: var(--ink); }
 #adminRoles { padding: 0 16px 16px; box-sizing: border-box; max-width: 100%; }
 #adminRoleSelect { width: 100%; max-width: 100%; height: 44px; box-sizing: border-box; background: var(--bg); color: var(--ink); border: 1px solid var(--line-2); }
 .manage-editor { box-sizing: border-box; max-width: 100%; overflow: hidden; }
-.admin-role-row { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: 8px; align-items: center; margin: 0 0 8px; }
-.admin-role-row span { min-width: 0; overflow-wrap: anywhere; }
+.role-edit { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); max-width: 100%; }
+.role-edit-name { font-weight: 650; overflow-wrap: anywhere; }
+.role-missing { color: var(--faint); font-size: 12px; font-weight: 500; }
+.role-source, .role-ref { margin: 4px 0; font-size: 12px; color: var(--faint); font-weight: 500; }
+.role-edit .tabs { display: flex; max-width: 100%; }
+.role-edit .tab-btn { flex: 1 1 0; min-width: 0; }
+.role-edit input[type="number"] { width: 100%; max-width: 100%; box-sizing: border-box; }
+.role-add { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 12px; }
+.role-add-list { display: flex; flex-direction: column; max-width: 100%; }
+.role-add-list button { min-height: 44px; text-align: left; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink); padding: 0 4px; }
 .manage-result { margin: 12px 0; font-size: 16px; }
 .manage-result strong { font-variant-numeric: tabular-nums; }
-#manageSave:disabled { opacity: .45; }
+#manageSave:disabled, #adminRoleSave:disabled {
+  background: var(--surf-2); color: var(--faint); opacity: 1; border: 1px solid var(--line); cursor: default;
+}
 #customerIdRow { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 #customerIdRow[hidden] { display: none; }
 
@@ -917,6 +927,23 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       "The Vaccinator":{description:"Turn in 100 Syringes to Trader.",bonuses:{"Syringe":1500},discounts:{"NBC Filters":50,"PoX Antidote":50}},
       "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{},cartPercent:10}
     };
+    // Discord perk text is a reference. It becomes a buy-line percent only when the calculator has no terms for that role.
+    const discordStatements = {
+      "Click Click Boom":{"percent":7,"statement":"7% off everything"},
+      "Daryl Dixon":{"percent":15,"statement":"15% off everything"},
+      "Deadshot":{"percent":20,"statement":"20% off everything"},
+      "Head Hunter":{"percent":5,"statement":"5% off everything"},
+      "Hotshot":{"percent":25,"statement":"25% off everything"},
+      "Kamikaze":{"percent":20,"statement":"20% off everything"},
+      "Negan":{"percent":10,"statement":"10% off everything"},
+      "Day 1":{"percent":10,"statement":"10% off everything","calculator":"Day One"}
+    };
+    const discordOngoing = {};
+    Object.keys(discordStatements).forEach(name => {
+      const row = discordStatements[name];
+      if (!row || row.calculator || roles[name]) return;
+      roles[name] = { description: row.statement || "", discounts: {}, bonuses: {}, scopePercent: row.percent || 0 };
+    });
 
     // ===== STATE =====
     let currentTab = "buy";
@@ -1282,7 +1309,23 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }).join("");
     }
 
-    function getDiscountedPrice(name, base) {
+    function roleHasCalculatorTerms(rule) {
+      if (!rule) return false;
+      if (rule.cartPercent) return true;
+      if (rule.discounts && Object.keys(rule.discounts).some(key => rule.discounts[key])) return true;
+      if (rule.discountFixed && Object.keys(rule.discountFixed).length) return true;
+      if (rule.bonuses && Object.keys(rule.bonuses).length) return true;
+      return false;
+    }
+    function discordScopePercent(name) {
+      const rule = roles[name];
+      if (roleHasCalculatorTerms(rule)) return 0;
+      if (rule && rule.scopePercent) return rule.scopePercent;
+      const row = discordStatements[name];
+      if (!row || row.calculator || !row.percent) return 0;
+      return row.percent;
+    }
+    function getDiscountedPrice(name, base, side) {
       let price = base;
       activeRoles.forEach(role => {
         const r = roles[role];
@@ -1293,6 +1336,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         }
         if (r.discountFixed && r.discountFixed[name] != null) {
           price = Math.min(price, Math.max(0, base - r.discountFixed[name]));
+        }
+        if (side === "buy") {
+          const scope = discordScopePercent(role);
+          if (scope) price = Math.min(price, base * (1 - scope / 100));
         }
         if (r.bonuses && r.bonuses[name]) {
           price = r.bonuses[name];
@@ -1317,15 +1364,17 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     // Catalog discount and role percent are alternatives from the same unit price.
     // The line uses the lower result. A role bonus replaces the unit and is not reduced again.
-    function lineUnit(name, base, salePrice) {
+    function lineUnit(name, base, salePrice, side) {
       const bonus = activeBonus(name);
       if (bonus != null) return Math.round(bonus);
       const catalog = salePrice == null ? Math.round(base) : Math.round(salePrice);
-      return Math.min(catalog, Math.round(getDiscountedPrice(name, base)));
+      return Math.min(catalog, Math.round(getDiscountedPrice(name, base, side)));
     }
     function catalogKey(side, name) { return side + "\n" + name; }
     let ownPricingRoles = [];
     let loadedRoleRules = null;
+    let roleDrafts = {};
+    let roleAddSide = "buy";
     function applyPricingRoles(names) {
       activeRoles = new Set((names || []).filter(name => roles[name]));
     }
@@ -1865,7 +1914,15 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const name = document.getElementById("adminRoleSelect").value;
       const rule = currentRoleRule(name);
       if (!rule) { toast("That role has no calculator rule."); return; }
-      const role_rules = Object.keys(roles).sort().map(roleName => currentRoleRule(roleName)).filter(Boolean);
+      const role_rules = Object.keys(roles).sort().map(roleName => {
+        const rule = roleDrafts[roleName] || currentRoleRule(roleName);
+        if (!rule) return null;
+        return {
+          name: rule.name,
+          cart_percent: rule.cart_percent || null,
+          effects: (rule.effects || []).filter(effect => effect.price != null || (effect.discount && effect.discount.value > 0))
+        };
+      }).filter(Boolean);
       const changes = [...catalogDraft.values()];
       const res = await gatewayJSON("/api/catalog", { method: "POST", body: { revision: catalogRevision, changes, role_rules } });
       if (!res || res.status === 401 || res.status === 403) { toast("Catalog edits are not authorized."); return; }
@@ -1873,6 +1930,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!res || res.status !== 200) { toast("Catalog save was refused."); return; }
       catalogRevision = res.body.revision || catalogRevision;
       installRoleRules(res.body.role_rules || role_rules);
+      roleDrafts = {};
       toast(res.body.saved ? "Role terms saved" : "No role changes");
       render();
     }
@@ -1928,7 +1986,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     function currentRoleRule(name) {
       const saved = (loadedRoleRules || []).find(rule => rule && rule.name === name);
-      if (saved) return saved;
+      if (saved) return JSON.parse(JSON.stringify(saved));
       const rule = roles[name];
       if (!rule) return null;
       const effects = [];
@@ -1943,10 +2001,35 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       });
       return { name, cart_percent: rule.cartPercent || null, effects };
     }
+    function ensureRoleDraft(name) {
+      if (!roleDrafts[name]) roleDrafts[name] = currentRoleRule(name);
+      return roleDrafts[name];
+    }
+    function itemInCatalog(side, name) {
+      return catalogRows(side).some(item => item.name === name);
+    }
+    function discordReference(roleName) {
+      const direct = discordStatements[roleName];
+      if (direct && !direct.calculator) return { name: roleName, row: direct };
+      const alias = Object.entries(discordStatements).find(([, row]) => row.calculator === roleName);
+      return alias ? { name: alias[0], row: alias[1] } : null;
+    }
+    function selectedRoleMeta(roleName) {
+      const rule = roles[roleName];
+      const has = roleHasCalculatorTerms(rule);
+      const ref = discordReference(roleName);
+      if (has) return { source: "calculator", tag: "calculator term", statement: ref ? ref.row.statement : "" };
+      if (discordOngoing[roleName]) return { source: "none", tag: "no defined terms", statement: "ongoing bonuses, no %" };
+      const direct = discordStatements[roleName];
+      if (direct && direct.percent && !direct.calculator) return { source: "discord", tag: "from Discord", statement: direct.statement, percent: direct.percent };
+      return { source: "unknown", tag: "", statement: "" };
+    }
     function renderAdminRoles() {
       const select = document.getElementById("adminRoleSelect");
       const note = document.getElementById("adminRoleNote");
       const box = document.getElementById("adminRoleEffects");
+      const headNote = document.getElementById("manageNote");
+      if (headNote && adminPane === "roles") headNote.hidden = true;
       if (!select || !box) return;
       if (!select.options.length) {
         Object.keys(roles).sort().forEach(name => {
@@ -1956,42 +2039,185 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           select.appendChild(opt);
         });
       }
-      const rule = currentRoleRule(select.value || select.options[0].value);
+      const roleName = select.value || (select.options[0] && select.options[0].value);
+      const draft = ensureRoleDraft(roleName);
       if (note) {
         note.textContent = catalogConfigured
-          ? "These are the calculator role terms. They apply only when a verified Discord role id map names this role. No role ids are guessed."
-          : "Saving needs a durable catalog store. The terms shown are the current calculator rules.";
+          ? "These terms apply only when a verified Discord role id map names this role."
+          : "Saving needs a durable catalog store.";
       }
       box.replaceChildren();
-      if (rule && rule.cart_percent) {
-        const cart = document.createElement("p");
-        cart.className = "manage-note";
-        cart.textContent = "Buy cart discount " + rule.cart_percent + "% on lines without a catalog discount.";
-        box.appendChild(cart);
+      const meta = selectedRoleMeta(roleName);
+      if (meta.tag) {
+        const tag = document.createElement("div");
+        tag.className = "role-source";
+        tag.textContent = meta.tag;
+        box.appendChild(tag);
       }
-      (rule && rule.effects || []).forEach(effect => {
+      if (meta.statement) {
+        const ref = document.createElement("p");
+        ref.className = "role-ref";
+        ref.textContent = "Discord: " + meta.statement;
+        box.appendChild(ref);
+      }
+      if (!draft || meta.source === "none") {
+        const save = document.getElementById("adminRoleSave");
+        if (save) { save.disabled = !catalogConfigured; save.setAttribute("aria-disabled", save.disabled ? "true" : "false"); }
+        return;
+      }
+      if (meta.source === "discord") {
+        if (draft.scope_percent == null) draft.scope_percent = meta.percent;
+        const scopeLabel = document.createElement("label");
+        scopeLabel.textContent = "Buy discount %";
+        scopeLabel.setAttribute("for", "roleScopePercent");
+        const scopeInput = document.createElement("input");
+        scopeInput.id = "roleScopePercent";
+        scopeInput.type = "number";
+        scopeInput.min = "0";
+        scopeInput.max = "100";
+        scopeInput.step = "1";
+        scopeInput.value = String(draft.scope_percent);
+        scopeInput.addEventListener("input", () => { draft.scope_percent = Math.max(0, Math.round(Number(scopeInput.value) || 0)); });
+        box.append(scopeLabel, scopeInput);
+      }
+      const cartLabel = document.createElement("label");
+      cartLabel.textContent = "Buy cart discount %";
+      cartLabel.setAttribute("for", "roleCartPercent");
+      const cartInput = document.createElement("input");
+      cartInput.id = "roleCartPercent";
+      cartInput.type = "number";
+      cartInput.min = "0";
+      cartInput.max = "100";
+      cartInput.step = "1";
+      cartInput.value = String(draft.cart_percent || 0);
+      cartInput.addEventListener("input", () => { draft.cart_percent = Math.max(0, Math.round(Number(cartInput.value) || 0)); });
+      box.append(cartLabel, cartInput);
+      (draft.effects || []).forEach((effect, index) => {
         const row = document.createElement("div");
-        row.className = "admin-role-row";
-        const label = document.createElement("span");
-        const kind = effect.price != null
-          ? "price " + fmt(effect.price) + " Cr"
-          : (effect.discount.type === "fixed" ? effect.discount.value + " Cr off" : effect.discount.value + "%");
-        label.textContent = (effect.side === "sell" ? "Sell " : "Buy ") + effect.name + " · " + kind;
-        row.appendChild(label);
+        row.className = "role-edit";
+        const title = document.createElement("div");
+        title.className = "role-edit-name";
+        title.textContent = effect.name;
+        if (!itemInCatalog(effect.side, effect.name)) {
+          const mark = document.createElement("span");
+          mark.className = "role-missing";
+          mark.textContent = " not in catalog";
+          title.appendChild(mark);
+        }
+        const sideTabs = document.createElement("div");
+        sideTabs.className = "tabs";
+        sideTabs.setAttribute("role", "group");
+        sideTabs.setAttribute("aria-label", "Side for " + effect.name);
+        ["buy", "sell"].forEach(side => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tab-btn" + (effect.side === side ? " active" : "");
+          btn.textContent = side === "buy" ? "Buy" : "Sell";
+          btn.onclick = () => { effect.side = side; renderAdminRoles(); };
+          sideTabs.appendChild(btn);
+        });
+        const modeTabs = document.createElement("div");
+        modeTabs.className = "tabs";
+        modeTabs.setAttribute("role", "group");
+        modeTabs.setAttribute("aria-label", "Price or discount for " + effect.name);
+        const isPrice = effect.price != null;
+        [["price", "Price"], ["discount", "Discount"]].forEach(([mode, label]) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tab-btn" + ((isPrice ? "price" : "discount") === mode ? " active" : "");
+          btn.textContent = label;
+          btn.onclick = () => {
+            if (mode === "price") { effect.price = effect.price != null ? effect.price : (effect.discount ? effect.discount.value : 0); delete effect.discount; }
+            else { effect.discount = effect.discount || { type: "percent", value: effect.price || 0 }; delete effect.price; }
+            renderAdminRoles();
+          };
+          modeTabs.appendChild(btn);
+        });
+        row.append(title, sideTabs, modeTabs);
+        if (!isPrice) {
+          const discTabs = document.createElement("div");
+          discTabs.className = "tabs";
+          [["percent", "%"], ["fixed", "Cr"]].forEach(([type, label]) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "tab-btn" + (effect.discount.type === type ? " active" : "");
+            btn.textContent = label;
+            btn.onclick = () => { effect.discount.type = type; renderAdminRoles(); };
+            discTabs.appendChild(btn);
+          });
+          row.appendChild(discTabs);
+        }
+        const value = document.createElement("input");
+        value.type = "number";
+        value.min = "0";
+        value.step = "1";
+        value.setAttribute("aria-label", "Value for " + effect.name);
+        value.value = String(isPrice ? effect.price : effect.discount.value);
+        value.addEventListener("input", () => {
+          const next = Math.max(0, Math.round(Number(value.value) || 0));
+          if (effect.price != null) effect.price = next;
+          else effect.discount.value = next;
+        });
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "tab-btn";
+        remove.textContent = "Remove";
+        remove.onclick = () => { draft.effects.splice(index, 1); renderAdminRoles(); };
+        row.append(value, remove);
         box.appendChild(row);
       });
-      if (rule && !(rule.effects || []).length && !(rule.cart_percent)) {
-        const empty = document.createElement("p");
-        empty.className = "manage-note";
-        empty.textContent = "No item terms are stored for this role.";
-        box.appendChild(empty);
-      }
+      const add = document.createElement("div");
+      add.className = "role-add";
+      const addLabel = document.createElement("label");
+      addLabel.textContent = "Add item";
+      addLabel.setAttribute("for", "roleAddSearch");
+      const addSearch = document.createElement("input");
+      addSearch.id = "roleAddSearch";
+      addSearch.type = "search";
+      addSearch.placeholder = "Search catalog items";
+      addSearch.setAttribute("aria-label", "Search catalog items to add");
+      const addSides = document.createElement("div");
+      addSides.className = "tabs";
+      ["buy", "sell"].forEach(side => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tab-btn" + (roleAddSide === side ? " active" : "");
+        btn.textContent = side === "buy" ? "Buy" : "Sell";
+        btn.onclick = () => { roleAddSide = side; renderAdminRoles(); };
+        addSides.appendChild(btn);
+      });
+      const results = document.createElement("div");
+      results.className = "role-add-list";
+      results.setAttribute("role", "listbox");
+      const paintResults = () => {
+        const q = addSearch.value.trim().toLowerCase();
+        results.replaceChildren();
+        if (!q) return;
+        catalogRows(roleAddSide).filter(item => item.name.toLowerCase().includes(q) && !(roleName === "Roadkill" && (item.name === "Trader Car" || item.name === "Trader Truck"))).slice(0, 6).forEach(item => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = item.name;
+          btn.onclick = () => {
+            if ((draft.effects || []).some(effect => effect.side === roleAddSide && effect.name === item.name)) return;
+            draft.effects.push({ side: roleAddSide, name: item.name, discount: { type: "percent", value: 0 } });
+            renderAdminRoles();
+          };
+          results.appendChild(btn);
+        });
+      };
+      addSearch.addEventListener("input", paintResults);
+      add.append(addLabel, addSearch, addSides, results);
+      box.appendChild(add);
       const save = document.getElementById("adminRoleSave");
-      if (save) save.disabled = !catalogConfigured;
+      if (save) {
+        save.disabled = !catalogConfigured;
+        save.setAttribute("aria-disabled", save.disabled ? "true" : "false");
+      }
     }
     async function refreshDiscordRoleNames() {
       const select = document.getElementById("adminRoleSelect");
       if (!select || select.dataset.loaded === "1") return;
+      const previous = select.value;
       const res = await gatewayJSON("/api/catalog/roles");
       const discord = res && res.status === 200 && res.body && Array.isArray(res.body.discord) ? res.body.discord : [];
       if (!discord.length) return;
@@ -2000,9 +2226,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       select.replaceChildren();
       names.forEach(name => {
         const opt = document.createElement("option");
-        opt.value = roles[name] ? name : "";
-        opt.textContent = roles[name] ? name : name + " (no calculator rule)";
-        opt.disabled = !roles[name];
+        const alias = discordStatements[name] && discordStatements[name].calculator;
+        const known = roles[name] ? name : (alias && roles[alias] ? alias : "");
+        opt.value = known;
+        opt.textContent = known ? name : name + " (no calculator rule)";
+        opt.disabled = !known;
         select.appendChild(opt);
       });
       builtin.sort().forEach(name => {
@@ -2012,6 +2240,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         opt.textContent = name;
         select.appendChild(opt);
       });
+      if (previous && [...select.options].some(opt => opt.value === previous && !opt.disabled)) select.value = previous;
+      else {
+        const usable = [...select.options].find(opt => opt.value && !opt.disabled);
+        if (usable) select.value = usable.value;
+      }
       select.dataset.loaded = "1";
       renderAdminRoles();
     }
@@ -2059,6 +2292,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (roleSelect) roleSelect.onchange = () => renderAdminRoles();
       const roleSave = document.getElementById("adminRoleSave");
       if (roleSave) roleSave.onclick = () => saveAdminRole();
+      const roleCancel = document.getElementById("adminRoleCancel");
+      if (roleCancel) roleCancel.onclick = () => {
+        const name = document.getElementById("adminRoleSelect").value;
+        delete roleDrafts[name];
+        renderAdminRoles();
+      };
       if (signOut) signOut.onclick = () => { signOutAccount(); };
       if (change) change.onclick = () => {
         accountCustomer = null;
@@ -2195,7 +2434,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (item.inStock === false) { btn.dataset.price = "Out of stock"; btn.dataset.oos = ""; }
       else {
         const isKitItem = item.name === "Player Kit" || item.name === "Ghillie Kit";
-        const unit = isKitItem ? catalogResultPrice(item.price, item.catalogDiscount) : lineUnit(item.name, item.price, item.salePrice);
+        const unit = isKitItem ? catalogResultPrice(item.price, item.catalogDiscount) : lineUnit(item.name, item.price, item.salePrice, type);
         btn.dataset.price = fmt(unit * qty) + " Cr";
         if (!isKitItem && unit !== item.price) btn.dataset.deal = ""; else delete btn.dataset.deal;
       }
@@ -2224,7 +2463,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       let eligible = 0;
       Object.entries(buyCart).forEach(([name, row]) => {
         const itemName = row.item || name;
-        const unit = lineUnit(itemName, row.base, row.salePrice);
+        const unit = lineUnit(itemName, row.base, row.salePrice, "buy");
         const total = unit * row.qty;
         if (row.salePrice != null && row.salePrice !== row.base) kept += total;
         else eligible += total;
@@ -2240,7 +2479,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       Object.entries(sellCart).forEach(([name, row]) => {
         const itemName = row.item || name;
         if (itemName === "Bible") sellTotal += bibleTotal(row.qty, row.base, row.discount);
-        else sellTotal += lineUnit(itemName, row.base, row.salePrice) * row.qty;
+        else sellTotal += lineUnit(itemName, row.base, row.salePrice, "sell") * row.qty;
       });
       return {buyTotal, sellTotal, fm};
     }
@@ -2598,7 +2837,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           const {qty, base, salePrice, discount} = cart[name];
           const item = cart[name].item || name;
           const isKit = name.startsWith("Player Kit") || name.startsWith("Ghillie Kit");
-          let unit = lineUnit(item, base, salePrice);
+          let unit = lineUnit(item, base, salePrice, type);
           let total = (item === "Bible" && type === "sell") ? bibleTotal(qty, base, discount) : unit * qty;
           liveTotal += total;
           let priceHtml, nameHtml;
@@ -2690,6 +2929,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const list = document.getElementById("manageList");
       if (list) list.hidden = !(adminOn && adminPane === "catalog");
       if (title) title.textContent = adminPane === "roles" ? "Roles" : "Manage catalog";
+      const headNote = document.getElementById("manageNote");
+      if (headNote) headNote.hidden = adminOn && adminPane === "roles";
       if (adminOn && adminPane === "catalog") renderManage();
       else if (adminOn) renderAdminRoles();
       else if (currentTab === "buy") renderBuy();

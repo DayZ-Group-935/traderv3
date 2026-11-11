@@ -238,28 +238,86 @@ async function overlaps(page, selector) {
       return { before, inline, shut, open };
     });
     check('admin-accordion-toggles', accordion.before && accordion.inline && accordion.shut && accordion.open, accordion);
-    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-390.png'), fullPage: true });
+    await staff.evaluate(() => {
+      const search = document.getElementById('manageSearch');
+      search.value = '';
+      search.dispatchEvent(new Event('input'));
+      const rows = [...document.querySelectorAll('.manage-row')];
+      const row = rows[Math.floor(rows.length / 2)];
+      if (row && row.getAttribute('aria-expanded') !== 'true') row.click();
+      const editor = document.getElementById('manageEditor');
+      editor.scrollIntoView({ block: 'start' });
+      window.scrollBy(0, -80);
+    });
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-accordion-390.png') });
+    await staff.setViewport({ width: 320, height: 1100, deviceScaleFactor: 2, isMobile: true });
+    await staff.evaluate(() => {
+      const editor = document.getElementById('manageEditor');
+      editor.scrollIntoView({ block: 'start' });
+      window.scrollBy(0, -64);
+    });
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-accordion-320.png') });
+    await staff.setViewport({ width: 390, height: 1500, deviceScaleFactor: 2, isMobile: true });
     await staff.click('#adminRolesTab');
     await staff.waitForFunction(() => !document.getElementById('adminRoles').hidden && document.getElementById('adminRoleSelect').options.length > 10);
     const prefill = await staff.evaluate(() => {
-      const text = document.getElementById('adminRoleEffects').innerText;
       document.getElementById('adminRoleSelect').value = 'Roadkill';
       document.getElementById('adminRoleSelect').dispatchEvent(new Event('change'));
+      const box = document.getElementById('adminRoleEffects');
+      const battery = [...box.querySelectorAll('.role-edit')].find(row => row.textContent.includes('Car Battery'));
+      const value = battery && battery.querySelector('input');
+      document.getElementById('adminRoleSelect').value = 'Big Game Hunter';
+      document.getElementById('adminRoleSelect').dispatchEvent(new Event('change'));
+      const pelt = [...document.querySelectorAll('.role-edit')].find(row => row.textContent.includes('Bear Pelt'));
       return {
-        road: document.getElementById('adminRoleEffects').innerText,
+        battery: value && value.value,
+        editable: !!battery && battery.querySelectorAll('button').length >= 4,
+        add: !!document.getElementById('roleAddSearch'),
+        pelt: pelt ? pelt.textContent : '',
+        saveDisabled: document.getElementById('adminRoleSave').disabled,
+        notes: document.querySelectorAll('#adminRoles .manage-note, #manageNote:not([hidden])').length,
         noRolesButton: !document.getElementById('rolesDockBtn')
       };
     });
-    check('admin-roles-prefill-roadkill', /Car Battery/.test(prefill.road) && /25%/.test(prefill.road) && !/Trader Car/.test(prefill.road) && prefill.noRolesButton, prefill);
+    check('admin-roles-prefill-roadkill', prefill.battery === '25' && prefill.editable && prefill.add && /not in catalog/.test(prefill.pelt) && prefill.saveDisabled && prefill.notes === 1 && prefill.noRolesButton, prefill);
+    const precedence = await staff.evaluate(() => {
+      applyPricingRoles(['Click Click Boom']);
+      const grenade = Math.round(getDiscountedPrice('Grenade', 1000, 'buy'));
+      const rifle = Math.round(getDiscountedPrice('M4A1', 3500, 'buy'));
+      const tag = document.querySelector('.role-source') && document.querySelector('.role-source').textContent;
+      applyPricingRoles(['Kamikaze', 'Click Click Boom']);
+      const both = Math.round(getDiscountedPrice('Grenade', 1000, 'buy'));
+      applyPricingRoles(['Deadshot', 'Hotshot']);
+      const tundra = Math.round(getDiscountedPrice('Tundra', 2500, 'buy'));
+      applyPricingRoles(['Day One']);
+      const cart = roles['Day One'].cartPercent;
+      applyPricingRoles([]);
+      return { grenade, rifle, both, tundra, cart, tag };
+    });
+    check('role-precedence-calculator-master', precedence.grenade === 800 && precedence.rifle === 3500 && precedence.both === 750 && precedence.tundra === 1250 && precedence.cart === 10 && precedence.tag === 'calculator term', precedence);
+    await staff.evaluate(() => {
+      document.getElementById('adminRoleSelect').value = 'Roadkill';
+      document.getElementById('adminRoleSelect').dispatchEvent(new Event('change'));
+    });
     await staff.screenshot({ path: path.join(OUT, 'badlands-admin-roles-390.png'), fullPage: true });
     await staff.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1, isMobile: false });
     await staff.evaluate(() => { if (!document.body.classList.contains('mode-admin')) document.getElementById('modeAdminBtn').click(); });
     await staff.waitForFunction(() => document.body.classList.contains('mode-admin'));
     await staff.evaluate(() => document.getElementById('adminRolesTab').click());
     await staff.screenshot({ path: path.join(OUT, 'badlands-admin-1280.png') });
-    await staff.setViewport({ width: 320, height: 900, deviceScaleFactor: 1, isMobile: true });
-    await staff.evaluate(() => { if (!document.body.classList.contains('mode-admin')) document.getElementById('modeAdminBtn').click(); document.getElementById('adminRolesTab').click(); });
-    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-roles-320.png') });
+    await staff.setViewport({ width: 320, height: 900, deviceScaleFactor: 2, isMobile: true });
+    await staff.evaluate(() => {
+      const admin = document.getElementById('modeAdminBtn');
+      if (!document.body.classList.contains('mode-admin') && admin && !admin.hidden) admin.click();
+      const tab = document.getElementById('adminRolesTab');
+      if (tab) tab.click();
+      const select = document.getElementById('adminRoleSelect');
+      if (select && [...select.options].some((opt) => opt.value === 'Roadkill')) {
+        select.value = 'Roadkill';
+        select.dispatchEvent(new Event('change'));
+      }
+    });
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-roles-320.png'), fullPage: true });
     await staff.setViewport({ width: 320, height: 1600, deviceScaleFactor: 1, isMobile: true });
     await staff.evaluate(() => { if (!document.body.classList.contains('mode-admin')) document.getElementById('modeAdminBtn').click(); });
     const fit320 = await staff.evaluate(() => {
