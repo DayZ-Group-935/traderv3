@@ -1502,6 +1502,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     let accountAuth = "unconfigured";
     let accountPicking = false;
     let customerSearchToken = 0;
+    let searchDebounce = null;
+    let searchAbort = null;
+    let lastSearchList = null;
     function accountGatewayBase() {
       const raw = window.__935AccountGateway;
       if (typeof raw !== "string" || !raw.trim()) return null;
@@ -1560,6 +1563,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         init.body = JSON.stringify(options.body);
       }
       const timer = new AbortController();
+      if (options && options.signal) {
+        if (options.signal.aborted) return { aborted: true };
+        options.signal.addEventListener('abort', () => timer.abort(), { once: true });
+      }
       init.signal = timer.signal;
       let response;
       let timeout;
@@ -1574,6 +1581,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           })
         ]);
       } catch (e) {
+        if (options && options.signal && options.signal.aborted) return { aborted: true };
         return { offline: true };
       } finally {
         clearTimeout(timeout);
@@ -2364,65 +2372,90 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         customerSearchToken++;
         renderAccount();
       };
+      function paintSearchRows(box, rows, hint) {
+        box.replaceChildren();
+        if (!rows.length) {
+          const empty = document.createElement("div");
+          empty.className = "account-meta";
+          empty.textContent = "No matches";
+          box.appendChild(empty);
+        }
+        rows.forEach(row => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.setAttribute("role", "option");
+          btn.textContent = memberLabel(row) || String(row.id);
+          btn.onclick = () => chooseCustomer(row.id);
+          box.appendChild(btn);
+        });
+        if (hint) {
+          const retry = document.createElement("div");
+          retry.className = "account-meta";
+          retry.textContent = hint;
+          box.appendChild(retry);
+        }
+        box.hidden = false;
+      }
       if (input) input.addEventListener("input", () => {
         const q = input.value.trim();
         const token = ++customerSearchToken;
+        if (searchDebounce) clearTimeout(searchDebounce);
+        if (searchAbort) searchAbort.abort();
         const box = document.getElementById("customerResults");
         if (!box) return;
         if (accountMode !== "trader" || !traderAllowed() || q.length < 2) {
+          lastSearchList = null;
           box.hidden = true;
           box.replaceChildren();
           return;
         }
-        gatewayJSON("/api/trader/search?q=" + encodeURIComponent(q)).then(res => {
-          if (token !== customerSearchToken || accountMode !== "trader") return;
-          if (res && res.status === 403 && res.body && res.body.reason === "elevated_role_required") {
-            accountMode = "self";
-            accountCustomer = null;
-            accountPicking = false;
-            toast("Trader mode is not authorized for this account.");
-            renderAccount();
-            return;
-          }
-          box.replaceChildren();
-          const list = res && res.status === 200 && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : null;
-          const note = document.getElementById("customerSearchNote");
-          const idRow = document.getElementById("customerIdRow");
-          if (!list) {
+        searchDebounce = setTimeout(() => {
+          if (token !== customerSearchToken) return;
+          const ctrl = new AbortController();
+          searchAbort = ctrl;
+          gatewayJSON("/api/trader/search?q=" + encodeURIComponent(q), { signal: ctrl.signal }).then(res => {
+            if (token !== customerSearchToken || accountMode !== "trader" || (res && res.aborted)) return;
+            if (res && res.status === 403 && res.body && res.body.reason === "elevated_role_required") {
+              accountMode = "self";
+              accountCustomer = null;
+              accountPicking = false;
+              toast("Trader mode is not authorized for this account.");
+              renderAccount();
+              return;
+            }
+            const list = res && res.status === 200 && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : null;
+            const note = document.getElementById("customerSearchNote");
+            const idRow = document.getElementById("customerIdRow");
+            if (!list) {
+              if (lastSearchList && lastSearchList.length) {
+                paintSearchRows(box, lastSearchList, "Could not refresh. Showing the last results.");
+                return;
+              }
+              const err = document.createElement("div");
+              err.className = "account-meta";
+              err.textContent = "Search unavailable";
+              box.replaceChildren(err);
+              box.hidden = false;
+              if (note) note.textContent = "Search unavailable. Enter a Discord user id.";
+              if (idRow) idRow.hidden = false;
+              return;
+            }
+            if (idRow) idRow.hidden = true;
+            lastSearchList = list;
+            paintSearchRows(box, list);
+          }).catch(() => {
+            if (token !== customerSearchToken) return;
+            if (lastSearchList && lastSearchList.length) {
+              paintSearchRows(box, lastSearchList, "Could not refresh. Showing the last results.");
+              return;
+            }
             const err = document.createElement("div");
             err.className = "account-meta";
             err.textContent = "Search unavailable";
-            box.appendChild(err);
+            box.replaceChildren(err);
             box.hidden = false;
-            if (note) note.textContent = "Search unavailable. Enter a Discord user id.";
-            if (idRow) idRow.hidden = false;
-            return;
-          }
-          if (idRow) idRow.hidden = true;
-          if (!list.length) {
-            const empty = document.createElement("div");
-            empty.className = "account-meta";
-            empty.textContent = "No matches";
-            box.appendChild(empty);
-          }
-          list.forEach(row => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.setAttribute("role", "option");
-            btn.textContent = memberLabel(row) || String(row.id);
-            btn.onclick = () => chooseCustomer(row.id);
-            box.appendChild(btn);
           });
-          box.hidden = false;
-        }).catch(() => {
-          if (token !== customerSearchToken) return;
-          box.replaceChildren();
-          const err = document.createElement("div");
-          err.className = "account-meta";
-          err.textContent = "Search unavailable";
-          box.appendChild(err);
-          box.hidden = false;
-        });
+        }, 300);
       });
     }
     window.__935AccountRefresh = refreshAccount;

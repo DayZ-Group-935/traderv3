@@ -87,8 +87,8 @@ function createApp(options = {}) {
   const logger = options.logger || createLogger(config);
   const sessions = options.sessions || createSessionStore();
   const oauthStates = options.oauthStates || createOAuthStateStore();
-  const oauth = options.oauth || createDiscordOAuth(config, { fetch: options.fetch });
-  const botLookup = options.botLookup || createDiscordBotLookup(config, { fetch: options.fetch });
+  const oauth = options.oauth || createDiscordOAuth(config, { fetch: options.fetch, logger });
+  const botLookup = options.botLookup || createDiscordBotLookup(config, { fetch: options.fetch, logger });
   const killfeed = options.killfeed || createKillfeedAdapter(config, { fetch: options.fetch });
   const catalogStore = options.catalogStore || openCatalogStoreFromEnv();
   let baseCatalog = [];
@@ -126,6 +126,55 @@ function createApp(options = {}) {
       return null;
     }
     return session;
+  }
+
+  function providerDown(err) {
+    logger.error('discord_api_error', {
+      status: err && err.status,
+      code: err && err.discordCode,
+      message: err && err.discordMessage,
+      path: err && err.discordPath,
+    });
+    return {
+      allowed: false,
+      status: 503,
+      error: 'provider_unavailable',
+      reason: 'membership_unavailable',
+    };
+  }
+
+  async function openTraderGate(session) {
+    try {
+      return await evaluateTraderAccess(session, oauth, config);
+    } catch (err) {
+      if (err && err.status === 401 && session.refreshToken) {
+        try {
+          const token = await oauth.refreshAccessToken(session.refreshToken);
+          applyTokenToSession(session, token);
+          session.membershipCache = null;
+          return await evaluateTraderAccess(session, oauth, config);
+        } catch (retryErr) {
+          if (retryErr && retryErr.status === 401) {
+            return { allowed: false, status: 401, error: 'unauthorized', reason: 'unauthorized' };
+          }
+          return providerDown(retryErr);
+        }
+      }
+      if (err && err.status === 401) {
+        return { allowed: false, status: 401, error: 'unauthorized', reason: 'unauthorized' };
+      }
+      return providerDown(err);
+    }
+  }
+
+  function sendTraderGate(res, gate, logReq, session) {
+    const status = gate.status === 401 || gate.status === 503 ? gate.status : 403;
+    sendJson(res, status, {
+      error: gate.error || 'forbidden',
+      reason: gate.reason,
+      provider: status === 503 ? 'discord_oauth' : undefined,
+    });
+    logger.request(logReq, status, { reason: gate.reason, user: session.discordUserId });
   }
 
   async function liveMembership(session) {
@@ -317,10 +366,9 @@ function createApp(options = {}) {
         return;
       }
       ignoredCallerHints(url);
-      const gate = await evaluateTraderAccess(session, oauth, config);
+      const gate = await openTraderGate(session);
       if (!gate.allowed) {
-        sendJson(res, 403, { error: gate.error, reason: gate.reason });
-        logger.request(logReq, 403, { reason: gate.reason, user: session.discordUserId });
+        sendTraderGate(res, gate, logReq, session);
         return;
       }
       if (!botLookup.isConfigured()) {
@@ -356,10 +404,9 @@ function createApp(options = {}) {
         return;
       }
       ignoredCallerHints(url);
-      const gate = await evaluateTraderAccess(session, oauth, config);
+      const gate = await openTraderGate(session);
       if (!gate.allowed) {
-        sendJson(res, 403, { error: gate.error, reason: gate.reason });
-        logger.request(logReq, 403, { reason: gate.reason, user: session.discordUserId });
+        sendTraderGate(res, gate, logReq, session);
         return;
       }
       if (!botLookup.isConfigured()) {
@@ -428,7 +475,15 @@ function createApp(options = {}) {
 
   const server = http.createServer((req, res) => {
     handle(req, res).catch((err) => {
-      logger.error('unhandled', { message: err && err.message });
+      const reqPath = typeof req.url === 'string' ? req.url.split('?')[0] : '';
+      logger.error('unhandled', {
+        message: err && err.message,
+        status: err && err.status,
+        code: err && err.discordCode,
+        discordMessage: err && err.discordMessage,
+        path: err && err.discordPath,
+      });
+      logger.request({ method: req.method || '', url: reqPath }, 500, { reason: err && err.message });
       if (!res.headersSent) sendJson(res, 500, { error: 'internal_error' });
       else res.end();
     });

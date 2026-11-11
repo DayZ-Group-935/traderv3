@@ -182,6 +182,12 @@ function sessionCookie(app, data) {
   return `${app.sessions.cookieName}=${encodeURIComponent(rec.id)}`;
 }
 
+function expireMembershipCache(app) {
+  for (const rec of app.sessions._map.values()) {
+    if (rec.membershipCache) rec.membershipCache.expiresAt = 0;
+  }
+}
+
 function containsSensitive(haystack, secrets) {
   const raw = typeof haystack === 'string' ? haystack : JSON.stringify(haystack);
   return secrets.some((secret) => secret && raw.includes(secret));
@@ -368,6 +374,104 @@ async function run() {
     assert.equal(tiny.reason, 'query_too_short');
   });
 
+  await test('rate limiter reserves a slot before waiting', async () => {
+    const limiter = createRateLimiter({ minIntervalMs: 40 });
+    const starts = [];
+    await Promise.all([0, 1, 2].map(async () => {
+      await limiter.waitForSlot();
+      starts.push(Date.now());
+    }));
+    starts.sort((a, b) => a - b);
+    assert.ok(starts[1] - starts[0] >= 30, starts.join(','));
+    assert.ok(starts[2] - starts[1] >= 30, starts.join(','));
+  });
+
+  await test('discord 429 is retried once and a leftover 429 is not a 500', async () => {
+    const { createDiscordOAuth } = require('../lib/discord-oauth');
+    let calls = 0;
+    const logs = [];
+    const oauth = createDiscordOAuth(baseConfig(), {
+      logger: {
+        info() {},
+        request() {},
+        error(message, meta) { logs.push({ message, meta }); },
+      },
+      limiter: { async waitForSlot() {}, noteHeaders() {} },
+      fetch: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return {
+            ok: false,
+            status: 429,
+            headers: { get: (name) => (String(name).toLowerCase() === 'retry-after' ? '0' : null) },
+            json: async () => ({ message: 'You are being rate limited.', code: 0 }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => ({ roles: [TRADER_ROLE], user: { id: TRADER_ID } }),
+        };
+      },
+    });
+    const member = await oauth.getCurrentMember('plain-token', '1213578527522431046');
+    assert.equal(calls, 2);
+    assert.ok(member.roles.includes(TRADER_ROLE));
+    assert.equal(logs[0].meta.status, 429);
+    assert.equal(logs[0].meta.code, 0);
+    assert.match(logs[0].meta.path, /\/users\/@me\/guilds\/1213578527522431046\/member$/);
+    assert.equal(JSON.stringify(logs).includes('plain-token'), false);
+
+    let memberCalls = 0;
+    const requests = [];
+    await withApp({
+      oauth: {
+        async refreshAccessToken() { throw new Error('not used'); },
+        async getCurrentUser() { return { id: TRADER_ID, username: 'trader' }; },
+        async getCurrentMember() {
+          memberCalls += 1;
+          if (memberCalls === 1) {
+            const err = new Error('discord_api_error');
+            err.status = 429;
+            err.discordCode = 0;
+            err.discordMessage = 'You are being rate limited.';
+            err.discordPath = '/users/@me/guilds/1213578527522431046/member';
+            throw err;
+          }
+          return { roles: [TRADER_ROLE] };
+        },
+      },
+      botLookup: {
+        isConfigured() { return true; },
+        async searchMembers() { return { ok: true, status: 200, data: [] }; },
+      },
+      logger: {
+        info() {},
+        error(message, meta) { requests.push({ message, meta }); },
+        request(req, status, extra) { requests.push({ status, path: req.url, extra }); },
+      },
+    }, async (app, origin) => {
+      const cookie = sessionCookie(app, {
+        discordUserId: TRADER_ID,
+        username: 'trader',
+        accessToken: TRADER_AT,
+      });
+      const blocked = await request(origin, '/api/trader/search?q=ad', { cookie });
+      assert.equal(blocked.status, 503);
+      assert.equal(blocked.json.error, 'provider_unavailable');
+      assert.equal(blocked.json.reason, 'membership_unavailable');
+      const warmed = await request(origin, '/api/trader/search?q=ada', { cookie });
+      assert.equal(warmed.status, 200);
+      const cached = await request(origin, '/api/trader/search?q=adam', { cookie });
+      assert.equal(cached.status, 200);
+      assert.equal(memberCalls, 2);
+    });
+    assert.ok(requests.some((row) => row.status === 503));
+    assert.equal(requests.some((row) => row.status === 500), false);
+    assert.ok(requests.some((row) => row.meta && row.meta.status === 429 && row.meta.code === 0));
+  });
+
   await test('stale/revoked roles fail closed', async () => {
     let roles = [TRADER_ROLE];
     const oauth = mockOAuth({
@@ -384,6 +488,7 @@ async function run() {
       const before = await request(origin, `/api/trader/players/${OTHER_ID}`, { cookie });
       assert.equal(before.status, 503, 'gate should pass while the role is current, then fail closed on provider');
       roles = [];
+      expireMembershipCache(app);
       const after = await request(origin, `/api/trader/players/${OTHER_ID}`, { cookie });
       assert.equal(after.status, 403);
       assert.equal(after.json.reason, 'elevated_role_required');
@@ -585,6 +690,7 @@ async function run() {
           const before = await request(origin, `/api/trader/players/${OTHER_ID}`, { cookie });
           assert.equal(before.status, 503, `${caseRow.username} should pass the gate while the role is current`);
           roles = [];
+          expireMembershipCache(app);
           const after = await request(origin, `/api/trader/players/${OTHER_ID}`, { cookie });
           assert.equal(after.status, 403);
           assert.equal(after.json.reason, 'elevated_role_required');
