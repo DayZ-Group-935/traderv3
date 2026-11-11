@@ -62,6 +62,15 @@ The process exits if it is asked to bind a non-loopback address without `COOKIE_
 
 When a service is created later, Auto-Deploy must be Off. A git push must not create or update a paid instance.
 
+Catalog writes need a durable directory. The hosting note for the current single instance is a 1 GB disk mounted at `/var/data` (about US$0.25 per month). That disk is not approved and is not created here. It also turns off Render zero-downtime deploys. Until it is approved and mounted, leave `CATALOG_STORE` unset. Writes then fail closed and the calculator keeps the published prices, stock, and zero catalog discounts.
+
+| Name | When durable storage is approved |
+| --- | --- |
+| `CATALOG_STORE` | `file` |
+| `CATALOG_STORE_PATH` | `/var/data/catalog.json` |
+
+The path must stay under `/var/data/`. Any other path, or a missing directory, refuses catalog saves. The process does not create the disk, the directory, or a git commit.
+
 ## Request boundary
 
 The canonical origin is only the origin of `DISCORD_REDIRECT_URI`. Hosted mode accepts that value when it is `https`, has no userinfo, and its path is exactly `/auth/discord/callback`. The Host header must name that host (`:443` is the same host). A different Host gets HTTP 421 and the response does not echo it.

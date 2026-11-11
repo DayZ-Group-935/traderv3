@@ -21,6 +21,9 @@ const {
   readUrl,
 } = require('./lib/http-util');
 const { canonicalFromRedirect, assessRequest, safeAuthorizeLocation } = require('./lib/request-guard');
+const { loadBaseCatalog } = require('./lib/catalog-base');
+const { openCatalogStoreFromEnv } = require('./lib/catalog-store');
+const { handleCatalogRoutes } = require('./lib/catalog-routes');
 
 function isLoopbackHost(host) {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1';
@@ -86,6 +89,13 @@ function createApp(options = {}) {
   const oauth = options.oauth || createDiscordOAuth(config, { fetch: options.fetch });
   const botLookup = options.botLookup || createDiscordBotLookup(config, { fetch: options.fetch });
   const killfeed = options.killfeed || createKillfeedAdapter(config, { fetch: options.fetch });
+  const catalogStore = options.catalogStore || openCatalogStoreFromEnv();
+  let baseCatalog = [];
+  try {
+    baseCatalog = options.baseCatalog || loadBaseCatalog();
+  } catch (err) {
+    logger.error('catalog_base', { message: err && err.message });
+  }
 
   async function sessionFromRequest(req) {
     const cookies = parseCookies(req.headers.cookie);
@@ -318,6 +328,11 @@ function createApp(options = {}) {
         return;
       }
       const targetId = decodeURIComponent(traderPlayer[1]);
+      if (!/^\d{17,20}$/.test(targetId)) {
+        sendJson(res, 400, { error: 'invalid_user_id' });
+        logger.request(logReq, 400);
+        return;
+      }
       const member = await botLookup.getMember(targetId);
       const balance = await killfeed.getBalance(targetId);
       const status = member.ok ? 200 : member.status || 503;
@@ -351,16 +366,50 @@ function createApp(options = {}) {
         return;
       }
       const query = url.searchParams.get('q') || '';
-      const result = await botLookup.searchMembers(query);
-      const status = result.ok ? 200 : result.status || 503;
-      sendJson(res, status, {
-        ...(result.ok ? { results: publicSearchResults(result.data) } : { error: result.error || 'lookup_failed', reason: result.reason, provider: result.provider }),
+      let result;
+      try {
+        result = await botLookup.searchMembers(query);
+      } catch {
+        result = { ok: false, status: 502, reason: 'provider_error', provider: 'discord_member_lookup' };
+      }
+      if (!result.ok) {
+        const status = result.status === 400 ? 400 : 503;
+        sendJson(res, status, {
+          error: result.status === 400 ? 'invalid_query' : 'provider_unavailable',
+          provider: 'discord_member_lookup',
+          reason: result.reason === 'not_configured' ? 'not_configured' : (result.status === 400 ? result.reason : 'member_search_unavailable'),
+          lookup_by_id: true,
+          note: 'Discord name search is not available. A member can still be opened by user id.',
+          live_customer_functionality: false,
+          killfeed_search: killfeed.search(),
+        });
+        logger.request(logReq, status, { reason: result.reason, user: session.discordUserId });
+        return;
+      }
+      const results = publicSearchResults(result.data);
+      sendJson(res, 200, {
+        results,
         live_customer_functionality: false,
         killfeed_search: killfeed.search(),
       });
-      logger.request(logReq, status, { user: session.discordUserId });
+      logger.request(logReq, 200, { user: session.discordUserId });
       return;
     }
+
+    if (await handleCatalogRoutes({
+      req,
+      res,
+      path,
+      method,
+      sendJson,
+      logReq,
+      logger,
+      config,
+      oauth,
+      catalogStore,
+      baseCatalog,
+      sessionFromRequest,
+    })) return;
 
     sendJson(res, 404, { error: 'not_found' });
     logger.request(logReq, 404);

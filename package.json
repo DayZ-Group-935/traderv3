@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/mock-tests.js",
+    "test": "node test/mock-tests.js && node test/catalog-tests.js",
     "test:account": "node sim/account-mode.js"
   },
   "engines": {

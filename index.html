@@ -16,32 +16,35 @@
    Flat olive / sand / aged brass. No glass, haze, or glow. */
 :root {
   color-scheme: dark;
-  --bg: #12130f;
-  --hero: #0e0f0c;
-  --surf: #1a1c16;
-  --surf-2: #22251c;
-  --line: #2e3228;
-  --line-2: #444a38;
-  --ink: #e8e0d0;
-  --dim: #a79f8c;
-  --faint: #7a7466;
-  --kicker: #9a8558;
-  --metal: #eeeae2;
-  --wood: #c0a074;
-  --wood-2: #a89068;
-  --od: #aeb878;
-  --sel-bg: #262b1e;
-  --sel-border: #5a6248;
-  --chip-line: #9a8558;
-  --focus: #7a8460;
-  --step-on: #5a6248;
-  --row-in: #1c2018;
-  --dock-bg: #1c1f18;
-  --sheet: #161811;
-  --cta: #9aaa7e;
-  --cta-ink: #14160f;
+  --bg: #16130f;
+  --hero: #120f0c;
+  --surf: #1f1b16;
+  --surf-2: #2c261f;
+  --line: #3c352c;
+  --line-2: #6b5c4a;
+  --ink: #f0e6d4;
+  --dim: #baa890;
+  --faint: #8e816e;
+  --kicker: #e8d4b8;
+  --metal: #ede3d0;
+  --wood: #f3e6c8;
+  --wood-2: #e8d4b8;
+  --od: #baa890;
+  --sel-bg: #2a241c;
+  --sel-border: #7a4a30;
+  --chip-line: #f3e6c8;
+  --focus: #7a4a30;
+  --step-on: #7a4a30;
+  --row-in: #2a241c;
+  --dock-bg: #1f1b16;
+  --sheet: #1c1612;
+  --cta: #7a4a30;
+  --cta-ink: #f3e9d6;
   --pink: #e9a3be;
-  --banner: 136px;
+  --mode-customer: #ff9b3d;
+  --mode-trader: #3ddc97;
+  --mode-admin: #e2c4ff;
+  --banner: 128px;
   --tool: 56px;
   --cat: 52px;
   --dock: 156px;
@@ -91,14 +94,14 @@ img, svg { display: block; }
 
 /* ----- 136px banner, oversized emblem ----- */
 .hero {
-  position: relative; height: 136px; min-height: 136px; max-height: 136px;
-  overflow: hidden; background: var(--hero); border-bottom: 1px solid var(--line);
+  position: relative; height: 128px; min-height: 128px; max-height: 128px;
+  overflow: hidden; background: var(--hero); border-bottom: 1px solid #6b5c4a;
 }
 .hero-inner {
   position: relative; z-index: 2; height: 100%;
   padding: 12px 16px; display: flex; flex-direction: column; justify-content: flex-end;
 }
-.hero-copy { max-width: 58%; }
+.hero-copy { max-width: 200px; }
 .kicker, .eyebrow {
   margin: 0 0 4px; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 500;
   letter-spacing: .14em; text-transform: uppercase; color: var(--kicker);
@@ -106,8 +109,8 @@ img, svg { display: block; }
 .hero h1 { margin: 0; font-size: 24px; line-height: 1.08; font-weight: 550; letter-spacing: -.03em; }
 .hero-mark { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .hero-mark svg {
-  position: absolute; width: 300px; height: 300px;
-  right: -108px; top: 50%; transform: translateY(-48%);
+  position: absolute; width: 248px; height: 248px;
+  right: -90px; top: 52%; transform: translateY(-50%);
 }
 
 /* ----- Buy / Sell + search. Selected is an olive surface, not a filled hover. ----- */
@@ -138,7 +141,9 @@ img, svg { display: block; }
 .account-status { font-size: 13px; font-weight: 600; color: var(--ink); }
 .account-who { display: block; white-space: normal; }
 .account-meta { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.account-flag { display: block; color: var(--amber); font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.account-flag { display: block; font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.account-flag.flag-trader { color: var(--mode-trader); }
+.account-flag.flag-admin { color: var(--mode-admin); }
 .account-change {
   flex: none; align-self: center; min-width: 44px; min-height: 44px; padding: 0 10px;
   border: 1px solid var(--line-2); background: transparent; color: var(--dim);
@@ -159,10 +164,16 @@ img, svg { display: block; }
   border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink);
   text-align: left;
 }
-body.trader-mode { box-shadow: inset 0 0 0 3px var(--amber); }
-body.trader-mode .dock { border-color: var(--amber); }
-body.trader-mode .account { border-bottom-color: var(--amber); }
-body.trader-mode .mode-btn.is-on { background: transparent; border-color: var(--amber); color: var(--ink); }
+body.mode-self { box-shadow: inset 0 0 0 3px var(--mode-customer); }
+body.mode-trader { box-shadow: inset 0 0 0 3px var(--mode-trader); }
+body.mode-admin { box-shadow: inset 0 0 0 3px var(--mode-admin); }
+body.mode-self .dock, body.mode-self .account { border-color: var(--mode-customer); }
+body.mode-trader .dock, body.mode-trader .account { border-color: var(--mode-trader); }
+body.mode-admin .dock, body.mode-admin .account { border-color: var(--mode-admin); }
+body.mode-self .mode-btn.is-on { border-color: var(--mode-customer); color: var(--ink); }
+body.mode-trader .mode-btn.is-on { border-color: var(--mode-trader); color: var(--ink); }
+body.mode-admin .mode-btn.is-on { border-color: var(--mode-admin); color: var(--ink); }
+.tool[hidden], #managePanel[hidden], #customerIdRow[hidden], #modeTraderBtn[hidden], #modeAdminBtn[hidden] { display: none !important; }
 .tool {
   position: sticky; top: var(--account); z-index: 6;
   display: flex; align-items: center; gap: 8px;
@@ -365,6 +376,30 @@ body.trader-mode .mode-btn.is-on { background: transparent; border-color: var(--
   text-transform: uppercase; box-shadow: none;
 }
 #calculateBtn:hover, #calculateBtn:active, .sheet-calc:hover, .sheet-calc:active { transform: none; filter: none; }
+.manage-head, .manage-tools, .manage-editor { padding: 12px 16px; }
+.manage-head h2, .manage-editor h3 { margin: 0 0 6px; font-size: 20px; font-weight: 650; }
+.manage-note, .manage-base, .manage-diff, .manage-kicker { margin: 0 0 8px; color: var(--dim); font-size: 13px; }
+.manage-tools { display: flex; flex-direction: column; gap: 8px; }
+.manage-tools input, .manage-editor input, #customerIdInput {
+  width: 100%; height: 44px; min-height: 44px; border: 1px solid var(--line-2);
+  background: var(--bg); padding: 0 10px; font-size: 16px;
+}
+.manage-list { border-top: 1px solid var(--line); }
+.manage-row {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: center;
+  width: 100%; min-height: 64px; padding: 8px 16px; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: var(--ink); text-align: left;
+}
+.manage-row.is-on { box-shadow: inset 3px 0 0 var(--kicker); background: var(--sel-bg); }
+.manage-row .nm { display: block; font-weight: 600; }
+.manage-row .meta { color: var(--dim); font-size: 13px; }
+.manage-editor label { display: block; margin: 8px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.manage-discount, .manage-stock, .manage-actions { display: flex; gap: 8px; margin-top: 8px; }
+.manage-result { margin: 12px 0; font-size: 16px; }
+.manage-result strong { font-variant-numeric: tabular-nums; }
+#manageSave:disabled { opacity: .45; }
+#customerIdRow { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+#customerIdRow[hidden] { display: none; }
 
 /* ----- order / role sheet ----- */
 .sheet-backdrop {
@@ -574,7 +609,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     <div class="account" id="accountBar">
       <div class="account-modes" role="group" aria-label="Account mode">
         <button class="mode-btn is-on" id="modeSelfBtn" type="button" aria-pressed="true">My account</button>
-        <button class="mode-btn" id="modeTraderBtn" type="button" aria-pressed="false" aria-disabled="true">Trader</button>
+        <button class="mode-btn" id="modeTraderBtn" type="button" aria-pressed="false" hidden>Trader</button>
+        <button class="mode-btn" id="modeAdminBtn" type="button" aria-pressed="false" hidden>Admin</button>
         <a class="mode-btn" id="accountSignIn" href="" hidden>Sign in</a>
         <button class="mode-btn" id="accountSignOut" type="button" hidden>Sign out</button>
       </div>
@@ -588,6 +624,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <label class="sr-only" for="customerSearch">Search customers</label>
         <input id="customerSearch" type="search" autocomplete="off" placeholder="Search customers" enterkeyhint="search">
         <div id="customerResults" role="listbox" aria-label="Customers" hidden></div>
+        <div id="customerIdRow" hidden>
+          <p class="account-meta" id="customerSearchNote"></p>
+          <input id="customerIdInput" inputmode="numeric" autocomplete="off" placeholder="Discord user id" aria-label="Discord user id">
+          <button class="account-change" id="customerIdBtn" type="button">Look up</button>
+        </div>
       </div>
     </div>
     <div class="tool">
@@ -609,6 +650,43 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <div class="breadcrumb" id="sellBreadcrumb"></div>
         <div class="item-grid" id="sellGrid"></div>
       </div>
+      <section id="managePanel" hidden>
+        <div class="manage-head">
+          <h2>Manage catalog</h2>
+          <p class="manage-note" id="manageNote"></p>
+        </div>
+        <div class="manage-tools">
+          <input id="manageSearch" type="search" autocomplete="off" placeholder="Search catalog" aria-label="Search catalog">
+          <div class="tabs" role="group" aria-label="Catalog side">
+            <button class="tab-btn active" id="manageSideBuy" type="button">Buy</button>
+            <button class="tab-btn" id="manageSideSell" type="button">Sell</button>
+          </div>
+        </div>
+        <div id="manageList" class="manage-list"></div>
+        <div id="manageEditor" class="manage-editor" hidden>
+          <p class="manage-kicker" id="manageItemSide"></p>
+          <h3 id="manageItemName"></h3>
+          <p class="manage-base" id="manageBase"></p>
+          <label for="managePrice">Price</label>
+          <input id="managePrice" type="number" inputmode="numeric" min="0" step="1">
+          <div class="manage-discount" role="group" aria-label="Discount type">
+            <button class="tab-btn active" id="manageDiscPercent" type="button">%</button>
+            <button class="tab-btn" id="manageDiscFixed" type="button">Cr</button>
+          </div>
+          <label for="manageDiscount">Discount</label>
+          <input id="manageDiscount" type="number" inputmode="numeric" min="0" step="1" value="0">
+          <p class="manage-result">Resulting price <strong id="manageResult"></strong></p>
+          <div class="manage-stock" role="group" aria-label="Stock">
+            <button class="tab-btn active" id="manageInStock" type="button">In stock</button>
+            <button class="tab-btn" id="manageOutStock" type="button">Out of stock</button>
+          </div>
+          <p class="manage-diff" id="manageDiff"></p>
+          <div class="manage-actions">
+            <button class="tab-btn" id="manageCancel" type="button">Cancel</button>
+            <button class="sheet-calc" id="manageSave" type="button">Save changes</button>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
   <div class="dock" aria-label="Order summary">
@@ -820,7 +898,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
 
     // ===== STATE =====
     let currentTab = "buy";
-    let buyPath = [];
+    let buyPath = ["Weapons", "Weapons"];
     let sellPath = [];
     let buyCart = {};
     let sellCart = {};
@@ -871,6 +949,18 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       return Object.values(sellitems).flat().find(i => i.name === name) || null;
     }
     function isKitName(n) { return /^(Player|Ghillie) Kit \d+$/.test(n); }
+    const KIT_FIXED_CATALOG = {
+      "Combat Knife": "Combat Knife", "Rangefinder": "Rangefinder", "Bandages ×2": "Bandages",
+      "9V Batteries ×3": "9V Batteries", "Weapon Cleaning Kit": "Gun Cleaning Kit", "Codeine": "Codeine Pills",
+      "Leather Sewing Kit": "Leather Repair Kit", "Morphine": "Morphine Injector", "Saline Bag": "Saline Bag",
+      "Sewing Kit": "Sewing Kit", "Tetracycline": "Tetracycline", "Vitamin Bottle": "Multi Vitamins", "Canteen": "Canteen"
+    };
+    function optionBlocked(label) {
+      return String(label).split(/\s+\+\s+/).some(part => {
+        const item = catalogItem("buy", part) || catalogItem("sell", part);
+        return !!(item && item.inStock === false);
+      });
+    }
     function toast(msg) {
       const t = document.getElementById("toast");
       t.textContent = msg;
@@ -944,7 +1034,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (isGhillie && slot.key === "backpack") return;
         const row = document.createElement("div");
         row.className = "kit-row";
-        const opts = slot.items.map(i => `<option value="${i}">${i === "(select)" ? TRADER_CHOICE : i}</option>`).join("");
+        const opts = slot.items.filter(i => i === "(select)" || i === "- -" || i === "None" || !optionBlocked(i)).map(i => `<option value="${i}">${i === "(select)" ? TRADER_CHOICE : i}</option>`).join("");
         row.innerHTML = `<label>${icTag(ICON_KIT_SLOT[slot.key] || "crate", "ic-kit")}${slot.label}</label><select data-slot="${slot.key}" aria-label="${slot.label}" autocomplete="off"${slot.fixed ? " disabled" : ""}>${opts}</select>`;
         group.appendChild(row);
       });
@@ -963,6 +1053,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         row.className = "kit-row";
         row.innerHTML = `<label for="omit-${f.key}">${icTag(ICON_KIT_FIXED[f.key] || "crate", "ic-kit")}${f.label}</label><label class="kit-token kit-include"><input type="checkbox" id="omit-${f.key}" role="switch" data-omit="${f.key}" checked autocomplete="off"><span class="sr-only">Include</span></label>`;
         fixedGroup.appendChild(row);
+        const mapped = KIT_FIXED_CATALOG[f.label];
+        const stockItem = mapped && catalogItem("buy", mapped);
+        if (stockItem && stockItem.inStock === false) {
+          const box = row.querySelector("input");
+          if (box) { box.checked = false; box.disabled = true; }
+        }
       });
 
       document.getElementById("kitPanel").dataset.ghillie = isGhillie ? "1" : "0";
@@ -1123,7 +1219,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           config[f.key] = { item: f.label, omitted: cb ? !cb.checked : false };
         });
         kitConfigs.push(config);
-        const price = token ? 0 : 16000;
+        const kitItem = catalogItem("buy", isGhillie ? "Ghillie Kit" : "Player Kit");
+        if (!token && kitItem && kitItem.inStock === false) { toast("OUT OF STOCK"); return; }
+        const price = token ? 0 : (kitItem ? catalogResultPrice(kitItem.price, kitItem.catalogDiscount) : 16000);
         document.getElementById("kitPanel").style.display = "none";
         buyCart[kitName] = {qty: 1, base: price, salePrice: null};
         saveState();
@@ -1177,6 +1275,71 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       });
       return price;
     }
+    function activeBonus(name) {
+      let bonus = null;
+      activeRoles.forEach(role => {
+        const r = roles[role];
+        if (r && r.bonuses && r.bonuses[name] != null) bonus = r.bonuses[name];
+      });
+      return bonus;
+    }
+    function catalogResultPrice(price, discount) {
+      const base = Math.round(Number(price) || 0);
+      if (!discount || !discount.value) return base;
+      if (discount.type === "percent") return Math.max(0, Math.round(base * (1 - discount.value / 100)));
+      if (discount.type === "fixed") return Math.max(0, base - Math.round(discount.value));
+      return base;
+    }
+    // Catalog discount and role percent are alternatives from the same unit price.
+    // The line uses the lower result. A role bonus replaces the unit and is not reduced again.
+    function lineUnit(name, base, salePrice) {
+      const bonus = activeBonus(name);
+      if (bonus != null) return Math.round(bonus);
+      const catalog = salePrice == null ? Math.round(base) : Math.round(salePrice);
+      return Math.min(catalog, Math.round(getDiscountedPrice(name, base)));
+    }
+    function catalogKey(side, name) { return side + "\n" + name; }
+    let catalogChanges = [];
+    let catalogRevision = 0;
+    let catalogConfigured = false;
+    let catalogDraft = new Map();
+    let manageSide = "buy";
+    let manageKey = "";
+    function stampAuthors(node) {
+      if (Array.isArray(node)) node.forEach(item => {
+        if (!item || !item.name || item.authorPrice != null) return;
+        item.authorPrice = item.price;
+        item.authorStock = item.inStock !== false;
+      });
+      else if (node && typeof node === "object") Object.keys(node).forEach(k => { if (!k.startsWith("_")) stampAuthors(node[k]); });
+    }
+    function applyOne(item, side) {
+      const change = catalogDraft.get(catalogKey(side, item.name));
+      item.price = change && Number.isInteger(change.price) ? change.price : item.authorPrice;
+      item.inStock = change && typeof change.in_stock === "boolean" ? change.in_stock : item.authorStock;
+      item.catalogDiscount = change && change.discount ? change.discount : null;
+      const result = catalogResultPrice(item.price, item.catalogDiscount);
+      item.salePrice = item.catalogDiscount ? result : null;
+    }
+    function applyCatalogDraft() {
+      stampAuthors(buyitems);
+      stampAuthors(sellitems);
+      const visit = (node, side) => {
+        if (Array.isArray(node)) node.forEach(item => { if (item && item.name) applyOne(item, side); });
+        else if (node && typeof node === "object") Object.keys(node).forEach(k => { if (!k.startsWith("_")) visit(node[k], side); });
+      };
+      visit(buyitems, "buy");
+      visit(sellitems, "sell");
+    }
+    function setCatalogChanges(changes) {
+      catalogDraft = new Map();
+      (changes || []).forEach(change => {
+        if (change && (change.side === "buy" || change.side === "sell") && change.name) {
+          catalogDraft.set(catalogKey(change.side, change.name), change);
+        }
+      });
+      applyCatalogDraft();
+    }
 
     function getBibleTotal(qty) {
       if (qty === 1) return 10000;
@@ -1196,6 +1359,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     //   GET  {origin}/api/trader/search?q=
     //   GET  {origin}/api/trader/players/{id}
     //   POST {origin}/auth/logout
+    //   GET  {origin}/api/catalog
+    //   POST {origin}/api/catalog   (Server Owner or High Lvl Staff only; refused without durable storage)
     //   link {origin}/auth/discord/login
     // Cookies travel with credentials: "include". No Authorization header is sent.
     // Trader mode is offered only when access.trader_mode_allowed is true.
@@ -1219,13 +1384,16 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       accountMode = "self";
       accountCustomer = null;
       accountMe = null;
-      accountAuth = accountGatewayBase() ? "offline" : "unconfigured";
+      accountAuth = accountGatewayBase() ? "loading" : "unconfigured";
       accountPicking = false;
       customerSearchToken++;
       renderAccount();
     }
     function traderAllowed() {
       return accountAuth === "signedin" && !!(accountMe && accountMe.access && accountMe.access.trader_mode_allowed === true);
+    }
+    function adminAllowed() {
+      return accountAuth === "signedin" && !!(accountMe && accountMe.access && accountMe.access.admin_mode_allowed === true);
     }
     function memberLabel(person) {
       if (!person) return "";
@@ -1252,9 +1420,14 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!base) return { unconfigured: true };
       const method = (options && options.method) || "GET";
       const headers = { accept: "application/json" };
+      const init = { method, credentials: "include", headers };
+      if (options && options.body != null) {
+        headers["content-type"] = "application/json";
+        init.body = JSON.stringify(options.body);
+      }
       let response;
       try {
-        response = await fetch(base + path, { method, credentials: "include", headers });
+        response = await fetch(base + path, init);
       } catch (e) {
         return { offline: true };
       }
@@ -1265,23 +1438,35 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     function renderAccount() {
       const configured = !!accountGatewayBase();
       const allowed = traderAllowed();
-      if (!allowed) {
+      const staff = adminAllowed();
+      if (!allowed && accountMode === "trader") {
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
       }
+      if (!staff && accountMode === "admin") accountMode = "self";
       const traderOn = accountMode === "trader" && allowed;
+      const adminOn = accountMode === "admin" && staff;
       document.body.classList.toggle("trader-mode", traderOn);
+      document.body.classList.toggle("mode-self", !traderOn && !adminOn);
+      document.body.classList.toggle("mode-trader", traderOn);
+      document.body.classList.toggle("mode-admin", adminOn);
       const selfBtn = document.getElementById("modeSelfBtn");
       const traderBtn = document.getElementById("modeTraderBtn");
+      const adminBtn = document.getElementById("modeAdminBtn");
       if (selfBtn) {
-        selfBtn.classList.toggle("is-on", !traderOn);
-        selfBtn.setAttribute("aria-pressed", traderOn ? "false" : "true");
+        selfBtn.classList.toggle("is-on", !traderOn && !adminOn);
+        selfBtn.setAttribute("aria-pressed", traderOn || adminOn ? "false" : "true");
       }
       if (traderBtn) {
+        traderBtn.hidden = !allowed;
         traderBtn.classList.toggle("is-on", traderOn);
         traderBtn.setAttribute("aria-pressed", traderOn ? "true" : "false");
-        traderBtn.setAttribute("aria-disabled", allowed ? "false" : "true");
+      }
+      if (adminBtn) {
+        adminBtn.hidden = !staff;
+        adminBtn.classList.toggle("is-on", adminOn);
+        adminBtn.setAttribute("aria-pressed", adminOn ? "true" : "false");
       }
       const signIn = document.getElementById("accountSignIn");
       const signOut = document.getElementById("accountSignOut");
@@ -1297,16 +1482,22 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (status) {
         status.replaceChildren();
         if (!configured || accountAuth === "unconfigured") status.textContent = "Sign-in is not configured";
+        else if (accountAuth === "loading") status.textContent = "Checking account";
         else if (accountAuth === "offline") status.textContent = "Account service is unavailable";
         else if (accountAuth !== "signedin" || !accountMe) status.textContent = "Signed out";
         else if (traderOn) {
           const flag = document.createElement("span");
-          flag.className = "account-flag";
+          flag.className = "account-flag flag-trader";
           flag.textContent = "TRADER MODE";
           const who = document.createElement("span");
           who.className = "account-who";
           who.textContent = accountCustomer ? accountCustomer.label : "Select a customer";
           status.append(flag, who);
+        } else if (adminOn) {
+          const flag = document.createElement("span");
+          flag.className = "account-flag flag-admin";
+          flag.textContent = "ADMIN MODE";
+          status.append(flag);
         } else {
           const who = document.createElement("span");
           who.className = "account-who";
@@ -1337,6 +1528,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!showSearch) {
         const results = document.getElementById("customerResults");
         if (results) { results.hidden = true; results.replaceChildren(); }
+        const idRow = document.getElementById("customerIdRow");
+        if (idRow) idRow.hidden = true;
       }
       const bar = document.getElementById("accountBar");
       if (bar) document.documentElement.style.setProperty("--account", Math.max(44, Math.ceil(bar.getBoundingClientRect().height)) + "px");
@@ -1372,12 +1565,16 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       accountAuth = "signedin";
       accountMe = res.body;
-      if (!(res.body.access && res.body.access.trader_mode_allowed === true)) {
+      if (!(res.body.access && res.body.access.trader_mode_allowed === true) && accountMode === "trader") {
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
       }
+      if (!(res.body.access && res.body.access.admin_mode_allowed === true) && accountMode === "admin") {
+        accountMode = "self";
+      }
       renderAccount();
+      render();
     }
     async function enterTraderMode() {
       await refreshAccount();
@@ -1399,6 +1596,21 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       accountCustomer = null;
       accountPicking = true;
       renderAccount();
+      render();
+    }
+    async function enterAdminMode() {
+      await refreshAccount();
+      if (!adminAllowed()) {
+        accountMode = "self";
+        renderAccount();
+        render();
+        return;
+      }
+      accountMode = "admin";
+      accountCustomer = null;
+      accountPicking = false;
+      renderAccount();
+      render();
     }
     function exitTraderMode() {
       accountMode = "self";
@@ -1408,6 +1620,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const input = document.getElementById("customerSearch");
       if (input) input.value = "";
       renderAccount();
+      render();
     }
     async function signOutAccount() {
       accountMode = "self";
@@ -1452,6 +1665,157 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (input) input.value = "";
       renderAccount();
     }
+    function catalogRows(side) {
+      stampAuthors(side === "sell" ? sellitems : buyitems);
+      const source = side === "sell" ? Object.values(sellitems).flat() : flattenBuyItems(buyitems);
+      return source.filter(item => item && item.name);
+    }
+    function savedChange(side, name) {
+      return catalogDraft.get(catalogKey(side, name)) || null;
+    }
+    function editorState(item) {
+      const saved = savedChange(manageSide, item.name);
+      const price = saved && Number.isInteger(saved.price) ? saved.price : item.authorPrice;
+      const stock = saved && typeof saved.in_stock === "boolean" ? saved.in_stock : item.authorStock !== false;
+      const discount = saved && saved.discount ? saved.discount : null;
+      return { price, stock, discount };
+    }
+    function renderManage() {
+      const list = document.getElementById("manageList");
+      const note = document.getElementById("manageNote");
+      if (note) {
+        note.textContent = catalogConfigured
+          ? "Draft a price, discount, or stock change, review it, then save."
+          : "Saving needs a durable catalog store. This host does not have one yet, so prices stay at the published list.";
+      }
+      if (!list) return;
+      const q = (document.getElementById("manageSearch").value || "").trim().toLowerCase();
+      const rows = catalogRows(manageSide).filter(item => !q || item.name.toLowerCase().includes(q));
+      list.replaceChildren();
+      rows.forEach(item => {
+        const state = editorState(item);
+        const result = catalogResultPrice(state.price, state.discount);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "manage-row" + (catalogKey(manageSide, item.name) === manageKey ? " is-on" : "");
+        const icon = document.createElement("span");
+        icon.innerHTML = icTag(icKeyFor(item.name));
+        const copy = document.createElement("span");
+        const nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = item.name;
+        const meta = document.createElement("span");
+        meta.className = "meta";
+        meta.textContent = fmt(result) + " Cr · " + (state.stock ? "In stock" : "Out of stock");
+        copy.append(nm, meta);
+        btn.append(icon, copy);
+        btn.onclick = () => { manageKey = catalogKey(manageSide, item.name); renderManage(); fillEditor(item); };
+        list.appendChild(btn);
+      });
+      document.getElementById("manageSideBuy").classList.toggle("active", manageSide === "buy");
+      document.getElementById("manageSideSell").classList.toggle("active", manageSide === "sell");
+    }
+    function fillEditor(item) {
+      const editor = document.getElementById("manageEditor");
+      if (!editor) return;
+      editor.hidden = false;
+      editor.dataset.side = manageSide;
+      editor.dataset.name = item.name;
+      document.getElementById("manageItemSide").textContent = manageSide === "buy" ? "Buy" : "Sell";
+      document.getElementById("manageItemName").textContent = item.name;
+      const state = editorState(item);
+      const base = document.getElementById("manageBase");
+      base.textContent = item.name === "Bible"
+        ? "Catalog price " + fmt(item.authorPrice) + " Cr. Quantity tiers stay in place. A discount applies to the tier total."
+        : "Catalog price " + fmt(item.authorPrice) + " Cr";
+      const price = document.getElementById("managePrice");
+      price.value = String(state.price);
+      price.disabled = item.name === "Bible";
+      const percent = !state.discount || state.discount.type !== "fixed";
+      document.getElementById("manageDiscPercent").classList.toggle("active", percent);
+      document.getElementById("manageDiscFixed").classList.toggle("active", !percent);
+      document.getElementById("manageDiscount").value = String(state.discount ? state.discount.value : 0);
+      document.getElementById("manageInStock").classList.toggle("active", state.stock);
+      document.getElementById("manageOutStock").classList.toggle("active", !state.stock);
+      editor.dataset.stock = state.stock ? "1" : "0";
+      editor.dataset.disc = percent ? "percent" : "fixed";
+      updateManagePreview();
+    }
+    function updateManagePreview() {
+      const editor = document.getElementById("manageEditor");
+      if (!editor || editor.hidden) return;
+      const name = editor.dataset.name;
+      const item = catalogRows(editor.dataset.side).find(row => row.name === name);
+      if (!item) return;
+      const price = Math.round(Number(document.getElementById("managePrice").value));
+      const amount = Math.round(Number(document.getElementById("manageDiscount").value));
+      const type = editor.dataset.disc === "fixed" ? "fixed" : "percent";
+      const discount = amount > 0 ? { type, value: amount } : null;
+      const stock = editor.dataset.stock === "1";
+      const result = name === "Bible" && discount ? bibleTotal(1, item.authorPrice, discount) : catalogResultPrice(Number.isInteger(price) ? price : item.authorPrice, discount);
+      document.getElementById("manageResult").textContent = fmt(result) + " Cr";
+      const saved = editorState(item);
+      const lines = [];
+      if (name !== "Bible" && Number.isInteger(price) && price !== saved.price) lines.push("Price " + fmt(saved.price) + " → " + fmt(price) + " Cr");
+      const savedAmount = saved.discount ? saved.discount.value : 0;
+      const savedType = saved.discount ? saved.discount.type : type;
+      if (amount !== savedAmount || (amount > 0 && type !== savedType)) {
+        lines.push("Discount " + (saved.discount ? saved.discount.value + (saved.discount.type === "fixed" ? " Cr" : "%") : "0") + " → " + amount + (type === "fixed" ? " Cr" : "%"));
+      }
+      if (stock !== saved.stock) lines.push(stock ? "Out of stock → In stock" : "In stock → Out of stock");
+      document.getElementById("manageDiff").textContent = lines.length ? lines.join(" · ") : "No unsaved changes";
+      const save = document.getElementById("manageSave");
+      save.disabled = !catalogConfigured || !lines.length;
+    }
+    async function saveManage() {
+      const editor = document.getElementById("manageEditor");
+      if (!editor || !adminAllowed() || !catalogConfigured) {
+        toast("Catalog saves are unavailable until durable storage is configured.");
+        return;
+      }
+      const name = editor.dataset.name;
+      const side = editor.dataset.side;
+      const item = catalogRows(side).find(row => row.name === name);
+      if (!item) return;
+      const price = name === "Bible" ? item.authorPrice : Math.round(Number(document.getElementById("managePrice").value));
+      const amount = Math.round(Number(document.getElementById("manageDiscount").value));
+      const type = editor.dataset.disc === "fixed" ? "fixed" : "percent";
+      if (!Number.isInteger(price) || price < 0 || price > 10000000 || !Number.isInteger(amount) || amount < 0) {
+        toast("Enter a whole credit amount");
+        return;
+      }
+      if (type === "percent" && amount > 100) { toast("Percent discount must be 0 to 100"); return; }
+      if (type === "fixed" && amount > price) { toast("Fixed discount cannot exceed the price"); return; }
+      const next = [];
+      catalogDraft.forEach(change => { if (!(change.side === side && change.name === name)) next.push(change); });
+      const record = {
+        side, name, price,
+        in_stock: editor.dataset.stock === "1",
+        discount: amount > 0 ? { type, value: amount } : null
+      };
+      if (!(record.price === item.authorPrice && record.in_stock === (item.authorStock !== false) && !record.discount)) next.push(record);
+      const res = await gatewayJSON("/api/catalog", { method: "POST", body: { revision: catalogRevision, changes: next } });
+      if (!res || res.status === 409) { toast("Catalog changed elsewhere. Reload and try again."); loadCatalog(); return; }
+      if (!res || res.status !== 200 || !res.body) { toast("Catalog save was refused."); return; }
+      catalogRevision = res.body.revision || 0;
+      catalogConfigured = res.body.configured === true;
+      setCatalogChanges(res.body.changes || []);
+      toast(res.body.saved ? "Catalog saved" : "No catalog changes");
+      render();
+    }
+    async function loadCatalog() {
+      if (!accountGatewayBase()) return;
+      const res = await gatewayJSON("/api/catalog");
+      if (!res || res.status !== 200 || !res.body || !Array.isArray(res.body.changes)) {
+        catalogConfigured = false;
+        return;
+      }
+      catalogConfigured = res.body.configured === true;
+      catalogRevision = Number.isInteger(res.body.revision) ? res.body.revision : 0;
+      setCatalogChanges(res.body.changes);
+      if (accountMode === "admin") renderManage();
+      else render();
+    }
     function bindAccountControls() {
       const selfBtn = document.getElementById("modeSelfBtn");
       const traderBtn = document.getElementById("modeTraderBtn");
@@ -1460,6 +1824,34 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const input = document.getElementById("customerSearch");
       if (selfBtn) selfBtn.onclick = () => exitTraderMode();
       if (traderBtn) traderBtn.onclick = () => { enterTraderMode(); };
+      const adminBtn = document.getElementById("modeAdminBtn");
+      if (adminBtn) adminBtn.onclick = () => { enterAdminMode(); };
+      const idBtn = document.getElementById("customerIdBtn");
+      if (idBtn) idBtn.onclick = () => {
+        const raw = (document.getElementById("customerIdInput").value || "").trim();
+        if (!/^\d{17,20}$/.test(raw)) { toast("Enter a Discord user id"); return; }
+        chooseCustomer(raw);
+      };
+      const searchBox = document.getElementById("manageSearch");
+      if (searchBox) searchBox.addEventListener("input", () => { if (accountMode === "admin") renderManage(); });
+      const sideBuy = document.getElementById("manageSideBuy");
+      const sideSell = document.getElementById("manageSideSell");
+      if (sideBuy) sideBuy.onclick = () => { manageSide = "buy"; manageKey = ""; document.getElementById("manageEditor").hidden = true; renderManage(); };
+      if (sideSell) sideSell.onclick = () => { manageSide = "sell"; manageKey = ""; document.getElementById("manageEditor").hidden = true; renderManage(); };
+      const editor = document.getElementById("manageEditor");
+      if (editor) {
+        document.getElementById("managePrice").addEventListener("input", updateManagePreview);
+        document.getElementById("manageDiscount").addEventListener("input", updateManagePreview);
+        document.getElementById("manageDiscPercent").onclick = () => { editor.dataset.disc = "percent"; updateManagePreview(); document.getElementById("manageDiscPercent").classList.add("active"); document.getElementById("manageDiscFixed").classList.remove("active"); };
+        document.getElementById("manageDiscFixed").onclick = () => { editor.dataset.disc = "fixed"; updateManagePreview(); document.getElementById("manageDiscFixed").classList.add("active"); document.getElementById("manageDiscPercent").classList.remove("active"); };
+        document.getElementById("manageInStock").onclick = () => { editor.dataset.stock = "1"; updateManagePreview(); document.getElementById("manageInStock").classList.add("active"); document.getElementById("manageOutStock").classList.remove("active"); };
+        document.getElementById("manageOutStock").onclick = () => { editor.dataset.stock = "0"; updateManagePreview(); document.getElementById("manageOutStock").classList.add("active"); document.getElementById("manageInStock").classList.remove("active"); };
+        document.getElementById("manageCancel").onclick = () => {
+          const item = catalogRows(editor.dataset.side).find(row => row.name === editor.dataset.name);
+          if (item) fillEditor(item);
+        };
+        document.getElementById("manageSave").onclick = () => { saveManage(); };
+      }
       if (signOut) signOut.onclick = () => { signOutAccount(); };
       if (change) change.onclick = () => {
         accountCustomer = null;
@@ -1479,7 +1871,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         }
         gatewayJSON("/api/trader/search?q=" + encodeURIComponent(q)).then(res => {
           if (token !== customerSearchToken || accountMode !== "trader") return;
-          if (res && res.status === 403) {
+          if (res && res.status === 403 && res.body && res.body.reason === "elevated_role_required") {
             accountMode = "self";
             accountCustomer = null;
             accountPicking = false;
@@ -1488,13 +1880,24 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
             return;
           }
           box.replaceChildren();
-          const list = res && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : [];
+          const list = res && res.status === 200 && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : null;
+          if (!list) {
+            const note = document.getElementById("customerSearchNote");
+            const idRow = document.getElementById("customerIdRow");
+            if (note) note.textContent = "Customer name search is not available. Enter a Discord user id.";
+            if (idRow) idRow.hidden = false;
+            box.hidden = true;
+            return;
+          }
           if (!list.length) {
             const empty = document.createElement("div");
             empty.className = "account-meta";
             empty.textContent = "No customers";
             box.appendChild(empty);
-          } else list.forEach(row => {
+          }
+          const idRow = document.getElementById("customerIdRow");
+          if (idRow) idRow.hidden = true;
+          list.forEach(row => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.setAttribute("role", "option");
@@ -1530,7 +1933,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     function resetToFresh() {
       clearStoredState();
-      currentTab = "buy"; buyPath = []; sellPath = [];
+      currentTab = "buy"; buyPath = ["Weapons", "Weapons"]; sellPath = [];
       buyCart = {}; sellCart = {}; kitConfigs = []; activeRoles = new Set(); searchTerm = "";
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "buy"));
       ["search", "orderCodeIn", "orderCodeOut"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -1585,7 +1988,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (item.inStock === false) { btn.dataset.price = "Out of stock"; btn.dataset.oos = ""; }
       else {
         const isKitItem = item.name === "Player Kit" || item.name === "Ghillie Kit";
-        const unit = isKitItem ? item.price : (item.salePrice != null ? item.salePrice : getDiscountedPrice(item.name, item.price));
+        const unit = isKitItem ? catalogResultPrice(item.price, item.catalogDiscount) : lineUnit(item.name, item.price, item.salePrice);
         btn.dataset.price = fmt(unit * qty) + " Cr";
         if (!isKitItem && unit !== item.price) btn.dataset.deal = ""; else delete btn.dataset.deal;
       }
@@ -1603,18 +2006,29 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       btn.setAttribute("aria-label", btn.textContent + ", " + (node && node._outOfStock ? "Out of stock" : (btn.dataset.count + (btn.dataset.count === "1" ? " item" : " items"))));
       return btn;
     }
+    function bibleTotal(qty, base, discount) {
+      const tier = getBibleTotal(qty);
+      if (!discount || !discount.value) return tier;
+      if (discount.type === "percent") return Math.max(0, Math.round(tier * (1 - discount.value / 100)));
+      return Math.max(0, tier - Math.round(discount.value) * qty);
+    }
     function computeTotals() {
-      let buyTotal = 0;
-      Object.entries(buyCart).forEach(([name, {qty, base, salePrice, item}]) => {
-        const unit = salePrice != null ? salePrice : getDiscountedPrice(item || name, base);
-        buyTotal += unit * qty;
+      let kept = 0;
+      let eligible = 0;
+      Object.entries(buyCart).forEach(([name, row]) => {
+        const itemName = row.item || name;
+        const unit = lineUnit(itemName, row.base, row.salePrice);
+        const total = unit * row.qty;
+        if (row.salePrice != null && row.salePrice !== row.base) kept += total;
+        else eligible += total;
       });
       const fm = activeRoles.has("Day One");
-      if (fm) buyTotal *= 0.9;
+      const buyTotal = fm ? kept + eligible * 0.9 : kept + eligible;
       let sellTotal = 0;
-      Object.entries(sellCart).forEach(([name, {qty, base, item}]) => {
-        if ((item || name) === "Bible") sellTotal += getBibleTotal(qty);
-        else sellTotal += getDiscountedPrice(item || name, base) * qty;
+      Object.entries(sellCart).forEach(([name, row]) => {
+        const itemName = row.item || name;
+        if (itemName === "Bible") sellTotal += bibleTotal(row.qty, row.base, row.discount);
+        else sellTotal += lineUnit(itemName, row.base, row.salePrice) * row.qty;
       });
       return {buyTotal, sellTotal, fm};
     }
@@ -1969,11 +2383,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         html = '<div class="empty">Empty</div>';
       } else {
         keys.forEach(name => {
-          const {qty, base, salePrice} = cart[name];
+          const {qty, base, salePrice, discount} = cart[name];
           const item = cart[name].item || name;
           const isKit = name.startsWith("Player Kit") || name.startsWith("Ghillie Kit");
-          let unit = salePrice != null ? salePrice : getDiscountedPrice(item, base);
-          let total = (item === "Bible" && type === "sell") ? getBibleTotal(qty) : unit * qty;
+          let unit = lineUnit(item, base, salePrice);
+          let total = (item === "Bible" && type === "sell") ? bibleTotal(qty, base, discount) : unit * qty;
           liveTotal += total;
           let priceHtml, nameHtml;
           if (isKit) {
@@ -2064,12 +2478,18 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
 
     function render() {
-      document.body.dataset.tab = currentTab;
-      document.getElementById("buyPanel").style.display = currentTab === "buy" ? "block" : "none";
-      document.getElementById("sellPanel").style.display = currentTab === "sell" ? "block" : "none";
-      document.getElementById("buySummaryWrap").style.display = currentTab === "buy" ? "block" : "none";
-      document.getElementById("sellSummaryWrap").style.display = currentTab === "sell" ? "block" : "none";
-      if (currentTab === "buy") renderBuy();
+      const adminOn = accountMode === "admin" && adminAllowed();
+      document.body.dataset.tab = adminOn ? "admin" : currentTab;
+      const tool = document.querySelector(".tool");
+      if (tool) tool.hidden = adminOn;
+      const manage = document.getElementById("managePanel");
+      if (manage) manage.hidden = !adminOn;
+      document.getElementById("buyPanel").style.display = !adminOn && currentTab === "buy" ? "block" : "none";
+      document.getElementById("sellPanel").style.display = !adminOn && currentTab === "sell" ? "block" : "none";
+      document.getElementById("buySummaryWrap").style.display = !adminOn && currentTab === "buy" ? "block" : "none";
+      document.getElementById("sellSummaryWrap").style.display = !adminOn && currentTab === "sell" ? "block" : "none";
+      if (adminOn) renderManage();
+      else if (currentTab === "buy") renderBuy();
       else renderSell();
       renderRoles();
       updateTotalChip();
@@ -2080,16 +2500,17 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     function addToCart(type, name, qty, base, salePrice) {
       const cart = type === "buy" ? buyCart : sellCart;
       if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
-        cart[name] = {qty: 1, base, salePrice: salePrice ?? null};
+        cart[name] = {qty: 1, base, salePrice: salePrice ?? null, discount: null};
       } else if (cart[name] && cart[name].base === base) {
         cart[name].qty += qty;
       } else if (cart[name]) {
         // same item at a different unit price (e.g. Role Turn-In): keep it on its own line
         const key = name + " (turn-in)";
         if (cart[key] && cart[key].base === base) cart[key].qty += qty;
-        else cart[key] = {qty, base, salePrice: salePrice ?? null, item: name};
+        else cart[key] = {qty, base, salePrice: salePrice ?? null, discount: null, item: name};
       } else {
-        cart[name] = {qty, base, salePrice: salePrice ?? null};
+        const cat = catalogItem(type, name);
+        cart[name] = {qty, base, salePrice: salePrice ?? null, discount: cat && cat.catalogDiscount || null};
       }
       saveState();
       toast(`${qty} x ${name} Added`);
@@ -2132,14 +2553,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         return;
       }
       if (item.name === "IED Complete") {
-        addToCart("buy", "IED Container", 1, 3500);
-        addToCart("buy", "Plastic Explosives", 2, 18000);
-        addToCart("buy", "Detonator", 1, 500);
+        const parts = ["IED Container", "Plastic Explosives", "Detonator"].map(name => catalogItem("buy", name));
+        if (parts.some(part => !part || part.inStock === false)) { toast("OUT OF STOCK"); return; }
+        addToCart("buy", "IED Container", 1, parts[0].price, parts[0].salePrice);
+        addToCart("buy", "Plastic Explosives", 2, parts[1].price, parts[1].salePrice);
+        addToCart("buy", "Detonator", 1, parts[2].price, parts[2].salePrice);
         toast("LIMITED TIME ONLY");
-        return;
-      }
-      if (item.name === "Trader Car") {
-        toast("OUT OF STOCK");
         return;
       }
       if (item.name === "Ghillie Kit") {
@@ -2299,6 +2718,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         const kits = (parsed.v === 2 && Array.isArray(parsed.kits) ? parsed.kits : []).map(migrateKit);
         if (!isObj(rawCart)) throw new Error("bad cart");
         rawCart = migrateCart(rawCart);
+        let repriced = false;
         const catalog = {};
         flattenBuyItems(buyitems).forEach(i => { if (i && i.name) catalog[i.name] = i; });
         const clean = {};
@@ -2306,11 +2726,17 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           if (!isObj(v) || !Number.isInteger(v.qty) || v.qty < 1 || v.qty > 100000) throw new Error("bad qty " + name);
           if (isKitName(name)) {
             const kit = kits.find(k => k && k.name === name);
-            clean[name] = {qty: 1, base: kit && kit.token ? 0 : 16000, salePrice: null};
+            const kitItem = catalogItem("buy", name.indexOf("Ghillie") === 0 ? "Ghillie Kit" : "Player Kit");
+            if (!(kit && kit.token) && kitItem && kitItem.inStock === false) throw new Error("unknown item " + name);
+            const kitPrice = kit && kit.token ? 0 : (kitItem ? catalogResultPrice(kitItem.price, kitItem.catalogDiscount) : 16000);
+            if (v.base !== kitPrice) repriced = true;
+            clean[name] = {qty: 1, base: kitPrice, salePrice: null, discount: null};
           } else {
             const it = catalog[name];
             if (!it || it.inStock === false) throw new Error("unknown item " + name);
-            clean[name] = {qty: v.qty, base: it.price, salePrice: it.salePrice ?? null};   // always re-price from catalog
+            const nextSale = it.salePrice ?? null;
+            if (v.base !== it.price || (v.salePrice ?? null) !== nextSale) repriced = true;
+            clean[name] = {qty: v.qty, base: it.price, salePrice: nextSale, discount: it.catalogDiscount || null};   // always re-price from the current catalog
           }
         }
         buyCart = clean;
@@ -2318,7 +2744,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         saveState();
         renderSummary("buy");
         renderKitSummaries();
-        toast("Order loaded");
+        toast(repriced ? "Order loaded. Prices were updated to the current catalog." : "Order loaded");
         revealLoadedCart();
         return true;
       } catch(e) {
@@ -2454,7 +2880,13 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     renderKitSummaries();
     // pageshow also fires when the page comes back from the back/forward cache and after the browser
     // restores form fields, so reset again there.
-    window.addEventListener("pageshow", () => { resetToFresh(); render(); renderKitSummaries(); importOrderFromLocation(); refreshAccount(); });
+    window.addEventListener("pageshow", () => {
+      resetToFresh();
+      render();
+      renderKitSummaries();
+      refreshAccount();
+      loadCatalog().then(() => importOrderFromLocation());
+    });
   </script>
 </body>
 </html>

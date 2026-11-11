@@ -42,8 +42,9 @@ const DENIED = {
     is_high_level_staff: true,
     discounts: { configured: false, applied: [], amounts_mapped: false, reason: 'discount_role_ids_unverified' }
   },
-  access: {
+    access: {
     trader_mode_allowed: false,
+    admin_mode_allowed: false,
     grants: { trader: true, server_owner: true, high_level_staff: true },
     trader_role_configured: true,
     server_owner_role_configured: true,
@@ -69,8 +70,9 @@ const ALLOWED = {
     is_high_level_staff: false,
     discounts: { configured: false, applied: [], amounts_mapped: false, reason: 'discount_role_ids_unverified' }
   },
-  access: {
+    access: {
     trader_mode_allowed: true,
+    admin_mode_allowed: false,
     grants: { trader: false, server_owner: true, high_level_staff: false },
     trader_role_configured: true,
     server_owner_role_configured: true,
@@ -122,8 +124,12 @@ async function boot(browser, { gateway, me, width } = {}) {
       if (!opts.gateway || u.origin !== opts.gateway) return orig(url, init);
       const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
       if (u.pathname === '/api/me' && method === 'GET') {
+        if (opts.delayMe) await new Promise(resolve => { window.__935ReleaseMe = resolve; });
         if (!state.me) return json(401, { error: 'unauthorized' });
         return json(200, state.me);
+      }
+      if (u.pathname === '/api/catalog' && method === 'GET') {
+        return json(200, { configured: false, revision: 0, changes: [] });
       }
       if (u.pathname === '/auth/logout' && method === 'POST') {
         state.me = null;
@@ -171,6 +177,7 @@ function readBar() {
   const bar = document.getElementById('accountBar');
   const meta = document.getElementById('accountMeta');
   const trader = document.getElementById('modeTraderBtn');
+  const admin = document.getElementById('modeAdminBtn');
   const self = document.getElementById('modeSelfBtn');
   const signIn = document.getElementById('accountSignIn');
   const app = document.querySelector('.app');
@@ -180,7 +187,9 @@ function readBar() {
     meta: meta.hidden ? '' : meta.textContent,
     fixture: document.getElementById('accountFixture').hidden ? '' : document.getElementById('accountFixture').textContent.trim(),
     traderMode: document.body.classList.contains('trader-mode'),
-    traderDisabled: trader.getAttribute('aria-disabled'),
+    traderHidden: !trader || trader.hidden,
+    adminHidden: !admin || admin.hidden,
+    adminMode: document.body.classList.contains('mode-admin'),
     selfPressed: self.getAttribute('aria-pressed'),
     searchOpen: !document.getElementById('accountSearch').hidden,
     signIn: signIn.hidden ? '' : signIn.getAttribute('href'),
@@ -209,9 +218,10 @@ function readBar() {
   const unconfigured = await plain.page.evaluate(readBar);
   check('unconfigured-stays-offline',
     unconfigured.status === 'Sign-in is not configured' && unconfigured.meta === '' && unconfigured.fixture === '' &&
-    !unconfigured.traderMode && unconfigured.traderDisabled === 'true' && unconfigured.signIn === '' && !unconfigured.signOut &&
+    !unconfigured.traderMode && unconfigured.traderHidden && unconfigured.adminHidden && unconfigured.signIn === '' && !unconfigured.signOut &&
     unconfigured.calls.length === 0 && unconfigured.nav >= 1 && unconfigured.rolesCols === 2 &&
-    unconfigured.selfH >= 44 && unconfigured.traderH >= 44 && unconfigured.scrollW <= unconfigured.clientW + 1 &&
+    unconfigured.selfH >= 44 && unconfigured.scrollW <= unconfigured.clientW + 1 &&
+    /255,\s*155,\s*61/.test(unconfigured.outline) &&
     !/Cash|Bank|Jordan|Riley|4200|80000/.test(unconfigured.barText),
     unconfigured);
   await plain.page.evaluate(() => {
@@ -222,13 +232,8 @@ function readBar() {
   await plain.page.reload({ waitUntil: 'load' });
   await plain.page.waitForFunction(() => document.getElementById('accountStatus').textContent.includes('not configured'));
   const stored = await plain.page.evaluate(readBar);
-  check('local-storage-does-not-grant-trader-mode', !stored.traderMode && stored.traderDisabled === 'true' && stored.calls.length === 0, stored);
-  await plain.page.click('#modeTraderBtn');
-  const refusedPlain = await plain.page.evaluate(() => ({
-    toast: document.getElementById('toast').textContent,
-    traderMode: document.body.classList.contains('trader-mode')
-  }));
-  check('unconfigured-trader-click-fails-closed', /unavailable until account sign-in is configured/.test(refusedPlain.toast) && !refusedPlain.traderMode, refusedPlain);
+  check('local-storage-does-not-grant-trader-mode', !stored.traderMode && stored.traderHidden && stored.adminHidden && stored.calls.length === 0, stored);
+  check('unconfigured-privileged-controls-stay-hidden', stored.traderHidden && stored.adminHidden && !stored.traderMode && !stored.adminMode, stored);
   check('plain-console', plain.errors.length === 0, plain.errors.slice(0, 4));
   await plain.page.close();
 
@@ -236,15 +241,13 @@ function readBar() {
   await denied.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Alex Rivera'));
   const deniedView = await denied.page.evaluate(readBar);
   check('flags-and-username-do-not-allow-trader-mode',
-    deniedView.who === 'Alex Rivera' && deniedView.traderDisabled === 'true' && !deniedView.traderMode &&
+    deniedView.who === 'Alex Rivera' && deniedView.traderHidden && deniedView.adminHidden && !deniedView.traderMode && !deniedView.adminMode &&
     deniedView.meta.indexOf('Cash 840') >= 0 && deniedView.meta.indexOf('Bank 100') >= 0 &&
     deniedView.meta.indexOf('Server Owner') >= 0 && deniedView.calls.some(c => c.indexOf('GET /api/me') === 0) &&
     deniedView.calls.every(c => c.indexOf('auth=false') >= 0 && c.indexOf('cred=include') >= 0),
     deniedView);
-  await denied.page.click('#modeTraderBtn');
-  await denied.page.waitForFunction(() => document.getElementById('toast').textContent.indexOf('not authorized') >= 0);
   const deniedAfter = await denied.page.evaluate(readBar);
-  check('denied-click-does-not-search', !deniedAfter.traderMode && !deniedAfter.calls.some(c => c.indexOf('/api/trader/') >= 0), deniedAfter.calls);
+  check('denied-click-does-not-search', deniedAfter.traderHidden && deniedAfter.adminHidden && !deniedAfter.traderMode && !deniedAfter.calls.some(c => c.indexOf('/api/trader/') >= 0), deniedAfter.calls);
   check('denied-console', denied.errors.length === 0, denied.errors.slice(0, 4));
   await denied.page.close();
 
@@ -252,7 +255,8 @@ function readBar() {
   await desk.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Riley Chen'));
   const mine = await desk.page.evaluate(readBar);
   check('my-account-is-default',
-    mine.who === 'Riley Chen' && mine.selfPressed === 'true' && !mine.traderMode && mine.traderDisabled === 'false' &&
+    mine.who === 'Riley Chen' && mine.selfPressed === 'true' && !mine.traderMode && !mine.traderHidden && mine.adminHidden &&
+    /255,\s*155,\s*61/.test(mine.outline) &&
     mine.fixture === 'Test fixture' && mine.meta.indexOf('Cash 80000') >= 0 && mine.meta.indexOf('Bank 0') >= 0 &&
     mine.meta.indexOf('Server Owner') >= 0 && mine.signOut && mine.scrollW <= mine.clientW + 1,
     mine);
@@ -263,7 +267,7 @@ function readBar() {
   const picking = await desk.page.evaluate(readBar);
   check('trader-mode-uses-server-allowance',
     picking.traderMode && picking.status.indexOf('TRADER MODE') >= 0 && picking.who === 'Select a customer' &&
-    picking.meta === '' && picking.searchOpen && /224,\s*122,\s*31/.test(picking.outline),
+    picking.meta === '' && picking.searchOpen && /61,\s*220,\s*151/.test(picking.outline),
     picking);
   await shot(desk.page, 'account-trader-select-375');
 
@@ -308,7 +312,7 @@ function readBar() {
   }, DENIED);
   const revoked = await desk.page.evaluate(readBar);
   check('revoke-clears-customer-and-mode',
-    !revoked.traderMode && revoked.traderDisabled === 'true' && revoked.who === 'Alex Rivera' &&
+    !revoked.traderMode && revoked.traderHidden && revoked.adminHidden && !revoked.adminMode && revoked.who === 'Alex Rivera' &&
     !/Jordan Hale|4200|TRADER MODE/.test(revoked.barText),
     revoked);
 
@@ -352,6 +356,53 @@ function readBar() {
   check('offline-calculator-still-works', calc.total.indexOf('3,500') >= 0 && calc.weapons, calc);
   check('trader-console', desk.errors.length === 0, desk.errors.slice(0, 6));
   await desk.page.close();
+
+  const loading = await boot(browser, { gateway: GATEWAY, me: ALLOWED, delayMe: true, width: 390 });
+  const early = await loading.page.evaluate(readBar);
+  check('loading-hides-privileged-controls',
+    early.traderHidden && early.adminHidden && !early.traderMode && !early.adminMode &&
+    early.status === 'Checking account',
+    early);
+  await loading.page.evaluate(() => window.__935ReleaseMe && window.__935ReleaseMe());
+  await loading.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Riley Chen'));
+  const revealed = await loading.page.evaluate(readBar);
+  check('loaded-trader-shows-admin-stays-hidden',
+    !revealed.traderHidden && revealed.adminHidden && !revealed.adminMode && /255,\s*155,\s*61/.test(revealed.outline),
+    revealed);
+  await loading.page.close();
+
+  const ADMIN = JSON.parse(JSON.stringify(ALLOWED));
+  ADMIN.access.admin_mode_allowed = true;
+  ADMIN.access.trader_mode_allowed = true;
+  const staff = await boot(browser, { gateway: GATEWAY, me: ADMIN, width: 390 });
+  await staff.page.waitForFunction(() => !document.getElementById('modeAdminBtn').hidden && !document.getElementById('modeTraderBtn').hidden);
+  const staffIdle = await staff.page.evaluate(readBar);
+  check('staff-starts-in-my-account',
+    staffIdle.selfPressed === 'true' && staffIdle.adminHidden === false && staffIdle.traderHidden === false &&
+    !staffIdle.adminMode && /255,\s*155,\s*61/.test(staffIdle.outline),
+    staffIdle);
+  await staff.page.click('#modeAdminBtn');
+  await staff.page.waitForFunction(() => document.body.classList.contains('mode-admin') && document.getElementById('managePanel') && !document.getElementById('managePanel').hidden);
+  const adminView = await staff.page.evaluate(readBar);
+  const manage = await staff.page.evaluate(() => ({
+    title: document.querySelector('#managePanel h2').textContent,
+    note: document.getElementById('manageNote').textContent,
+    sample: document.body.innerText.includes('SAMPLE DATA') || document.body.innerText.includes('DESIGN PREVIEW'),
+    purple: getComputedStyle(document.body).boxShadow
+  }));
+  check('admin-mode-purple-and-catalog-title',
+    adminView.adminMode && adminView.status.indexOf('ADMIN MODE') >= 0 && adminView.traderMode === false &&
+    manage.title === 'Manage catalog' && /226,\s*196,\s*255/.test(manage.purple) && !manage.sample &&
+    /durable catalog store/.test(manage.note),
+    { adminView, manage });
+  await staff.page.evaluate(next => { window.__935AccountTest.setMe(next); return window.__935AccountRefresh(); }, ALLOWED);
+  await staff.page.waitForFunction(() => document.getElementById('modeAdminBtn').hidden && document.getElementById('accountStatus').innerText.includes('Riley Chen'));
+  const dropped = await staff.page.evaluate(readBar);
+  check('admin-revoke-returns-my-account',
+    dropped.adminHidden && !dropped.adminMode && !dropped.traderHidden && dropped.who === 'Riley Chen' &&
+    !/ADMIN MODE/.test(dropped.barText),
+    dropped);
+  await staff.page.close();
 
   await browser.close();
   const summary = { pass: fails.length === 0, failed: fails.length, fails };
