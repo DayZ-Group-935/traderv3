@@ -16,35 +16,40 @@
    Flat olive / sand / aged brass. No glass, haze, or glow. */
 :root {
   color-scheme: dark;
-  --bg: #12130f;
-  --hero: #0e0f0c;
-  --surf: #1a1c16;
-  --surf-2: #22251c;
-  --line: #2e3228;
-  --line-2: #444a38;
-  --ink: #e8e0d0;
-  --dim: #a79f8c;
-  --faint: #7a7466;
-  --kicker: #9a8558;
-  --metal: #eeeae2;
-  --wood: #c0a074;
-  --wood-2: #a89068;
-  --od: #aeb878;
-  --sel-bg: #262b1e;
-  --sel-border: #5a6248;
-  --chip-line: #9a8558;
-  --focus: #7a8460;
-  --step-on: #5a6248;
-  --row-in: #1c2018;
-  --dock-bg: #1c1f18;
-  --sheet: #161811;
-  --cta: #9aaa7e;
-  --cta-ink: #14160f;
+  --bg: #16130f;
+  --hero: #120f0c;
+  --surf: #1f1b16;
+  --surf-2: #2c261f;
+  --line: #3c352c;
+  --line-2: #6b5c4a;
+  --ink: #f0e6d4;
+  --dim: #baa890;
+  --faint: #8e816e;
+  --kicker: #e8d4b8;
+  --metal: #ede3d0;
+  --wood: #f3e6c8;
+  --wood-2: #e8d4b8;
+  --od: #baa890;
+  --sel-bg: #2a241c;
+  --sel-border: #7a4a30;
+  --chip-line: #f3e6c8;
+  --focus: #7a4a30;
+  --step-on: #7a4a30;
+  --row-in: #2a241c;
+  --dock-bg: #1f1b16;
+  --sheet: #1c1612;
+  --cta: #7a4a30;
+  --cta-ink: #f3e9d6;
   --pink: #e9a3be;
-  --banner: 136px;
+  --mode-customer: #ff9b3d;
+  --mode-trader: #3ddc97;
+  --mode-admin: #e2c4ff;
+  --banner: 128px;
   --tool: 56px;
   --cat: 52px;
   --dock: 156px;
+  --account: 44px;
+  --amber: #e07a1f;
   --kb: 0px;
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -89,14 +94,14 @@ img, svg { display: block; }
 
 /* ----- 136px banner, oversized emblem ----- */
 .hero {
-  position: relative; height: 136px; min-height: 136px; max-height: 136px;
-  overflow: hidden; background: var(--hero); border-bottom: 1px solid var(--line);
+  position: relative; height: 128px; min-height: 128px; max-height: 128px;
+  overflow: hidden; background: var(--hero); border-bottom: 1px solid #6b5c4a;
 }
 .hero-inner {
   position: relative; z-index: 2; height: 100%;
   padding: 12px 16px; display: flex; flex-direction: column; justify-content: flex-end;
 }
-.hero-copy { max-width: 58%; }
+.hero-copy { max-width: 200px; }
 .kicker, .eyebrow {
   margin: 0 0 4px; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 500;
   letter-spacing: .14em; text-transform: uppercase; color: var(--kicker);
@@ -104,13 +109,74 @@ img, svg { display: block; }
 .hero h1 { margin: 0; font-size: 24px; line-height: 1.08; font-weight: 550; letter-spacing: -.03em; }
 .hero-mark { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .hero-mark svg {
-  position: absolute; width: 300px; height: 300px;
-  right: -108px; top: 50%; transform: translateY(-48%);
+  position: absolute; width: 248px; height: 248px;
+  right: -90px; top: 52%; transform: translateY(-50%);
 }
 
 /* ----- Buy / Sell + search. Selected is an olive surface, not a filled hover. ----- */
+.account {
+  position: sticky; top: 0; z-index: 7;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px;
+  min-height: var(--account); padding: 0 10px 4px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.account-modes { flex: 1 1 auto; display: flex; align-items: stretch; flex-wrap: nowrap; min-width: 0; max-width: 100%; }
+.mode-btn {
+  min-width: 44px; min-height: 44px; height: auto; padding: 0 10px;
+  border: 1px solid var(--line-2); background: transparent; color: var(--dim);
+  font-family: ui-monospace, monospace; font-size: 11px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
+}
+#accountSignIn:not([hidden]) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.discord-mark { display: block; height: 18px; width: auto; flex: none; }
+.mode-btn + .mode-btn { border-left: 0; }
+.mode-btn.is-on { background: var(--sel-bg); color: var(--ink); border-color: var(--sel-border); }
+.mode-btn[aria-disabled="true"] { color: var(--faint); }
+.mode-btn:hover, .mode-btn:active { background: transparent; color: var(--dim); }
+.mode-btn.is-on:hover, .mode-btn.is-on:active { background: var(--sel-bg); color: var(--ink); }
+.account-readout { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 2px 0 4px; }
+.account-fixture {
+  margin: 0; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+}
+.account-status, .account-meta { margin: 0; min-width: 0; }
+.account-status { font-size: 13px; font-weight: 600; color: var(--ink); }
+.account-who { display: block; white-space: normal; }
+.account-meta { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-flag { display: block; font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.account-flag.flag-trader { color: var(--mode-trader); }
+.account-flag.flag-admin { color: var(--mode-admin); }
+.account-change {
+  flex: none; align-self: center; min-width: 44px; min-height: 44px; padding: 0 10px;
+  border: 1px solid var(--line-2); background: transparent; color: var(--dim);
+  font-family: ui-monospace, monospace; font-size: 11px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.account-search {
+  flex: 1 1 100%; position: relative; z-index: 8;
+  padding: 0 0 6px; background: transparent; border: 0;
+}
+.account-search input {
+  width: 100%; height: 44px; min-height: 44px; border: 1px solid var(--line-2);
+  background: var(--bg); padding: 0 10px; font-size: 16px;
+}
+.account-search [role="listbox"] { margin-top: 6px; max-height: 220px; overflow: auto; }
+.account-search [role="option"] {
+  display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0 10px;
+  border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink);
+  text-align: left;
+}
+body.mode-self { box-shadow: inset 0 0 0 3px var(--mode-customer); }
+body.mode-trader { box-shadow: inset 0 0 0 3px var(--mode-trader); }
+body.mode-admin { box-shadow: inset 0 0 0 3px var(--mode-admin); }
+body.mode-self .mode-btn.is-on { color: var(--ink); }
+body.mode-trader .mode-btn.is-on { color: var(--ink); }
+body.mode-admin .mode-btn.is-on { color: var(--ink); }
+.tool[hidden], #managePanel[hidden], #customerIdRow[hidden], #modeTraderBtn[hidden], #modeAdminBtn[hidden], .manage-tools[hidden], #manageList[hidden], #adminRoles[hidden], #manageEditor[hidden] { display: none !important; }
 .tool {
-  position: sticky; top: 0; z-index: 6;
+  position: sticky; top: var(--account); z-index: 6;
   display: flex; align-items: center; gap: 8px;
   height: var(--tool); padding: 6px 16px;
   border-bottom: 1px solid var(--line); background: var(--surf);
@@ -151,7 +217,7 @@ img, svg { display: block; }
 #buyPanel, #sellPanel { min-width: 0; }
 
 .catstack {
-  position: sticky; top: var(--tool); z-index: 5;
+  position: sticky; top: calc(var(--account) + var(--tool)); z-index: 5;
   background: var(--bg); border-bottom: 1px solid var(--line);
 }
 .catrow {
@@ -311,6 +377,58 @@ img, svg { display: block; }
   text-transform: uppercase; box-shadow: none;
 }
 #calculateBtn:hover, #calculateBtn:active, .sheet-calc:hover, .sheet-calc:active { transform: none; filter: none; }
+.manage-head, .manage-tools, .manage-editor { padding: 12px 16px; }
+.manage-head h2, .manage-editor h3 { margin: 0 0 6px; font-size: 20px; font-weight: 650; }
+.manage-note, .manage-base, .manage-diff, .manage-kicker { margin: 0 0 8px; color: var(--dim); font-size: 13px; }
+.manage-tools { display: flex; flex-direction: column; gap: 8px; }
+.manage-tools input, .manage-editor input, #customerIdInput {
+  width: 100%; height: 44px; min-height: 44px; border: 1px solid var(--line-2);
+  background: var(--bg); padding: 0 10px; font-size: 16px;
+}
+.manage-list { border-top: 1px solid var(--line); }
+.manage-row {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center;
+  width: 100%; min-height: 64px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: var(--ink); text-align: left; overflow: hidden;
+}
+.manage-row.is-on { box-shadow: inset 3px 0 0 var(--kicker); background: var(--sel-bg); }
+.manage-icon { width: 56px; height: 44px; overflow: hidden; display: grid; place-items: center; }
+.manage-row .ic { width: 56px; height: 44px; max-width: 56px; }
+.manage-row .ic svg,
+.manage-row .ic.ic-wide svg,
+.manage-row .has-wide > .ic svg { width: 40px; height: 28px; max-width: 52px; }
+.manage-copy { min-width: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.manage-row .nm, .manage-row .meta {
+  display: block; min-width: 0; white-space: normal; overflow-wrap: break-word;
+}
+.manage-row .nm { font-weight: 600; }
+.manage-row .meta { color: var(--dim); font-size: 13px; }
+.manage-editor label { display: block; margin: 8px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.manage-discount, .manage-stock, .manage-actions { display: flex; gap: 8px; margin-top: 8px; width: 100%; box-sizing: border-box; }
+.manage-actions .tab-btn, .manage-actions .sheet-calc {
+  flex: 1 1 0; width: auto; min-width: 0; max-width: calc(50% - 4px);
+}
+#adminRoles { padding: 0 16px 16px; box-sizing: border-box; max-width: 100%; }
+#adminRoleSelect { width: 100%; max-width: 100%; height: 44px; box-sizing: border-box; background: var(--bg); color: var(--ink); border: 1px solid var(--line-2); }
+.manage-editor { box-sizing: border-box; max-width: 100%; overflow: hidden; }
+.role-edit { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); max-width: 100%; }
+.role-edit-name { font-weight: 650; overflow-wrap: anywhere; }
+.role-missing { color: var(--faint); font-size: 12px; font-weight: 500; }
+.role-source, .role-ref { margin: 4px 0; font-size: 12px; color: var(--faint); font-weight: 500; }
+.role-caution { margin: 4px 0 8px; font-size: 12px; line-height: 1.35; color: var(--kicker); }
+.role-edit .tabs { display: flex; max-width: 100%; }
+.role-edit .tab-btn { flex: 1 1 0; min-width: 0; }
+.role-edit input[type="number"] { width: 100%; max-width: 100%; box-sizing: border-box; }
+.role-add { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 12px; }
+.role-add-list { display: flex; flex-direction: column; max-width: 100%; }
+.role-add-list button { min-height: 44px; text-align: left; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink); padding: 0 4px; }
+.manage-result { margin: 12px 0; font-size: 16px; }
+.manage-result strong { font-variant-numeric: tabular-nums; }
+#manageSave:disabled, #adminRoleSave:disabled {
+  background: var(--surf-2); color: var(--faint); opacity: 1; border: 1px solid var(--line); cursor: default;
+}
+#customerIdRow { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+#customerIdRow[hidden] { display: none; }
 
 /* ----- order / role sheet ----- */
 .sheet-backdrop {
@@ -517,6 +635,31 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
 </svg>
 </div>
     </header>
+    <div class="account" id="accountBar">
+      <div class="account-modes" role="group" aria-label="Account mode">
+        <button class="mode-btn is-on" id="modeSelfBtn" type="button" aria-pressed="true">My account</button>
+        <button class="mode-btn" id="modeTraderBtn" type="button" aria-pressed="false" hidden>Trader</button>
+        <button class="mode-btn" id="modeAdminBtn" type="button" aria-pressed="false" hidden>Admin</button>
+        <a class="mode-btn" id="accountSignIn" href="" hidden aria-label="Sign in with Discord"><svg class="discord-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 59 44" fill="none"><path fill="white" d="M37.1937 0C36.6265 1.0071 36.1172 2.04893 35.6541 3.11392C31.2553 2.45409 26.7754 2.45409 22.365 3.11392C21.9136 2.04893 21.3926 1.0071 20.8254 0C16.6928 0.70613 12.6644 1.94475 8.84436 3.69271C1.27372 14.9098 -0.775214 25.8374 0.243466 36.6146C4.67704 39.8906 9.6431 42.391 14.9333 43.9884C16.1256 42.391 17.179 40.6893 18.0819 38.9182C16.3687 38.2815 14.7133 37.4828 13.1274 36.5567C13.5442 36.2557 13.9493 35.9432 14.3429 35.6422C23.6384 40.0179 34.4039 40.0179 43.711 35.6422C44.1046 35.9663 44.5097 36.2789 44.9264 36.5567C43.3405 37.4943 41.6852 38.2815 39.9604 38.9298C40.8633 40.7009 41.9167 42.4025 43.109 44C48.3992 42.4025 53.3653 39.9137 57.7988 36.6377C59.0027 24.1358 55.7383 13.3007 49.1748 3.70429C45.3663 1.95633 41.3379 0.717706 37.2053 0.0231518L37.1937 0ZM19.3784 29.9816C16.5192 29.9816 14.1461 27.3886 14.1461 24.1821C14.1461 20.9755 16.4266 18.371 19.3669 18.371C22.3071 18.371 24.6455 20.9871 24.5992 24.1821C24.5529 27.377 22.2956 29.9816 19.3784 29.9816ZM38.6639 29.9816C35.7931 29.9816 33.4431 27.3886 33.4431 24.1821C33.4431 20.9755 35.7236 18.371 38.6639 18.371C41.6042 18.371 43.9309 20.9871 43.8846 24.1821C43.8383 27.377 41.581 29.9816 38.6639 29.9816Z"/></svg><span>Sign in</span></a>
+        <button class="mode-btn" id="accountSignOut" type="button" hidden>Sign out</button>
+      </div>
+      <div class="account-readout" id="accountReadout">
+        <p class="account-fixture" id="accountFixture" hidden>Test fixture</p>
+        <p class="account-status" id="accountStatus">Sign-in is not configured</p>
+        <p class="account-meta" id="accountMeta" hidden></p>
+      </div>
+      <button class="account-change" id="customerChangeBtn" type="button" hidden>Change</button>
+      <div class="account-search" id="accountSearch" hidden>
+        <label class="sr-only" for="customerSearch">Search customers</label>
+        <input id="customerSearch" type="search" autocomplete="off" placeholder="Search customers" enterkeyhint="search">
+        <div id="customerResults" role="listbox" aria-label="Customers" hidden></div>
+        <div id="customerIdRow" hidden>
+          <p class="account-meta" id="customerSearchNote"></p>
+          <input id="customerIdInput" inputmode="numeric" autocomplete="off" placeholder="Discord user id" aria-label="Discord user id">
+          <button class="account-change" id="customerIdBtn" type="button">Look up</button>
+        </div>
+      </div>
+    </div>
     <div class="tool">
       <div class="tabs" role="tablist" aria-label="Mode">
         <button class="tab-btn active" data-tab="buy" type="button">Buy</button>
@@ -536,6 +679,57 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <div class="breadcrumb" id="sellBreadcrumb"></div>
         <div class="item-grid" id="sellGrid"></div>
       </div>
+      <section id="managePanel" hidden>
+        <div class="manage-head">
+          <div class="tabs" role="tablist" aria-label="Admin">
+            <button class="tab-btn active" id="adminCatalogTab" type="button">Catalog</button>
+            <button class="tab-btn" id="adminRolesTab" type="button">Roles</button>
+          </div>
+          <h2 id="manageTitle">Manage catalog</h2>
+          <p class="manage-note" id="manageNote"></p>
+        </div>
+        <div id="adminRoles" hidden>
+          <label for="adminRoleSelect">Role</label>
+          <select id="adminRoleSelect"></select>
+          <p class="manage-note" id="adminRoleNote"></p>
+          <div id="adminRoleEffects"></div>
+          <div class="manage-actions">
+            <button class="tab-btn" id="adminRoleCancel" type="button">Cancel</button>
+            <button class="sheet-calc" id="adminRoleSave" type="button">Save role</button>
+          </div>
+        </div>
+        <div class="manage-tools">
+          <input id="manageSearch" type="search" autocomplete="off" placeholder="Search catalog" aria-label="Search catalog">
+          <div class="tabs" role="group" aria-label="Catalog side">
+            <button class="tab-btn active" id="manageSideBuy" type="button">Buy</button>
+            <button class="tab-btn" id="manageSideSell" type="button">Sell</button>
+          </div>
+        </div>
+        <div id="manageList" class="manage-list"></div>
+        <div id="manageEditor" class="manage-editor" hidden>
+          <p class="manage-kicker" id="manageItemSide"></p>
+          <h3 id="manageItemName"></h3>
+          <p class="manage-base" id="manageBase"></p>
+          <label for="managePrice">Price</label>
+          <input id="managePrice" type="number" inputmode="numeric" min="0" step="1">
+          <div class="manage-discount" role="group" aria-label="Discount type">
+            <button class="tab-btn active" id="manageDiscPercent" type="button">%</button>
+            <button class="tab-btn" id="manageDiscFixed" type="button">Cr</button>
+          </div>
+          <label for="manageDiscount">Discount</label>
+          <input id="manageDiscount" type="number" inputmode="numeric" min="0" step="1" value="0">
+          <p class="manage-result">Resulting price <strong id="manageResult"></strong></p>
+          <div class="manage-stock" role="group" aria-label="Stock">
+            <button class="tab-btn active" id="manageInStock" type="button">In stock</button>
+            <button class="tab-btn" id="manageOutStock" type="button">Out of stock</button>
+          </div>
+          <p class="manage-diff" id="manageDiff"></p>
+          <div class="manage-actions">
+            <button class="tab-btn" id="manageCancel" type="button">Cancel</button>
+            <button class="sheet-calc" id="manageSave" type="button">Save changes</button>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
   <div class="dock" aria-label="Order summary">
@@ -547,7 +741,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       <button id="calculateBtn" type="button">Calculate</button>
     </div>
     <div class="dock-actions">
-      <button class="dock-act" id="rolesDockBtn" type="button" aria-label="Roles">Roles <span class="count" id="roleCount" hidden></span></button>
       <button class="dock-act" id="shareOrderBtn" type="button">
         <span class="dock-act-label">Share order</span>
         <span class="note">Buy cart only</span>
@@ -573,7 +766,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       <button class="sheet-calc" id="sheetCalcBtn" type="button">Calculate</button>
       <div class="sheet-actions">
         <button id="genCodeBtn" type="button">Copy order link</button>
-        <button id="clearRolesBtn" type="button">Clear roles</button>
         <button id="clearAllBtn" type="button">Clear</button>
       </div>
       <div class="order-code-box" id="orderCodeBox">
@@ -588,10 +780,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         </div>
         <p class="sheet-note">The link opens this buy cart and kit definitions. Older order codes still work.</p>
       </div>
-      <section class="roles-section" id="rolesSection">
-        <h3 class="roles-title" id="rolesHeading">Roles<small>Tap to toggle</small></h3>
-        <div class="roles-grid" id="rolesGrid" tabindex="-1" aria-label="Roles"></div>
-      </section>
     </div>
   </div>
 
@@ -742,12 +930,46 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       "Roadkill":{description:"Flatten a player with a vehicle at a speed of 70km/h or more.",discounts:{"Car Radiator":25,"Car Battery":25,"Truck Battery":25,"Spark Plug":25,"Glow Plug":25,"Car Tires":25,"Humvee Tires":25,"Moped Tires":25,"Truck Tires":25}},
       "Rose Reaper":{description:"Turn in 30 Pink Derringers to Trader.",bonuses:{"Pink Derringer":6500}},
       "The Vaccinator":{description:"Turn in 100 Syringes to Trader.",bonuses:{"Syringe":1500},discounts:{"NBC Filters":50,"PoX Antidote":50}},
-      "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{}}
+      "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{},cartPercent:10}
     };
+    // Discord earnable-roles text is read-only reference. Calculator terms stay the prices.
+    const discordStatements = {
+      "Road Kill":{"calculator":"Roadkill","statement":"5% off","caution":"Calculator is 25% on car parts. Discord says 5% off."},
+      "Day 1":{"calculator":"Day One","statement":"10% off everything","caution":"Calculator is a 10% buy-cart discount that skips lines with a catalog discount. Discord says 10% off everything."},
+      "Click Click Boom":{"statement":"7%","caution":"Calculator is 20% on listed explosives. Discord says 7%."},
+      "Daryl Dixon":{"statement":"15%","caution":"Calculator is 50% on Crossbow and Crossbow Bolts. Discord says 15%."},
+      "Deadshot":{"statement":"20%","caution":"Calculator is 50% on listed sniper items. Discord says 20%."},
+      "Head Hunter":{"statement":"5%","caution":"Calculator is 50% on listed ammo. Discord says 5%."},
+      "Hotshot":{"statement":"25%","caution":"Calculator is 25% on listed sniper items, not every buy. Discord says 25%."},
+      "Kamikaze":{"statement":"20%","caution":"Calculator is 25% on Grenade. Discord says 20%."},
+      "Negan":{"statement":"10%","caution":"Calculator is 20% on Box of Nails. Discord says 10%."},
+      "Dr. Greenthumb":{"statement":"ongoing bonuses, no % listed"},
+      "All Your Base":{"statement":"ongoing bonuses, no % listed","caution":"Calculator is 100% off Faction Flags. Discord lists ongoing bonuses and no percent."},
+      "Big Game Hunter":{"statement":"ongoing bonuses, no % listed"},
+      "Hat Trick":{"statement":"ongoing bonuses, no % listed"},
+      "Librarian":{"statement":"ongoing bonuses, no % listed"},
+      "Marlboro Man":{"statement":"ongoing bonuses, no % listed"},
+      "Pathfinder":{"statement":"ongoing bonuses, no % listed","caution":"Calculator also discounts Rangefinder and Tourist Map by 100%. Discord lists ongoing bonuses and no percent."},
+      "Build A Bear":{"calculator":"Build-A-Bear","statement":"ongoing bonuses, no % listed"},
+      "Meet My Beat":{"calculator":"Meet Your Beat","statement":"ongoing bonuses, no % listed"}
+    };
+    const discordOngoing = {};
+    const discordMissing = {
+      "Julius Caesar":{},
+      "The Milkman":{},
+      "Rose Reaper":{},
+      "The Vaccinator":{},
+      "Without A Paddle":{}
+    };
+    Object.keys(discordStatements).forEach(name => {
+      const row = discordStatements[name];
+      if (!row || row.calculator || roles[name]) return;
+      roles[name] = { description: row.statement || "", discounts: {}, bonuses: {}, scopePercent: row.percent || 0 };
+    });
 
     // ===== STATE =====
     let currentTab = "buy";
-    let buyPath = [];
+    let buyPath = ["Weapons", "Weapons"];
     let sellPath = [];
     let buyCart = {};
     let sellCart = {};
@@ -798,6 +1020,18 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       return Object.values(sellitems).flat().find(i => i.name === name) || null;
     }
     function isKitName(n) { return /^(Player|Ghillie) Kit \d+$/.test(n); }
+    const KIT_FIXED_CATALOG = {
+      "Combat Knife": "Combat Knife", "Rangefinder": "Rangefinder", "Bandages ×2": "Bandages",
+      "9V Batteries ×3": "9V Batteries", "Weapon Cleaning Kit": "Gun Cleaning Kit", "Codeine": "Codeine Pills",
+      "Leather Sewing Kit": "Leather Repair Kit", "Morphine": "Morphine Injector", "Saline Bag": "Saline Bag",
+      "Sewing Kit": "Sewing Kit", "Tetracycline": "Tetracycline", "Vitamin Bottle": "Multi Vitamins", "Canteen": "Canteen"
+    };
+    function optionBlocked(label) {
+      return String(label).split(/\s+\+\s+/).some(part => {
+        const item = catalogItem("buy", part) || catalogItem("sell", part);
+        return !!(item && item.inStock === false);
+      });
+    }
     function toast(msg) {
       const t = document.getElementById("toast");
       t.textContent = msg;
@@ -871,7 +1105,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (isGhillie && slot.key === "backpack") return;
         const row = document.createElement("div");
         row.className = "kit-row";
-        const opts = slot.items.map(i => `<option value="${i}">${i === "(select)" ? TRADER_CHOICE : i}</option>`).join("");
+        const opts = slot.items.filter(i => i === "(select)" || i === "- -" || i === "None" || !optionBlocked(i)).map(i => `<option value="${i}">${i === "(select)" ? TRADER_CHOICE : i}</option>`).join("");
         row.innerHTML = `<label>${icTag(ICON_KIT_SLOT[slot.key] || "crate", "ic-kit")}${slot.label}</label><select data-slot="${slot.key}" aria-label="${slot.label}" autocomplete="off"${slot.fixed ? " disabled" : ""}>${opts}</select>`;
         group.appendChild(row);
       });
@@ -890,6 +1124,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         row.className = "kit-row";
         row.innerHTML = `<label for="omit-${f.key}">${icTag(ICON_KIT_FIXED[f.key] || "crate", "ic-kit")}${f.label}</label><label class="kit-token kit-include"><input type="checkbox" id="omit-${f.key}" role="switch" data-omit="${f.key}" checked autocomplete="off"><span class="sr-only">Include</span></label>`;
         fixedGroup.appendChild(row);
+        const mapped = KIT_FIXED_CATALOG[f.label];
+        const stockItem = mapped && catalogItem("buy", mapped);
+        if (stockItem && stockItem.inStock === false) {
+          const box = row.querySelector("input");
+          if (box) { box.checked = false; box.disabled = true; }
+        }
       });
 
       document.getElementById("kitPanel").dataset.ghillie = isGhillie ? "1" : "0";
@@ -1050,7 +1290,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           config[f.key] = { item: f.label, omitted: cb ? !cb.checked : false };
         });
         kitConfigs.push(config);
-        const price = token ? 0 : 16000;
+        const kitItem = catalogItem("buy", isGhillie ? "Ghillie Kit" : "Player Kit");
+        if (!token && kitItem && kitItem.inStock === false) { toast("OUT OF STOCK"); return; }
+        const price = token ? 0 : (kitItem ? catalogResultPrice(kitItem.price, kitItem.catalogDiscount) : 16000);
         document.getElementById("kitPanel").style.display = "none";
         buyCart[kitName] = {qty: 1, base: price, salePrice: null};
         saveState();
@@ -1089,7 +1331,23 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }).join("");
     }
 
-    function getDiscountedPrice(name, base) {
+    function roleHasCalculatorTerms(rule) {
+      if (!rule) return false;
+      if (rule.cartPercent) return true;
+      if (rule.discounts && Object.keys(rule.discounts).some(key => rule.discounts[key])) return true;
+      if (rule.discountFixed && Object.keys(rule.discountFixed).length) return true;
+      if (rule.bonuses && Object.keys(rule.bonuses).length) return true;
+      return false;
+    }
+    function discordScopePercent(name) {
+      const rule = roles[name];
+      if (roleHasCalculatorTerms(rule)) return 0;
+      if (rule && rule.scopePercent) return rule.scopePercent;
+      const row = discordStatements[name];
+      if (!row || row.calculator || !row.percent) return 0;
+      return row.percent;
+    }
+    function getDiscountedPrice(name, base, side) {
       let price = base;
       activeRoles.forEach(role => {
         const r = roles[role];
@@ -1098,11 +1356,119 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (r.discounts && r.discounts[name]) {
           price = Math.min(price, base * (1 - r.discounts[name] / 100));
         }
+        if (r.discountFixed && r.discountFixed[name] != null) {
+          price = Math.min(price, Math.max(0, base - r.discountFixed[name]));
+        }
+        if (side === "buy") {
+          const scope = discordScopePercent(role);
+          if (scope) price = Math.min(price, base * (1 - scope / 100));
+        }
         if (r.bonuses && r.bonuses[name]) {
           price = r.bonuses[name];
         }
       });
       return price;
+    }
+    function activeBonus(name) {
+      let bonus = null;
+      activeRoles.forEach(role => {
+        const r = roles[role];
+        if (r && r.bonuses && r.bonuses[name] != null) bonus = r.bonuses[name];
+      });
+      return bonus;
+    }
+    function catalogResultPrice(price, discount) {
+      const base = Math.round(Number(price) || 0);
+      if (!discount || !discount.value) return base;
+      if (discount.type === "percent") return Math.max(0, Math.round(base * (1 - discount.value / 100)));
+      if (discount.type === "fixed") return Math.max(0, base - Math.round(discount.value));
+      return base;
+    }
+    // Catalog discount and role percent are alternatives from the same unit price.
+    // The line uses the lower result. A role bonus replaces the unit and is not reduced again.
+    function lineUnit(name, base, salePrice, side) {
+      const bonus = activeBonus(name);
+      if (bonus != null) return Math.round(bonus);
+      const catalog = salePrice == null ? Math.round(base) : Math.round(salePrice);
+      return Math.min(catalog, Math.round(getDiscountedPrice(name, base, side)));
+    }
+    function catalogKey(side, name) { return side + "\n" + name; }
+    let ownPricingRoles = [];
+    let loadedRoleRules = null;
+    let roleDrafts = {};
+    let roleAddSide = "buy";
+    function applyPricingRoles(names) {
+      activeRoles = new Set((names || []).filter(name => roles[name]));
+    }
+    function installRoleRules(list) {
+      if (!Array.isArray(list)) return;
+      loadedRoleRules = list;
+      Object.keys(roles).forEach(name => {
+        roles[name].discounts = {};
+        roles[name].discountFixed = {};
+        roles[name].bonuses = {};
+        roles[name].cartPercent = 0;
+      });
+      (list || []).forEach(rule => {
+        if (!rule || !roles[rule.name]) return;
+        roles[rule.name].cartPercent = Number(rule.cart_percent) || 0;
+        (rule.effects || []).forEach(effect => {
+          if (!effect || !effect.name) return;
+          if (rule.name === "Roadkill" && (effect.name === "Trader Truck" || effect.name === "Trader Car")) return;
+          if (effect.price != null) roles[rule.name].bonuses[effect.name] = effect.price;
+          else if (effect.discount && effect.discount.type === "fixed") roles[rule.name].discountFixed[effect.name] = effect.discount.value;
+          else if (effect.discount && effect.discount.type === "percent") roles[rule.name].discounts[effect.name] = effect.discount.value;
+        });
+      });
+    }
+    function syncPricingRoles() {
+      const names = accountMode === "trader"
+        ? ((accountCustomer && accountCustomer.pricingRoles) || [])
+        : ownPricingRoles;
+      applyPricingRoles(names);
+    }
+    let catalogChanges = [];
+    let catalogRevision = 0;
+    let catalogConfigured = false;
+    let catalogDraft = new Map();
+    let manageSide = "buy";
+    let manageKey = "";
+    let manageJustOpened = false;
+    let adminPane = "catalog";
+    function stampAuthors(node) {
+      if (Array.isArray(node)) node.forEach(item => {
+        if (!item || !item.name || item.authorPrice != null) return;
+        item.authorPrice = item.price;
+        item.authorStock = item.inStock !== false;
+      });
+      else if (node && typeof node === "object") Object.keys(node).forEach(k => { if (!k.startsWith("_")) stampAuthors(node[k]); });
+    }
+    function applyOne(item, side) {
+      const change = catalogDraft.get(catalogKey(side, item.name));
+      item.price = change && Number.isInteger(change.price) ? change.price : item.authorPrice;
+      item.inStock = change && typeof change.in_stock === "boolean" ? change.in_stock : item.authorStock;
+      item.catalogDiscount = change && change.discount ? change.discount : null;
+      const result = catalogResultPrice(item.price, item.catalogDiscount);
+      item.salePrice = item.catalogDiscount ? result : null;
+    }
+    function applyCatalogDraft() {
+      stampAuthors(buyitems);
+      stampAuthors(sellitems);
+      const visit = (node, side) => {
+        if (Array.isArray(node)) node.forEach(item => { if (item && item.name) applyOne(item, side); });
+        else if (node && typeof node === "object") Object.keys(node).forEach(k => { if (!k.startsWith("_")) visit(node[k], side); });
+      };
+      visit(buyitems, "buy");
+      visit(sellitems, "sell");
+    }
+    function setCatalogChanges(changes) {
+      catalogDraft = new Map();
+      (changes || []).forEach(change => {
+        if (change && (change.side === "buy" || change.side === "sell") && change.name) {
+          catalogDraft.set(catalogKey(change.side, change.name), change);
+        }
+      });
+      applyCatalogDraft();
     }
 
     function getBibleTotal(qty) {
@@ -1112,6 +1478,934 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (qty >= 4) return 60000;
       return 10000 * qty;
     }
+
+    // Account gateway. The file served by GitHub Pages leaves
+    // window.__935AccountGateway unset, so that site stays offline and shows no
+    // balance. The Node process injects window.location.origin only into the
+    // HTML it serves, which keeps the API on the same origin. There is no
+    // public host in this file.
+    // When a base origin is set, the only calls are the implemented POC routes:
+    //   GET  {origin}/api/me
+    //   GET  {origin}/api/trader/search?q=
+    //   GET  {origin}/api/trader/players/{id}
+    //   POST {origin}/auth/logout
+    //   GET  {origin}/api/catalog
+    //   POST {origin}/api/catalog   (Server Owner or High Lvl Staff only; refused without durable storage)
+    //   link {origin}/auth/discord/login
+    // Cookies travel with credentials: "include". No Authorization header is sent.
+    // Trader mode is offered only when access.trader_mode_allowed is true.
+    // Role ids, usernames, and is_trader / is_server_owner / is_high_level_staff
+    // are display data from the server. They do not grant the mode.
+    let accountMode = "self";
+    let accountCustomer = null;
+    let accountMe = null;
+    let accountAuth = "unconfigured";
+    let accountPicking = false;
+    let customerSearchToken = 0;
+    function accountGatewayBase() {
+      const raw = window.__935AccountGateway;
+      if (typeof raw !== "string" || !raw.trim()) return null;
+      let url;
+      try { url = new URL(raw); } catch (e) { return null; }
+      if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+      return url.origin;
+    }
+    function resetAccountView() {
+      accountMode = "self";
+      accountCustomer = null;
+      accountMe = null;
+      accountAuth = accountGatewayBase() ? "loading" : "unconfigured";
+      accountPicking = false;
+      customerSearchToken++;
+      renderAccount();
+    }
+    function traderAllowed() {
+      return accountAuth === "signedin" && !!(accountMe && accountMe.access && accountMe.access.trader_mode_allowed === true);
+    }
+    function adminAllowed() {
+      return accountAuth === "signedin" && !!(accountMe && accountMe.access && accountMe.access.admin_mode_allowed === true);
+    }
+    function memberLabel(person) {
+      if (!person) return "";
+      return String(person.nick || person.global_name || person.username || person.id || "");
+    }
+    function balanceLine(balance) {
+      if (!balance || balance.available !== true || balance.mapped !== true) return "";
+      const cash = balance.cash_str != null ? String(balance.cash_str) : (balance.cash != null ? String(balance.cash) : "");
+      const bank = balance.bank_str != null ? String(balance.bank_str) : (balance.bank != null ? String(balance.bank) : "");
+      if (!cash && !bank) return "";
+      return "Cash " + cash + " · Bank " + bank;
+    }
+    function standingLine(me) {
+      const roles = me && me.roles;
+      if (!roles) return "";
+      const parts = [];
+      if (roles.is_server_owner === true) parts.push("Server Owner");
+      if (roles.is_high_level_staff === true) parts.push("High Level Staff");
+      if (roles.is_trader === true) parts.push("Trader");
+      return parts.join(", ");
+    }
+    async function gatewayJSON(path, options) {
+      const base = accountGatewayBase();
+      if (!base) return { unconfigured: true };
+      const method = (options && options.method) || "GET";
+      const headers = { accept: "application/json" };
+      const init = { method, credentials: "include", headers };
+      if (options && options.body != null) {
+        headers["content-type"] = "application/json";
+        init.body = JSON.stringify(options.body);
+      }
+      let response;
+      try {
+        response = await fetch(base + path, init);
+      } catch (e) {
+        return { offline: true };
+      }
+      let body = null;
+      try { body = await response.json(); } catch (e) { body = null; }
+      return { status: response.status, body };
+    }
+    function renderAccount() {
+      const configured = !!accountGatewayBase();
+      const allowed = traderAllowed();
+      const staff = adminAllowed();
+      if (!allowed && accountMode === "trader") {
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+      }
+      if (!staff && accountMode === "admin") accountMode = "self";
+      const traderOn = accountMode === "trader" && allowed;
+      const adminOn = accountMode === "admin" && staff;
+      document.body.classList.toggle("trader-mode", traderOn);
+      document.body.classList.toggle("mode-self", !traderOn && !adminOn);
+      document.body.classList.toggle("mode-trader", traderOn);
+      document.body.classList.toggle("mode-admin", adminOn);
+      const selfBtn = document.getElementById("modeSelfBtn");
+      const traderBtn = document.getElementById("modeTraderBtn");
+      const adminBtn = document.getElementById("modeAdminBtn");
+      if (selfBtn) {
+        selfBtn.classList.toggle("is-on", !traderOn && !adminOn);
+        selfBtn.setAttribute("aria-pressed", traderOn || adminOn ? "false" : "true");
+      }
+      if (traderBtn) {
+        traderBtn.hidden = !allowed;
+        traderBtn.classList.toggle("is-on", traderOn);
+        traderBtn.setAttribute("aria-pressed", traderOn ? "true" : "false");
+      }
+      if (adminBtn) {
+        adminBtn.hidden = !staff;
+        adminBtn.classList.toggle("is-on", adminOn);
+        adminBtn.setAttribute("aria-pressed", adminOn ? "true" : "false");
+      }
+      const signIn = document.getElementById("accountSignIn");
+      const signOut = document.getElementById("accountSignOut");
+      if (signIn) {
+        const showIn = configured && accountAuth === "signedout";
+        signIn.hidden = !showIn;
+        signIn.href = showIn ? accountGatewayBase() + "/auth/discord/login" : "";
+      }
+      if (signOut) signOut.hidden = accountAuth !== "signedin";
+      const fixture = document.getElementById("accountFixture");
+      if (fixture) fixture.hidden = window.__935AccountFixture !== true;
+      const status = document.getElementById("accountStatus");
+      if (status) {
+        status.replaceChildren();
+        if (!configured || accountAuth === "unconfigured") status.textContent = "Sign-in is not configured";
+        else if (accountAuth === "loading") status.textContent = "Checking account";
+        else if (accountAuth === "offline") status.textContent = "Account service is unavailable";
+        else if (accountAuth !== "signedin" || !accountMe) status.textContent = "Signed out";
+        else if (traderOn) {
+          const flag = document.createElement("span");
+          flag.className = "account-flag flag-trader";
+          flag.textContent = "TRADER MODE";
+          const who = document.createElement("span");
+          who.className = "account-who";
+          who.textContent = accountCustomer ? accountCustomer.label : "Select a customer";
+          status.append(flag, who);
+        } else if (adminOn) {
+          const flag = document.createElement("span");
+          flag.className = "account-flag flag-admin";
+          flag.textContent = "ADMIN MODE";
+          status.append(flag);
+        } else {
+          const who = document.createElement("span");
+          who.className = "account-who";
+          who.textContent = memberLabel(accountMe.identity) || "My account";
+          status.append(who);
+        }
+      }
+      const meta = document.getElementById("accountMeta");
+      let metaText = "";
+      if (traderOn && accountCustomer) metaText = accountCustomer.balanceText || "";
+      else if (!traderOn && accountAuth === "signedin" && accountMe) {
+        metaText = [balanceLine(accountMe.balance), standingLine(accountMe)].filter(Boolean).join(" · ");
+      }
+      if (meta) {
+        meta.hidden = !metaText;
+        meta.textContent = metaText;
+      }
+      const readout = document.getElementById("accountReadout");
+      if (readout) {
+        const name = status ? status.textContent.replace(/\s+/g, " ").trim() : "My account";
+        readout.setAttribute("aria-label", [window.__935AccountFixture === true ? "Test fixture" : "", name, metaText].filter(Boolean).join(". "));
+      }
+      const change = document.getElementById("customerChangeBtn");
+      if (change) change.hidden = !(traderOn && accountCustomer);
+      const search = document.getElementById("accountSearch");
+      const showSearch = traderOn && (accountPicking || !accountCustomer);
+      if (search) search.hidden = !showSearch;
+      if (!showSearch) {
+        const results = document.getElementById("customerResults");
+        if (results) { results.hidden = true; results.replaceChildren(); }
+        const idRow = document.getElementById("customerIdRow");
+        if (idRow) idRow.hidden = true;
+      }
+      const bar = document.getElementById("accountBar");
+      if (bar) document.documentElement.style.setProperty("--account", Math.max(44, Math.ceil(bar.getBoundingClientRect().height)) + "px");
+    }
+    async function refreshAccount() {
+      if (!accountGatewayBase()) {
+        accountAuth = "unconfigured";
+        accountMe = null;
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      const res = await gatewayJSON("/api/me");
+      if (res.unconfigured || res.offline || !res.status || res.status >= 500) {
+        accountAuth = "offline";
+        accountMe = null;
+        ownPricingRoles = [];
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      if (res.status === 401 || !res.body || !res.body.identity) {
+        accountAuth = "signedout";
+        accountMe = null;
+        ownPricingRoles = [];
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      accountAuth = "signedin";
+      accountMe = res.body;
+      ownPricingRoles = Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : [];
+      if (!(res.body.access && res.body.access.trader_mode_allowed === true) && accountMode === "trader") {
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+      }
+      if (!(res.body.access && res.body.access.admin_mode_allowed === true) && accountMode === "admin") {
+        accountMode = "self";
+      }
+      renderAccount();
+      render();
+    }
+    async function enterTraderMode() {
+      await refreshAccount();
+      if (!traderAllowed()) {
+        const msg = (accountAuth === "unconfigured" || accountAuth === "offline")
+          ? "Trader mode is unavailable until account sign-in is configured."
+          : (accountAuth === "signedout"
+            ? "Sign in is required for Trader mode."
+            : "Trader mode is not authorized for this account.");
+        toast(msg);
+        accountMode = "self";
+        accountCustomer = null;
+        accountPicking = false;
+        renderAccount();
+        return;
+      }
+      if (accountMode === "trader") return;
+      accountMode = "trader";
+      accountCustomer = null;
+      accountPicking = true;
+      renderAccount();
+      render();
+    }
+    async function enterAdminMode() {
+      await refreshAccount();
+      if (!adminAllowed()) {
+        accountMode = "self";
+        renderAccount();
+        render();
+        return;
+      }
+      accountMode = "admin";
+      accountCustomer = null;
+      accountPicking = false;
+      renderAccount();
+      render();
+    }
+    function exitTraderMode() {
+      accountMode = "self";
+      accountCustomer = null;
+      accountPicking = false;
+      customerSearchToken++;
+      const input = document.getElementById("customerSearch");
+      if (input) input.value = "";
+      renderAccount();
+      render();
+    }
+    async function signOutAccount() {
+      accountMode = "self";
+      accountCustomer = null;
+      accountPicking = false;
+      customerSearchToken++;
+      if (accountGatewayBase()) {
+        try { await gatewayJSON("/auth/logout", { method: "POST" }); } catch (e) {}
+      }
+      await refreshAccount();
+    }
+    async function chooseCustomer(id) {
+      if (accountMode !== "trader" || !traderAllowed()) {
+        accountCustomer = null;
+        renderAccount();
+        return;
+      }
+      const res = await gatewayJSON("/api/trader/players/" + encodeURIComponent(id));
+      if (accountMode !== "trader" || !traderAllowed()) {
+        accountCustomer = null;
+        renderAccount();
+        return;
+      }
+      const member = res && res.status === 200 && res.body && res.body.lookup && res.body.lookup.member;
+      if (!member) {
+        accountCustomer = null;
+        if (res && res.status === 403) {
+          accountMode = "self";
+          accountPicking = false;
+          toast("Trader mode is not authorized for this account.");
+        } else toast("That customer is not available");
+        renderAccount();
+        return;
+      }
+      accountCustomer = {
+        id: String(member.id || id),
+        label: memberLabel(member) || "Customer",
+        balanceText: balanceLine(res.body.balance),
+        pricingRoles: Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : []
+      };
+      accountPicking = false;
+      const input = document.getElementById("customerSearch");
+      if (input) input.value = "";
+      renderAccount();
+      render();
+    }
+    function catalogRows(side) {
+      stampAuthors(side === "sell" ? sellitems : buyitems);
+      const source = side === "sell" ? Object.values(sellitems).flat() : flattenBuyItems(buyitems);
+      return source.filter(item => item && item.name);
+    }
+    function savedChange(side, name) {
+      return catalogDraft.get(catalogKey(side, name)) || null;
+    }
+    function editorState(item) {
+      const saved = savedChange(manageSide, item.name);
+      const price = saved && Number.isInteger(saved.price) ? saved.price : item.authorPrice;
+      const stock = saved && typeof saved.in_stock === "boolean" ? saved.in_stock : item.authorStock !== false;
+      const discount = saved && saved.discount ? saved.discount : null;
+      return { price, stock, discount };
+    }
+    function renderManage() {
+      const list = document.getElementById("manageList");
+      const note = document.getElementById("manageNote");
+      if (note) {
+        note.textContent = catalogConfigured
+          ? "Draft a price, discount, or stock change, review it, then save."
+          : "Saving needs a durable catalog store. This host does not have one yet, so prices stay at the published list.";
+      }
+      if (!list) return;
+      const q = (document.getElementById("manageSearch").value || "").trim().toLowerCase();
+      const rows = catalogRows(manageSide).filter(item => !q || item.name.toLowerCase().includes(q));
+      const editor = document.getElementById("manageEditor");
+      const panel = document.getElementById("managePanel");
+      if (editor && panel && editor.parentElement !== panel) panel.appendChild(editor);
+      list.replaceChildren();
+      let opened = null;
+      rows.forEach(item => {
+        const state = editorState(item);
+        const result = catalogResultPrice(state.price, state.discount);
+        const key = catalogKey(manageSide, item.name);
+        const isOpen = key === manageKey;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "manage-row" + (isOpen ? " is-on" : "");
+        btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        btn.setAttribute("aria-controls", "manageEditor");
+        const icon = document.createElement("span");
+        icon.className = "manage-icon";
+        icon.innerHTML = icTag(icKeyFor(item.name));
+        const copy = document.createElement("span");
+        copy.className = "manage-copy";
+        const nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = item.name;
+        const meta = document.createElement("span");
+        meta.className = "meta";
+        meta.textContent = fmt(result) + " Cr · " + (state.stock ? "In stock" : "Out of stock");
+        copy.append(nm, meta);
+        btn.append(icon, copy);
+        btn.onclick = () => {
+          const opening = manageKey !== key;
+          manageKey = opening ? key : "";
+          manageJustOpened = opening;
+          renderManage();
+        };
+        list.appendChild(btn);
+        if (isOpen && editor) {
+          editor.hidden = false;
+          list.appendChild(editor);
+          if (editor.dataset.name !== item.name || editor.dataset.side !== manageSide) fillEditor(item);
+          opened = editor;
+        }
+      });
+      if (!opened && editor) editor.hidden = true;
+      if (opened && manageJustOpened) {
+        manageJustOpened = false;
+        requestAnimationFrame(() => opened.scrollIntoView({ block: "nearest", inline: "nearest" }));
+      }
+      document.getElementById("manageSideBuy").classList.toggle("active", manageSide === "buy");
+      document.getElementById("manageSideSell").classList.toggle("active", manageSide === "sell");
+    }
+    function fillEditor(item) {
+      const editor = document.getElementById("manageEditor");
+      if (!editor) return;
+      editor.hidden = false;
+      editor.dataset.side = manageSide;
+      editor.dataset.name = item.name;
+      document.getElementById("manageItemSide").textContent = manageSide === "buy" ? "Buy" : "Sell";
+      document.getElementById("manageItemName").textContent = item.name;
+      const state = editorState(item);
+      const base = document.getElementById("manageBase");
+      base.textContent = item.name === "Bible"
+        ? "Catalog price " + fmt(item.authorPrice) + " Cr. Quantity tiers stay in place. A discount applies to the tier total."
+        : "Catalog price " + fmt(item.authorPrice) + " Cr";
+      const price = document.getElementById("managePrice");
+      price.value = String(state.price);
+      price.disabled = item.name === "Bible";
+      const percent = !state.discount || state.discount.type !== "fixed";
+      document.getElementById("manageDiscPercent").classList.toggle("active", percent);
+      document.getElementById("manageDiscFixed").classList.toggle("active", !percent);
+      document.getElementById("manageDiscount").value = String(state.discount ? state.discount.value : 0);
+      document.getElementById("manageInStock").classList.toggle("active", state.stock);
+      document.getElementById("manageOutStock").classList.toggle("active", !state.stock);
+      editor.dataset.stock = state.stock ? "1" : "0";
+      editor.dataset.disc = percent ? "percent" : "fixed";
+      updateManagePreview();
+    }
+    function updateManagePreview() {
+      const editor = document.getElementById("manageEditor");
+      if (!editor || editor.hidden) return;
+      const name = editor.dataset.name;
+      const item = catalogRows(editor.dataset.side).find(row => row.name === name);
+      if (!item) return;
+      const price = Math.round(Number(document.getElementById("managePrice").value));
+      const amount = Math.round(Number(document.getElementById("manageDiscount").value));
+      const type = editor.dataset.disc === "fixed" ? "fixed" : "percent";
+      const discount = amount > 0 ? { type, value: amount } : null;
+      const stock = editor.dataset.stock === "1";
+      const result = name === "Bible" && discount ? bibleTotal(1, item.authorPrice, discount) : catalogResultPrice(Number.isInteger(price) ? price : item.authorPrice, discount);
+      document.getElementById("manageResult").textContent = fmt(result) + " Cr";
+      const saved = editorState(item);
+      const lines = [];
+      if (name !== "Bible" && Number.isInteger(price) && price !== saved.price) lines.push("Price " + fmt(saved.price) + " → " + fmt(price) + " Cr");
+      const savedAmount = saved.discount ? saved.discount.value : 0;
+      const savedType = saved.discount ? saved.discount.type : type;
+      if (amount !== savedAmount || (amount > 0 && type !== savedType)) {
+        lines.push("Discount " + (saved.discount ? saved.discount.value + (saved.discount.type === "fixed" ? " Cr" : "%") : "0") + " → " + amount + (type === "fixed" ? " Cr" : "%"));
+      }
+      if (stock !== saved.stock) lines.push(stock ? "Out of stock → In stock" : "In stock → Out of stock");
+      document.getElementById("manageDiff").textContent = lines.length ? lines.join(" · ") : "No unsaved changes";
+      const save = document.getElementById("manageSave");
+      save.disabled = !catalogConfigured || !lines.length;
+    }
+    async function saveAdminRole() {
+      if (!adminAllowed() || !catalogConfigured) {
+        toast("Catalog saves are unavailable until durable storage is configured.");
+        return;
+      }
+      const name = document.getElementById("adminRoleSelect").value;
+      const rule = currentRoleRule(name);
+      if (!rule) { toast("That role has no calculator rule."); return; }
+      const role_rules = Object.keys(roles).sort().map(roleName => {
+        const rule = roleDrafts[roleName] || currentRoleRule(roleName);
+        if (!rule) return null;
+        return {
+          name: rule.name,
+          cart_percent: rule.cart_percent || null,
+          effects: (rule.effects || []).filter(effect => effect.price != null || (effect.discount && effect.discount.value > 0))
+        };
+      }).filter(Boolean);
+      const changes = [...catalogDraft.values()];
+      const res = await gatewayJSON("/api/catalog", { method: "POST", body: { revision: catalogRevision, changes, role_rules } });
+      if (!res || res.status === 401 || res.status === 403) { toast("Catalog edits are not authorized."); return; }
+      if (!res || res.status === 503) { toast("Catalog saves need durable storage."); return; }
+      if (!res || res.status !== 200) { toast("Catalog save was refused."); return; }
+      catalogRevision = res.body.revision || catalogRevision;
+      installRoleRules(res.body.role_rules || role_rules);
+      roleDrafts = {};
+      toast(res.body.saved ? "Role terms saved" : "No role changes");
+      render();
+    }
+    async function saveManage() {
+      const editor = document.getElementById("manageEditor");
+      if (!editor || !adminAllowed() || !catalogConfigured) {
+        toast("Catalog saves are unavailable until durable storage is configured.");
+        return;
+      }
+      const name = editor.dataset.name;
+      const side = editor.dataset.side;
+      const item = catalogRows(side).find(row => row.name === name);
+      if (!item) return;
+      const price = name === "Bible" ? item.authorPrice : Math.round(Number(document.getElementById("managePrice").value));
+      const amount = Math.round(Number(document.getElementById("manageDiscount").value));
+      const type = editor.dataset.disc === "fixed" ? "fixed" : "percent";
+      if (!Number.isInteger(price) || price < 0 || price > 10000000 || !Number.isInteger(amount) || amount < 0) {
+        toast("Enter a whole credit amount");
+        return;
+      }
+      if (type === "percent" && amount > 100) { toast("Percent discount must be 0 to 100"); return; }
+      if (type === "fixed" && amount > price) { toast("Fixed discount cannot exceed the price"); return; }
+      const next = [];
+      catalogDraft.forEach(change => { if (!(change.side === side && change.name === name)) next.push(change); });
+      const record = {
+        side, name, price,
+        in_stock: editor.dataset.stock === "1",
+        discount: amount > 0 ? { type, value: amount } : null
+      };
+      if (!(record.price === item.authorPrice && record.in_stock === (item.authorStock !== false) && !record.discount)) next.push(record);
+      const res = await gatewayJSON("/api/catalog", { method: "POST", body: { revision: catalogRevision, changes: next } });
+      if (!res || res.status === 409) { toast("Catalog changed elsewhere. Reload and try again."); loadCatalog(); return; }
+      if (!res || res.status !== 200 || !res.body) { toast("Catalog save was refused."); return; }
+      catalogRevision = res.body.revision || 0;
+      catalogConfigured = res.body.configured === true;
+      setCatalogChanges(res.body.changes || []);
+      toast(res.body.saved ? "Catalog saved" : "No catalog changes");
+      render();
+    }
+    async function loadCatalog() {
+      if (!accountGatewayBase()) return;
+      const res = await gatewayJSON("/api/catalog");
+      if (!res || res.status !== 200 || !res.body || !Array.isArray(res.body.changes)) {
+        catalogConfigured = false;
+        return;
+      }
+      catalogConfigured = res.body.configured === true;
+      catalogRevision = Number.isInteger(res.body.revision) ? res.body.revision : 0;
+      installRoleRules(res.body.role_rules || null);
+      setCatalogChanges(res.body.changes);
+      if (accountMode === "admin") renderManage();
+      else render();
+    }
+    function currentRoleRule(name) {
+      const saved = (loadedRoleRules || []).find(rule => rule && rule.name === name);
+      if (saved) return JSON.parse(JSON.stringify(saved));
+      const rule = roles[name];
+      if (!rule) return null;
+      const effects = [];
+      Object.entries(rule.discounts || {}).forEach(([item, value]) => {
+        if (value) effects.push({ side: "buy", name: item, discount: { type: "percent", value } });
+      });
+      Object.entries(rule.discountFixed || {}).forEach(([item, value]) => {
+        effects.push({ side: "buy", name: item, discount: { type: "fixed", value } });
+      });
+      Object.entries(rule.bonuses || {}).forEach(([item, value]) => {
+        effects.push({ side: "sell", name: item, price: value });
+      });
+      return { name, cart_percent: rule.cartPercent || null, effects };
+    }
+    function ensureRoleDraft(name) {
+      if (!roleDrafts[name]) roleDrafts[name] = currentRoleRule(name);
+      return roleDrafts[name];
+    }
+    function itemInCatalog(side, name) {
+      return catalogRows(side).some(item => item.name === name);
+    }
+    function discordReference(roleName) {
+      const direct = discordStatements[roleName];
+      if (direct && !direct.calculator) return { name: roleName, row: direct };
+      const alias = Object.entries(discordStatements).find(([, row]) => row.calculator === roleName);
+      return alias ? { name: alias[0], row: alias[1] } : null;
+    }
+    function selectedRoleMeta(roleName) {
+      if (discordMissing[roleName]) return { source: "unmapped", tag: "no Discord role", statement: "", caution: "" };
+      const rule = roles[roleName];
+      const has = roleHasCalculatorTerms(rule);
+      const ref = discordReference(roleName);
+      if (has) return { source: "calculator", tag: "calculator term", statement: ref ? ref.row.statement : "", caution: ref && ref.row.caution ? ref.row.caution : "" };
+      if (discordOngoing[roleName]) return { source: "none", tag: "no defined terms", statement: "ongoing bonuses, no %", caution: "" };
+      const direct = discordStatements[roleName];
+      if (direct && direct.percent && !direct.calculator) return { source: "discord", tag: "from Discord", statement: direct.statement, caution: "", percent: direct.percent };
+      return { source: "unknown", tag: "", statement: "", caution: "" };
+    }
+    function renderAdminRoles() {
+      const select = document.getElementById("adminRoleSelect");
+      const note = document.getElementById("adminRoleNote");
+      const box = document.getElementById("adminRoleEffects");
+      const headNote = document.getElementById("manageNote");
+      if (headNote && adminPane === "roles") headNote.hidden = true;
+      if (!select || !box) return;
+      if (!select.options.length) {
+        Object.keys(roles).sort().forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+        if (![...select.options].some(opt => opt.value === "Without A Paddle")) {
+          const extra = document.createElement("option");
+          extra.value = "Without A Paddle";
+          extra.textContent = "Without A Paddle";
+          select.appendChild(extra);
+        }
+      }
+      const roleName = select.value || (select.options[0] && select.options[0].value);
+      const draft = ensureRoleDraft(roleName);
+      if (note) {
+        note.textContent = catalogConfigured
+          ? "These terms apply only when a verified Discord role id map names this role."
+          : "Saving needs a durable catalog store.";
+      }
+      box.replaceChildren();
+      const meta = selectedRoleMeta(roleName);
+      if (meta.tag) {
+        const tag = document.createElement("div");
+        tag.className = "role-source";
+        tag.textContent = meta.tag;
+        box.appendChild(tag);
+      }
+      if (meta.statement) {
+        const ref = document.createElement("p");
+        ref.className = "role-ref";
+        ref.textContent = "Discord: " + meta.statement;
+        box.appendChild(ref);
+      }
+      if (meta.caution) {
+        const caution = document.createElement("p");
+        caution.className = "role-caution";
+        caution.textContent = meta.caution;
+        box.appendChild(caution);
+      }
+      if (!draft || meta.source === "none" || (meta.source === "unmapped" && !roles[roleName])) {
+        const save = document.getElementById("adminRoleSave");
+        if (save) { save.disabled = !catalogConfigured; save.setAttribute("aria-disabled", save.disabled ? "true" : "false"); }
+        return;
+      }
+      if (meta.source === "discord") {
+        if (draft.scope_percent == null) draft.scope_percent = meta.percent;
+        const scopeLabel = document.createElement("label");
+        scopeLabel.textContent = "Buy discount %";
+        scopeLabel.setAttribute("for", "roleScopePercent");
+        const scopeInput = document.createElement("input");
+        scopeInput.id = "roleScopePercent";
+        scopeInput.type = "number";
+        scopeInput.min = "0";
+        scopeInput.max = "100";
+        scopeInput.step = "1";
+        scopeInput.value = String(draft.scope_percent);
+        scopeInput.addEventListener("input", () => { draft.scope_percent = Math.max(0, Math.round(Number(scopeInput.value) || 0)); });
+        box.append(scopeLabel, scopeInput);
+      }
+      const cartLabel = document.createElement("label");
+      cartLabel.textContent = "Buy cart discount %";
+      cartLabel.setAttribute("for", "roleCartPercent");
+      const cartInput = document.createElement("input");
+      cartInput.id = "roleCartPercent";
+      cartInput.type = "number";
+      cartInput.min = "0";
+      cartInput.max = "100";
+      cartInput.step = "1";
+      cartInput.value = String(draft.cart_percent || 0);
+      cartInput.addEventListener("input", () => { draft.cart_percent = Math.max(0, Math.round(Number(cartInput.value) || 0)); });
+      box.append(cartLabel, cartInput);
+      (draft.effects || []).forEach((effect, index) => {
+        const row = document.createElement("div");
+        row.className = "role-edit";
+        const title = document.createElement("div");
+        title.className = "role-edit-name";
+        title.textContent = effect.name;
+        if (!itemInCatalog(effect.side, effect.name)) {
+          const mark = document.createElement("span");
+          mark.className = "role-missing";
+          mark.textContent = " not in catalog";
+          title.appendChild(mark);
+        }
+        const sideTabs = document.createElement("div");
+        sideTabs.className = "tabs";
+        sideTabs.setAttribute("role", "group");
+        sideTabs.setAttribute("aria-label", "Side for " + effect.name);
+        ["buy", "sell"].forEach(side => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tab-btn" + (effect.side === side ? " active" : "");
+          btn.textContent = side === "buy" ? "Buy" : "Sell";
+          btn.onclick = () => { effect.side = side; renderAdminRoles(); };
+          sideTabs.appendChild(btn);
+        });
+        const modeTabs = document.createElement("div");
+        modeTabs.className = "tabs";
+        modeTabs.setAttribute("role", "group");
+        modeTabs.setAttribute("aria-label", "Price or discount for " + effect.name);
+        const isPrice = effect.price != null;
+        [["price", "Price"], ["discount", "Discount"]].forEach(([mode, label]) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tab-btn" + ((isPrice ? "price" : "discount") === mode ? " active" : "");
+          btn.textContent = label;
+          btn.onclick = () => {
+            if (mode === "price") { effect.price = effect.price != null ? effect.price : (effect.discount ? effect.discount.value : 0); delete effect.discount; }
+            else { effect.discount = effect.discount || { type: "percent", value: effect.price || 0 }; delete effect.price; }
+            renderAdminRoles();
+          };
+          modeTabs.appendChild(btn);
+        });
+        row.append(title, sideTabs, modeTabs);
+        if (!isPrice) {
+          const discTabs = document.createElement("div");
+          discTabs.className = "tabs";
+          [["percent", "%"], ["fixed", "Cr"]].forEach(([type, label]) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "tab-btn" + (effect.discount.type === type ? " active" : "");
+            btn.textContent = label;
+            btn.onclick = () => { effect.discount.type = type; renderAdminRoles(); };
+            discTabs.appendChild(btn);
+          });
+          row.appendChild(discTabs);
+        }
+        const value = document.createElement("input");
+        value.type = "number";
+        value.min = "0";
+        value.step = "1";
+        value.setAttribute("aria-label", "Value for " + effect.name);
+        value.value = String(isPrice ? effect.price : effect.discount.value);
+        value.addEventListener("input", () => {
+          const next = Math.max(0, Math.round(Number(value.value) || 0));
+          if (effect.price != null) effect.price = next;
+          else effect.discount.value = next;
+        });
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "tab-btn";
+        remove.textContent = "Remove";
+        remove.onclick = () => { draft.effects.splice(index, 1); renderAdminRoles(); };
+        row.append(value, remove);
+        box.appendChild(row);
+      });
+      const add = document.createElement("div");
+      add.className = "role-add";
+      const addLabel = document.createElement("label");
+      addLabel.textContent = "Add item";
+      addLabel.setAttribute("for", "roleAddSearch");
+      const addSearch = document.createElement("input");
+      addSearch.id = "roleAddSearch";
+      addSearch.type = "search";
+      addSearch.placeholder = "Search catalog items";
+      addSearch.setAttribute("aria-label", "Search catalog items to add");
+      const addSides = document.createElement("div");
+      addSides.className = "tabs";
+      ["buy", "sell"].forEach(side => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tab-btn" + (roleAddSide === side ? " active" : "");
+        btn.textContent = side === "buy" ? "Buy" : "Sell";
+        btn.onclick = () => { roleAddSide = side; renderAdminRoles(); };
+        addSides.appendChild(btn);
+      });
+      const results = document.createElement("div");
+      results.className = "role-add-list";
+      results.setAttribute("role", "listbox");
+      const paintResults = () => {
+        const q = addSearch.value.trim().toLowerCase();
+        results.replaceChildren();
+        if (!q) return;
+        catalogRows(roleAddSide).filter(item => item.name.toLowerCase().includes(q) && !(roleName === "Roadkill" && (item.name === "Trader Car" || item.name === "Trader Truck"))).slice(0, 6).forEach(item => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = item.name;
+          btn.onclick = () => {
+            if ((draft.effects || []).some(effect => effect.side === roleAddSide && effect.name === item.name)) return;
+            draft.effects.push({ side: roleAddSide, name: item.name, discount: { type: "percent", value: 0 } });
+            renderAdminRoles();
+          };
+          results.appendChild(btn);
+        });
+      };
+      addSearch.addEventListener("input", paintResults);
+      add.append(addLabel, addSearch, addSides, results);
+      box.appendChild(add);
+      const save = document.getElementById("adminRoleSave");
+      if (save) {
+        save.disabled = !catalogConfigured;
+        save.setAttribute("aria-disabled", save.disabled ? "true" : "false");
+      }
+    }
+    async function refreshDiscordRoleNames() {
+      const select = document.getElementById("adminRoleSelect");
+      if (!select || select.dataset.loaded === "1") return;
+      const previous = select.value;
+      const res = await gatewayJSON("/api/catalog/roles");
+      const discord = res && res.status === 200 && res.body && Array.isArray(res.body.discord) ? res.body.discord : [];
+      if (!discord.length) return;
+      const names = discord.map(role => role.name).filter(Boolean);
+      const builtin = Object.keys(roles);
+      select.replaceChildren();
+      names.forEach(name => {
+        const opt = document.createElement("option");
+        const alias = discordStatements[name] && discordStatements[name].calculator;
+        const known = roles[name] ? name : (alias && roles[alias] ? alias : "");
+        opt.value = known;
+        opt.textContent = known ? name : name + " (no calculator rule)";
+        opt.disabled = !known;
+        select.appendChild(opt);
+      });
+      builtin.sort().forEach(name => {
+        if (names.includes(name)) return;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      if (![...select.options].some(opt => opt.value === "Without A Paddle")) {
+        const extra = document.createElement("option");
+        extra.value = "Without A Paddle";
+        extra.textContent = "Without A Paddle";
+        select.appendChild(extra);
+      }
+      if (previous && [...select.options].some(opt => opt.value === previous && !opt.disabled)) select.value = previous;
+      else {
+        const usable = [...select.options].find(opt => opt.value && !opt.disabled);
+        if (usable) select.value = usable.value;
+      }
+      select.dataset.loaded = "1";
+      renderAdminRoles();
+    }
+    function bindAccountControls() {
+      const selfBtn = document.getElementById("modeSelfBtn");
+      const traderBtn = document.getElementById("modeTraderBtn");
+      const change = document.getElementById("customerChangeBtn");
+      const signOut = document.getElementById("accountSignOut");
+      const input = document.getElementById("customerSearch");
+      if (selfBtn) selfBtn.onclick = () => exitTraderMode();
+      if (traderBtn) traderBtn.onclick = () => { enterTraderMode(); };
+      const adminBtn = document.getElementById("modeAdminBtn");
+      if (adminBtn) adminBtn.onclick = () => { enterAdminMode(); };
+      const idBtn = document.getElementById("customerIdBtn");
+      if (idBtn) idBtn.onclick = () => {
+        const raw = (document.getElementById("customerIdInput").value || "").trim();
+        if (!/^\d{17,20}$/.test(raw)) { toast("Enter a Discord user id"); return; }
+        chooseCustomer(raw);
+      };
+      const searchBox = document.getElementById("manageSearch");
+      if (searchBox) searchBox.addEventListener("input", () => { if (accountMode === "admin") renderManage(); });
+      const sideBuy = document.getElementById("manageSideBuy");
+      const sideSell = document.getElementById("manageSideSell");
+      if (sideBuy) sideBuy.onclick = () => { manageSide = "buy"; manageKey = ""; document.getElementById("manageEditor").hidden = true; renderManage(); };
+      if (sideSell) sideSell.onclick = () => { manageSide = "sell"; manageKey = ""; document.getElementById("manageEditor").hidden = true; renderManage(); };
+      const editor = document.getElementById("manageEditor");
+      if (editor) {
+        document.getElementById("managePrice").addEventListener("input", updateManagePreview);
+        document.getElementById("manageDiscount").addEventListener("input", updateManagePreview);
+        document.getElementById("manageDiscPercent").onclick = () => { editor.dataset.disc = "percent"; updateManagePreview(); document.getElementById("manageDiscPercent").classList.add("active"); document.getElementById("manageDiscFixed").classList.remove("active"); };
+        document.getElementById("manageDiscFixed").onclick = () => { editor.dataset.disc = "fixed"; updateManagePreview(); document.getElementById("manageDiscFixed").classList.add("active"); document.getElementById("manageDiscPercent").classList.remove("active"); };
+        document.getElementById("manageInStock").onclick = () => { editor.dataset.stock = "1"; updateManagePreview(); document.getElementById("manageInStock").classList.add("active"); document.getElementById("manageOutStock").classList.remove("active"); };
+        document.getElementById("manageOutStock").onclick = () => { editor.dataset.stock = "0"; updateManagePreview(); document.getElementById("manageOutStock").classList.add("active"); document.getElementById("manageInStock").classList.remove("active"); };
+        document.getElementById("manageCancel").onclick = () => {
+          const item = catalogRows(editor.dataset.side).find(row => row.name === editor.dataset.name);
+          if (item) fillEditor(item);
+        };
+        document.getElementById("manageSave").onclick = () => { saveManage(); };
+      }
+      const catalogTab = document.getElementById("adminCatalogTab");
+      const rolesTab = document.getElementById("adminRolesTab");
+      if (catalogTab) catalogTab.onclick = () => { adminPane = "catalog"; render(); };
+      if (rolesTab) rolesTab.onclick = () => { adminPane = "roles"; render(); refreshDiscordRoleNames(); };
+      const roleSelect = document.getElementById("adminRoleSelect");
+      if (roleSelect) roleSelect.onchange = () => renderAdminRoles();
+      const roleSave = document.getElementById("adminRoleSave");
+      if (roleSave) roleSave.onclick = () => saveAdminRole();
+      const roleCancel = document.getElementById("adminRoleCancel");
+      if (roleCancel) roleCancel.onclick = () => {
+        const name = document.getElementById("adminRoleSelect").value;
+        delete roleDrafts[name];
+        renderAdminRoles();
+      };
+      if (signOut) signOut.onclick = () => { signOutAccount(); };
+      if (change) change.onclick = () => {
+        accountCustomer = null;
+        accountPicking = true;
+        customerSearchToken++;
+        renderAccount();
+      };
+      if (input) input.addEventListener("input", () => {
+        const q = input.value.trim();
+        const token = ++customerSearchToken;
+        const box = document.getElementById("customerResults");
+        if (!box) return;
+        if (accountMode !== "trader" || !traderAllowed() || !q) {
+          box.hidden = true;
+          box.replaceChildren();
+          return;
+        }
+        gatewayJSON("/api/trader/search?q=" + encodeURIComponent(q)).then(res => {
+          if (token !== customerSearchToken || accountMode !== "trader") return;
+          if (res && res.status === 403 && res.body && res.body.reason === "elevated_role_required") {
+            accountMode = "self";
+            accountCustomer = null;
+            accountPicking = false;
+            toast("Trader mode is not authorized for this account.");
+            renderAccount();
+            return;
+          }
+          box.replaceChildren();
+          const list = res && res.status === 200 && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : null;
+          if (!list) {
+            const note = document.getElementById("customerSearchNote");
+            const idRow = document.getElementById("customerIdRow");
+            if (note) note.textContent = "Customer name search is not available. Enter a Discord user id.";
+            if (idRow) idRow.hidden = false;
+            box.hidden = true;
+            return;
+          }
+          if (!list.length) {
+            const empty = document.createElement("div");
+            empty.className = "account-meta";
+            empty.textContent = "No customers";
+            box.appendChild(empty);
+          }
+          const idRow = document.getElementById("customerIdRow");
+          if (idRow) idRow.hidden = true;
+          list.forEach(row => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.setAttribute("role", "option");
+            btn.textContent = memberLabel(row) || String(row.id);
+            btn.onclick = () => chooseCustomer(row.id);
+            box.appendChild(btn);
+          });
+          box.hidden = false;
+        }).catch(() => {
+          if (token !== customerSearchToken) return;
+          box.replaceChildren();
+          const err = document.createElement("div");
+          err.className = "account-meta";
+          err.textContent = "Customer search is unavailable";
+          box.appendChild(err);
+          box.hidden = false;
+        });
+      });
+    }
+    window.__935AccountRefresh = refreshAccount;
+
 
     // A page refresh starts completely fresh: nothing is saved between loads.
     // saveState() is kept as a no-op so existing call sites stay unchanged.
@@ -1126,7 +2420,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     function resetToFresh() {
       clearStoredState();
-      currentTab = "buy"; buyPath = []; sellPath = [];
+      currentTab = "buy"; buyPath = ["Weapons", "Weapons"]; sellPath = [];
       buyCart = {}; sellCart = {}; kitConfigs = []; activeRoles = new Set(); searchTerm = "";
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "buy"));
       ["search", "orderCodeIn", "orderCodeOut"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -1137,6 +2431,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const t = document.getElementById("toast"); if (t) { t.classList.remove("show"); t.textContent = ""; }
       document.body.classList.remove("code-open");
       ["buy", "sell"].forEach(type => { const h = document.querySelector(`#${type}SummaryWrap .summary-header`); if (h) h.textContent = type === "buy" ? "Buy Cart" : "Sell Cart"; });
+      resetAccountView();
     }
 
     // ===== RENDER =====
@@ -1180,7 +2475,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (item.inStock === false) { btn.dataset.price = "Out of stock"; btn.dataset.oos = ""; }
       else {
         const isKitItem = item.name === "Player Kit" || item.name === "Ghillie Kit";
-        const unit = isKitItem ? item.price : (item.salePrice != null ? item.salePrice : getDiscountedPrice(item.name, item.price));
+        const unit = isKitItem ? catalogResultPrice(item.price, item.catalogDiscount) : lineUnit(item.name, item.price, item.salePrice, type);
         btn.dataset.price = fmt(unit * qty) + " Cr";
         if (!isKitItem && unit !== item.price) btn.dataset.deal = ""; else delete btn.dataset.deal;
       }
@@ -1198,18 +2493,36 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       btn.setAttribute("aria-label", btn.textContent + ", " + (node && node._outOfStock ? "Out of stock" : (btn.dataset.count + (btn.dataset.count === "1" ? " item" : " items"))));
       return btn;
     }
+    function bibleTotal(qty, base, discount) {
+      const tier = getBibleTotal(qty);
+      if (!discount || !discount.value) return tier;
+      if (discount.type === "percent") return Math.max(0, Math.round(tier * (1 - discount.value / 100)));
+      return Math.max(0, tier - Math.round(discount.value) * qty);
+    }
     function computeTotals() {
-      let buyTotal = 0;
-      Object.entries(buyCart).forEach(([name, {qty, base, salePrice, item}]) => {
-        const unit = salePrice != null ? salePrice : getDiscountedPrice(item || name, base);
-        buyTotal += unit * qty;
+      let kept = 0;
+      let eligible = 0;
+      Object.entries(buyCart).forEach(([name, row]) => {
+        const itemName = row.item || name;
+        const unit = lineUnit(itemName, row.base, row.salePrice, "buy");
+        const total = unit * row.qty;
+        if (row.salePrice != null && row.salePrice !== row.base) kept += total;
+        else eligible += total;
       });
-      const fm = activeRoles.has("Day One");
-      if (fm) buyTotal *= 0.9;
+      let cartPct = 0;
+      activeRoles.forEach(name => {
+        const rule = roles[name];
+        if (rule && rule.cartPercent) cartPct = Math.max(cartPct, Number(rule.cartPercent) || 0);
+      });
+      // Line percents already kept the lower price. This cart percent is extra
+      // on lines without a catalog discount, so Day One stacks with a role line discount.
+      const fm = cartPct > 0;
+      const buyTotal = fm ? kept + eligible * (1 - cartPct / 100) : kept + eligible;
       let sellTotal = 0;
-      Object.entries(sellCart).forEach(([name, {qty, base, item}]) => {
-        if ((item || name) === "Bible") sellTotal += getBibleTotal(qty);
-        else sellTotal += getDiscountedPrice(item || name, base) * qty;
+      Object.entries(sellCart).forEach(([name, row]) => {
+        const itemName = row.item || name;
+        if (itemName === "Bible") sellTotal += bibleTotal(row.qty, row.base, row.discount);
+        else sellTotal += lineUnit(itemName, row.base, row.salePrice, "sell") * row.qty;
       });
       return {buyTotal, sellTotal, fm};
     }
@@ -1564,11 +2877,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         html = '<div class="empty">Empty</div>';
       } else {
         keys.forEach(name => {
-          const {qty, base, salePrice} = cart[name];
+          const {qty, base, salePrice, discount} = cart[name];
           const item = cart[name].item || name;
           const isKit = name.startsWith("Player Kit") || name.startsWith("Ghillie Kit");
-          let unit = salePrice != null ? salePrice : getDiscountedPrice(item, base);
-          let total = (item === "Bible" && type === "sell") ? getBibleTotal(qty) : unit * qty;
+          let unit = lineUnit(item, base, salePrice, type);
+          let total = (item === "Bible" && type === "sell") ? bibleTotal(qty, base, discount) : unit * qty;
           liveTotal += total;
           let priceHtml, nameHtml;
           if (isKit) {
@@ -1637,34 +2950,33 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       });
     }
 
-    function renderRoles() {
-      const grid = document.getElementById("rolesGrid");
-      grid.innerHTML = "";
-      Object.keys(roles).forEach(name => {
-        const btn = document.createElement("button");
-        btn.className = "role-btn" + (activeRoles.has(name) ? " active" : "");
-        btn.textContent = name;
-        btn.onclick = () => {
-          if (activeRoles.has(name)) activeRoles.delete(name);
-          else {
-            activeRoles.add(name);
-            toast(roles[name].description);
-          }
-          saveState();
-          render();
-        };
-        grid.appendChild(btn);
-      });
-      equalizeRoles();
-    }
+    function renderRoles() {}
 
     function render() {
-      document.body.dataset.tab = currentTab;
-      document.getElementById("buyPanel").style.display = currentTab === "buy" ? "block" : "none";
-      document.getElementById("sellPanel").style.display = currentTab === "sell" ? "block" : "none";
-      document.getElementById("buySummaryWrap").style.display = currentTab === "buy" ? "block" : "none";
-      document.getElementById("sellSummaryWrap").style.display = currentTab === "sell" ? "block" : "none";
-      if (currentTab === "buy") renderBuy();
+      syncPricingRoles();
+      const adminOn = accountMode === "admin" && adminAllowed();
+      document.body.dataset.tab = adminOn ? "admin" : currentTab;
+      const tool = document.querySelector(".tool");
+      if (tool) tool.hidden = adminOn;
+      const manage = document.getElementById("managePanel");
+      if (manage) manage.hidden = !adminOn;
+      document.getElementById("buyPanel").style.display = !adminOn && currentTab === "buy" ? "block" : "none";
+      document.getElementById("sellPanel").style.display = !adminOn && currentTab === "sell" ? "block" : "none";
+      document.getElementById("buySummaryWrap").style.display = !adminOn && currentTab === "buy" ? "block" : "none";
+      document.getElementById("sellSummaryWrap").style.display = !adminOn && currentTab === "sell" ? "block" : "none";
+      const rolesPane = document.getElementById("adminRoles");
+      const tools = document.querySelector(".manage-tools");
+      const title = document.getElementById("manageTitle");
+      if (rolesPane) rolesPane.hidden = !(adminOn && adminPane === "roles");
+      if (tools) tools.hidden = !(adminOn && adminPane === "catalog");
+      const list = document.getElementById("manageList");
+      if (list) list.hidden = !(adminOn && adminPane === "catalog");
+      if (title) title.textContent = adminPane === "roles" ? "Roles" : "Manage catalog";
+      const headNote = document.getElementById("manageNote");
+      if (headNote) headNote.hidden = adminOn && adminPane === "roles";
+      if (adminOn && adminPane === "catalog") renderManage();
+      else if (adminOn) renderAdminRoles();
+      else if (currentTab === "buy") renderBuy();
       else renderSell();
       renderRoles();
       updateTotalChip();
@@ -1675,16 +2987,17 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     function addToCart(type, name, qty, base, salePrice) {
       const cart = type === "buy" ? buyCart : sellCart;
       if (name.startsWith("Player Kit") || name.startsWith("Ghillie Kit")) {
-        cart[name] = {qty: 1, base, salePrice: salePrice ?? null};
+        cart[name] = {qty: 1, base, salePrice: salePrice ?? null, discount: null};
       } else if (cart[name] && cart[name].base === base) {
         cart[name].qty += qty;
       } else if (cart[name]) {
         // same item at a different unit price (e.g. Role Turn-In): keep it on its own line
         const key = name + " (turn-in)";
         if (cart[key] && cart[key].base === base) cart[key].qty += qty;
-        else cart[key] = {qty, base, salePrice: salePrice ?? null, item: name};
+        else cart[key] = {qty, base, salePrice: salePrice ?? null, discount: null, item: name};
       } else {
-        cart[name] = {qty, base, salePrice: salePrice ?? null};
+        const cat = catalogItem(type, name);
+        cart[name] = {qty, base, salePrice: salePrice ?? null, discount: cat && cat.catalogDiscount || null};
       }
       saveState();
       toast(`${qty} x ${name} Added`);
@@ -1727,14 +3040,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         return;
       }
       if (item.name === "IED Complete") {
-        addToCart("buy", "IED Container", 1, 3500);
-        addToCart("buy", "Plastic Explosives", 2, 18000);
-        addToCart("buy", "Detonator", 1, 500);
+        const parts = ["IED Container", "Plastic Explosives", "Detonator"].map(name => catalogItem("buy", name));
+        if (parts.some(part => !part || part.inStock === false)) { toast("OUT OF STOCK"); return; }
+        addToCart("buy", "IED Container", 1, parts[0].price, parts[0].salePrice);
+        addToCart("buy", "Plastic Explosives", 2, parts[1].price, parts[1].salePrice);
+        addToCart("buy", "Detonator", 1, parts[2].price, parts[2].salePrice);
         toast("LIMITED TIME ONLY");
-        return;
-      }
-      if (item.name === "Trader Car") {
-        toast("OUT OF STOCK");
         return;
       }
       if (item.name === "Ghillie Kit") {
@@ -1814,20 +3125,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
 
     function calculate() {
-      let buyTotal = 0;
-      Object.entries(buyCart).forEach(([name, {qty, base, salePrice, item}]) => {
-        const unit = salePrice != null ? salePrice : getDiscountedPrice(item || name, base);
-        buyTotal += unit * qty;
-      });
-      if (activeRoles.has("Day One")) buyTotal *= 0.9;
-
-      let sellTotal = 0;
-      Object.entries(sellCart).forEach(([name, {qty, base, item}]) => {
-        if ((item || name) === "Bible") sellTotal += getBibleTotal(qty);
-        else sellTotal += getDiscountedPrice(item || name, base) * qty;
-      });
-
-      const fm = activeRoles.has("Day One") ? " (FM)" : "";
+      const t = computeTotals();
+      const buyTotal = t.buyTotal;
+      const sellTotal = t.sellTotal;
+      const fm = t.fm ? " (FM)" : "";
       const msg = `Buy${fm}: ${fmt(buyTotal)} Cr | Sell: ${fmt(sellTotal)} Cr`;
       toast(msg);
       // Also flash the cart headers
@@ -1894,6 +3195,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         const kits = (parsed.v === 2 && Array.isArray(parsed.kits) ? parsed.kits : []).map(migrateKit);
         if (!isObj(rawCart)) throw new Error("bad cart");
         rawCart = migrateCart(rawCart);
+        let repriced = false;
         const catalog = {};
         flattenBuyItems(buyitems).forEach(i => { if (i && i.name) catalog[i.name] = i; });
         const clean = {};
@@ -1901,11 +3203,17 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           if (!isObj(v) || !Number.isInteger(v.qty) || v.qty < 1 || v.qty > 100000) throw new Error("bad qty " + name);
           if (isKitName(name)) {
             const kit = kits.find(k => k && k.name === name);
-            clean[name] = {qty: 1, base: kit && kit.token ? 0 : 16000, salePrice: null};
+            const kitItem = catalogItem("buy", name.indexOf("Ghillie") === 0 ? "Ghillie Kit" : "Player Kit");
+            if (!(kit && kit.token) && kitItem && kitItem.inStock === false) throw new Error("unknown item " + name);
+            const kitPrice = kit && kit.token ? 0 : (kitItem ? catalogResultPrice(kitItem.price, kitItem.catalogDiscount) : 16000);
+            if (v.base !== kitPrice) repriced = true;
+            clean[name] = {qty: 1, base: kitPrice, salePrice: null, discount: null};
           } else {
             const it = catalog[name];
             if (!it || it.inStock === false) throw new Error("unknown item " + name);
-            clean[name] = {qty: v.qty, base: it.price, salePrice: it.salePrice ?? null};   // always re-price from catalog
+            const nextSale = it.salePrice ?? null;
+            if (v.base !== it.price || (v.salePrice ?? null) !== nextSale) repriced = true;
+            clean[name] = {qty: v.qty, base: it.price, salePrice: nextSale, discount: it.catalogDiscount || null};   // always re-price from the current catalog
           }
         }
         buyCart = clean;
@@ -1913,7 +3221,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         saveState();
         renderSummary("buy");
         renderKitSummaries();
-        toast("Order loaded");
+        toast(repriced ? "Order loaded. Prices were updated to the current catalog." : "Order loaded");
         revealLoadedCart();
         return true;
       } catch(e) {
@@ -2015,7 +3323,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (out && out.value) out.focus({ preventScroll: true });
       });
     }
-    document.getElementById("rolesDockBtn").onclick = revealRoles;
     document.getElementById("shareOrderBtn").onclick = shareOrder;
     const sheetCalc = document.getElementById("sheetCalcBtn");
     if (sheetCalc) sheetCalc.onclick = calculate;
@@ -2039,16 +3346,18 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       document.getElementById("copyCodeBtn").style.display = "none";
       toast("Carts cleared");
     };
-    document.getElementById("clearRolesBtn").onclick = () => {
-      activeRoles.clear(); saveState(); render();
-      toast("Roles cleared");
-    };
-
+    bindAccountControls();
     render();
     renderKitSummaries();
     // pageshow also fires when the page comes back from the back/forward cache and after the browser
     // restores form fields, so reset again there.
-    window.addEventListener("pageshow", () => { resetToFresh(); render(); renderKitSummaries(); importOrderFromLocation(); });
+    window.addEventListener("pageshow", () => {
+      resetToFresh();
+      render();
+      renderKitSummaries();
+      refreshAccount();
+      loadCatalog().then(() => importOrderFromLocation());
+    });
   </script>
 </body>
 </html>
