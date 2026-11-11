@@ -201,7 +201,7 @@ function readBar() {
     clientW: document.documentElement.clientWidth,
     barText: bar.innerText.replace(/\s+/g, ' ').trim(),
     nav: document.querySelectorAll('#buyGrid .catstack > .catrow').length,
-    rolesCols: getComputedStyle(document.getElementById('rolesGrid')).gridTemplateColumns.trim().split(/\s+/).length,
+    rolesUi: !!document.getElementById('rolesDockBtn') || !!document.getElementById('rolesGrid'),
     calls: (window.__935AccountCalls || []).map(c => c.method + ' ' + c.path + ' auth=' + c.authorization + ' cred=' + c.credentials)
   };
 }
@@ -219,7 +219,7 @@ function readBar() {
   check('unconfigured-stays-offline',
     unconfigured.status === 'Sign-in is not configured' && unconfigured.meta === '' && unconfigured.fixture === '' &&
     !unconfigured.traderMode && unconfigured.traderHidden && unconfigured.adminHidden && unconfigured.signIn === '' && !unconfigured.signOut &&
-    unconfigured.calls.length === 0 && unconfigured.nav >= 1 && unconfigured.rolesCols === 2 &&
+    unconfigured.calls.length === 0 && unconfigured.nav >= 1 && unconfigured.rolesUi === false &&
     unconfigured.selfH >= 44 && unconfigured.scrollW <= unconfigured.clientW + 1 &&
     /255,\s*155,\s*61/.test(unconfigured.outline) &&
     !/Cash|Bank|Jordan|Riley|4200|80000/.test(unconfigured.barText),
@@ -344,7 +344,7 @@ function readBar() {
   const refreshed = await desk.page.evaluate(readBar);
   check('refresh-resets-customer',
     !refreshed.traderMode && refreshed.who === 'Riley Chen' && !/Jordan Hale|4200|TRADER MODE/.test(refreshed.barText) &&
-    refreshed.nav >= 1 && refreshed.rolesCols === 2,
+    refreshed.nav >= 1 && refreshed.rolesUi === false,
     refreshed);
   const calc = await desk.page.evaluate(() => {
     addToCart('buy', 'M4A1', 1, 3500);

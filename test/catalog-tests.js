@@ -254,8 +254,46 @@ async function run() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ revision: 0, changes: [] }),
       });
+      assert.equal(post.status, 403);
+      assert.equal(post.json.reason, 'catalog_edit_required');
+      const anon = await request(origin, '/api/catalog', {
+        method: 'POST',
+        origin: 'http://localhost:8787',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ revision: 0, changes: [] }),
+      });
+      assert.equal(anon.status, 401);
+    });
+    await withApp({ roles: [OWNER_ROLE_ID], catalogStore: closed }, async (app, origin) => {
+      const post = await request(origin, '/api/catalog', {
+        method: 'POST',
+        origin: 'http://localhost:8787',
+        cookie: cookie(app, '444444444444444444'),
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ revision: 0, changes: [] }),
+      });
       assert.equal(post.status, 503);
       assert.equal(post.json.configured, false);
+    });
+  });
+
+  await test('role rules prefill the current calculator terms and do not invent ids', async () => {
+    const { builtinRoleRules, pricingRoleNames } = require('../lib/role-rules');
+    const rules = builtinRoleRules();
+    const road = rules.find((rule) => rule.name === 'Roadkill');
+    assert.equal(road.effects.find((effect) => effect.name === 'Car Battery').discount.value, 25);
+    assert.equal(road.effects.some((effect) => effect.name === 'Trader Car' || effect.name === 'Trader Truck'), false);
+    assert.equal(rules.find((rule) => rule.name === 'Dr. Greenthumb').effects.find((effect) => effect.name === 'Cannabis').price, 30);
+    assert.equal(rules.find((rule) => rule.name === 'Day One').cart_percent, 10);
+    assert.equal(rules.find((rule) => rule.name === 'All Your Base').effects.find((effect) => effect.name === 'Faction Flags').discount.value, 100);
+    assert.deepEqual(pricingRoleNames(['1215040829186383912'], {}), []);
+    await withApp({ roles: [TRADER_ROLE_ID], catalogStore: store }, async (app, origin) => {
+      const res = await request(origin, '/api/catalog');
+      assert.equal(res.status, 200);
+      assert.equal(res.json.pricing_map, 'unverified');
+      assert.ok(res.json.role_rules.some((rule) => rule.name === 'Roadkill'));
+      const me = await request(origin, '/api/me', { cookie: cookie(app, '333333333333333333') });
+      assert.deepEqual(me.json.pricing_roles, []);
     });
   });
 

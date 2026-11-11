@@ -167,13 +167,10 @@ img, svg { display: block; }
 body.mode-self { box-shadow: inset 0 0 0 3px var(--mode-customer); }
 body.mode-trader { box-shadow: inset 0 0 0 3px var(--mode-trader); }
 body.mode-admin { box-shadow: inset 0 0 0 3px var(--mode-admin); }
-body.mode-self .dock, body.mode-self .account { border-color: var(--mode-customer); }
-body.mode-trader .dock, body.mode-trader .account { border-color: var(--mode-trader); }
-body.mode-admin .dock, body.mode-admin .account { border-color: var(--mode-admin); }
-body.mode-self .mode-btn.is-on { border-color: var(--mode-customer); color: var(--ink); }
-body.mode-trader .mode-btn.is-on { border-color: var(--mode-trader); color: var(--ink); }
-body.mode-admin .mode-btn.is-on { border-color: var(--mode-admin); color: var(--ink); }
-.tool[hidden], #managePanel[hidden], #customerIdRow[hidden], #modeTraderBtn[hidden], #modeAdminBtn[hidden] { display: none !important; }
+body.mode-self .mode-btn.is-on { color: var(--ink); }
+body.mode-trader .mode-btn.is-on { color: var(--ink); }
+body.mode-admin .mode-btn.is-on { color: var(--ink); }
+.tool[hidden], #managePanel[hidden], #customerIdRow[hidden], #modeTraderBtn[hidden], #modeAdminBtn[hidden], .manage-tools[hidden], #manageList[hidden], #adminRoles[hidden], #manageEditor[hidden] { display: none !important; }
 .tool {
   position: sticky; top: var(--account); z-index: 6;
   display: flex; align-items: center; gap: 8px;
@@ -403,7 +400,15 @@ body.mode-admin .mode-btn.is-on { border-color: var(--mode-admin); color: var(--
 .manage-row .nm { font-weight: 600; }
 .manage-row .meta { color: var(--dim); font-size: 13px; }
 .manage-editor label { display: block; margin: 8px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
-.manage-discount, .manage-stock, .manage-actions { display: flex; gap: 8px; margin-top: 8px; }
+.manage-discount, .manage-stock, .manage-actions { display: flex; gap: 8px; margin-top: 8px; width: 100%; box-sizing: border-box; }
+.manage-actions .tab-btn, .manage-actions .sheet-calc {
+  flex: 1 1 0; width: auto; min-width: 0; max-width: calc(50% - 4px);
+}
+#adminRoles { padding: 0 16px 16px; box-sizing: border-box; max-width: 100%; }
+#adminRoleSelect { width: 100%; max-width: 100%; height: 44px; box-sizing: border-box; background: var(--bg); color: var(--ink); border: 1px solid var(--line-2); }
+.manage-editor { box-sizing: border-box; max-width: 100%; overflow: hidden; }
+.admin-role-row { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: 8px; align-items: center; margin: 0 0 8px; }
+.admin-role-row span { min-width: 0; overflow-wrap: anywhere; }
 .manage-result { margin: 12px 0; font-size: 16px; }
 .manage-result strong { font-variant-numeric: tabular-nums; }
 #manageSave:disabled { opacity: .45; }
@@ -661,8 +666,22 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       </div>
       <section id="managePanel" hidden>
         <div class="manage-head">
-          <h2>Manage catalog</h2>
+          <div class="tabs" role="tablist" aria-label="Admin">
+            <button class="tab-btn active" id="adminCatalogTab" type="button">Catalog</button>
+            <button class="tab-btn" id="adminRolesTab" type="button">Roles</button>
+          </div>
+          <h2 id="manageTitle">Manage catalog</h2>
           <p class="manage-note" id="manageNote"></p>
+        </div>
+        <div id="adminRoles" hidden>
+          <label for="adminRoleSelect">Role</label>
+          <select id="adminRoleSelect"></select>
+          <p class="manage-note" id="adminRoleNote"></p>
+          <div id="adminRoleEffects"></div>
+          <div class="manage-actions">
+            <button class="tab-btn" id="adminRoleCancel" type="button">Cancel</button>
+            <button class="sheet-calc" id="adminRoleSave" type="button">Save role</button>
+          </div>
         </div>
         <div class="manage-tools">
           <input id="manageSearch" type="search" autocomplete="off" placeholder="Search catalog" aria-label="Search catalog">
@@ -707,7 +726,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       <button id="calculateBtn" type="button">Calculate</button>
     </div>
     <div class="dock-actions">
-      <button class="dock-act" id="rolesDockBtn" type="button" aria-label="Roles">Roles <span class="count" id="roleCount" hidden></span></button>
       <button class="dock-act" id="shareOrderBtn" type="button">
         <span class="dock-act-label">Share order</span>
         <span class="note">Buy cart only</span>
@@ -733,7 +751,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       <button class="sheet-calc" id="sheetCalcBtn" type="button">Calculate</button>
       <div class="sheet-actions">
         <button id="genCodeBtn" type="button">Copy order link</button>
-        <button id="clearRolesBtn" type="button">Clear roles</button>
         <button id="clearAllBtn" type="button">Clear</button>
       </div>
       <div class="order-code-box" id="orderCodeBox">
@@ -748,10 +765,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         </div>
         <p class="sheet-note">The link opens this buy cart and kit definitions. Older order codes still work.</p>
       </div>
-      <section class="roles-section" id="rolesSection">
-        <h3 class="roles-title" id="rolesHeading">Roles<small>Tap to toggle</small></h3>
-        <div class="roles-grid" id="rolesGrid" tabindex="-1" aria-label="Roles"></div>
-      </section>
     </div>
   </div>
 
@@ -902,7 +915,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       "Roadkill":{description:"Flatten a player with a vehicle at a speed of 70km/h or more.",discounts:{"Car Radiator":25,"Car Battery":25,"Truck Battery":25,"Spark Plug":25,"Glow Plug":25,"Car Tires":25,"Humvee Tires":25,"Moped Tires":25,"Truck Tires":25}},
       "Rose Reaper":{description:"Turn in 30 Pink Derringers to Trader.",bonuses:{"Pink Derringer":6500}},
       "The Vaccinator":{description:"Turn in 100 Syringes to Trader.",bonuses:{"Syringe":1500},discounts:{"NBC Filters":50,"PoX Antidote":50}},
-      "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{}}
+      "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{},cartPercent:10}
     };
 
     // ===== STATE =====
@@ -1278,6 +1291,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (r.discounts && r.discounts[name]) {
           price = Math.min(price, base * (1 - r.discounts[name] / 100));
         }
+        if (r.discountFixed && r.discountFixed[name] != null) {
+          price = Math.min(price, Math.max(0, base - r.discountFixed[name]));
+        }
         if (r.bonuses && r.bonuses[name]) {
           price = r.bonuses[name];
         }
@@ -1308,12 +1324,46 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       return Math.min(catalog, Math.round(getDiscountedPrice(name, base)));
     }
     function catalogKey(side, name) { return side + "\n" + name; }
+    let ownPricingRoles = [];
+    let loadedRoleRules = null;
+    function applyPricingRoles(names) {
+      activeRoles = new Set((names || []).filter(name => roles[name]));
+    }
+    function installRoleRules(list) {
+      if (!Array.isArray(list)) return;
+      loadedRoleRules = list;
+      Object.keys(roles).forEach(name => {
+        roles[name].discounts = {};
+        roles[name].discountFixed = {};
+        roles[name].bonuses = {};
+        roles[name].cartPercent = 0;
+      });
+      (list || []).forEach(rule => {
+        if (!rule || !roles[rule.name]) return;
+        roles[rule.name].cartPercent = Number(rule.cart_percent) || 0;
+        (rule.effects || []).forEach(effect => {
+          if (!effect || !effect.name) return;
+          if (rule.name === "Roadkill" && (effect.name === "Trader Truck" || effect.name === "Trader Car")) return;
+          if (effect.price != null) roles[rule.name].bonuses[effect.name] = effect.price;
+          else if (effect.discount && effect.discount.type === "fixed") roles[rule.name].discountFixed[effect.name] = effect.discount.value;
+          else if (effect.discount && effect.discount.type === "percent") roles[rule.name].discounts[effect.name] = effect.discount.value;
+        });
+      });
+    }
+    function syncPricingRoles() {
+      const names = accountMode === "trader"
+        ? ((accountCustomer && accountCustomer.pricingRoles) || [])
+        : ownPricingRoles;
+      applyPricingRoles(names);
+    }
     let catalogChanges = [];
     let catalogRevision = 0;
     let catalogConfigured = false;
     let catalogDraft = new Map();
     let manageSide = "buy";
     let manageKey = "";
+    let manageJustOpened = false;
+    let adminPane = "catalog";
     function stampAuthors(node) {
       if (Array.isArray(node)) node.forEach(item => {
         if (!item || !item.name || item.authorPrice != null) return;
@@ -1557,6 +1607,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (res.unconfigured || res.offline || !res.status || res.status >= 500) {
         accountAuth = "offline";
         accountMe = null;
+        ownPricingRoles = [];
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
@@ -1566,6 +1617,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (res.status === 401 || !res.body || !res.body.identity) {
         accountAuth = "signedout";
         accountMe = null;
+        ownPricingRoles = [];
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
@@ -1574,6 +1626,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       accountAuth = "signedin";
       accountMe = res.body;
+      ownPricingRoles = Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : [];
       if (!(res.body.access && res.body.access.trader_mode_allowed === true) && accountMode === "trader") {
         accountMode = "self";
         accountCustomer = null;
@@ -1667,12 +1720,14 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       accountCustomer = {
         id: String(member.id || id),
         label: memberLabel(member) || "Customer",
-        balanceText: balanceLine(res.body.balance)
+        balanceText: balanceLine(res.body.balance),
+        pricingRoles: Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : []
       };
       accountPicking = false;
       const input = document.getElementById("customerSearch");
       if (input) input.value = "";
       renderAccount();
+      render();
     }
     function catalogRows(side) {
       stampAuthors(side === "sell" ? sellitems : buyitems);
@@ -1700,13 +1755,21 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!list) return;
       const q = (document.getElementById("manageSearch").value || "").trim().toLowerCase();
       const rows = catalogRows(manageSide).filter(item => !q || item.name.toLowerCase().includes(q));
+      const editor = document.getElementById("manageEditor");
+      const panel = document.getElementById("managePanel");
+      if (editor && panel && editor.parentElement !== panel) panel.appendChild(editor);
       list.replaceChildren();
+      let opened = null;
       rows.forEach(item => {
         const state = editorState(item);
         const result = catalogResultPrice(state.price, state.discount);
+        const key = catalogKey(manageSide, item.name);
+        const isOpen = key === manageKey;
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "manage-row" + (catalogKey(manageSide, item.name) === manageKey ? " is-on" : "");
+        btn.className = "manage-row" + (isOpen ? " is-on" : "");
+        btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        btn.setAttribute("aria-controls", "manageEditor");
         const icon = document.createElement("span");
         icon.className = "manage-icon";
         icon.innerHTML = icTag(icKeyFor(item.name));
@@ -1720,9 +1783,25 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         meta.textContent = fmt(result) + " Cr · " + (state.stock ? "In stock" : "Out of stock");
         copy.append(nm, meta);
         btn.append(icon, copy);
-        btn.onclick = () => { manageKey = catalogKey(manageSide, item.name); renderManage(); fillEditor(item); };
+        btn.onclick = () => {
+          const opening = manageKey !== key;
+          manageKey = opening ? key : "";
+          manageJustOpened = opening;
+          renderManage();
+        };
         list.appendChild(btn);
+        if (isOpen && editor) {
+          editor.hidden = false;
+          list.appendChild(editor);
+          if (editor.dataset.name !== item.name || editor.dataset.side !== manageSide) fillEditor(item);
+          opened = editor;
+        }
       });
+      if (!opened && editor) editor.hidden = true;
+      if (opened && manageJustOpened) {
+        manageJustOpened = false;
+        requestAnimationFrame(() => opened.scrollIntoView({ block: "nearest", inline: "nearest" }));
+      }
       document.getElementById("manageSideBuy").classList.toggle("active", manageSide === "buy");
       document.getElementById("manageSideSell").classList.toggle("active", manageSide === "sell");
     }
@@ -1778,6 +1857,25 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const save = document.getElementById("manageSave");
       save.disabled = !catalogConfigured || !lines.length;
     }
+    async function saveAdminRole() {
+      if (!adminAllowed() || !catalogConfigured) {
+        toast("Catalog saves are unavailable until durable storage is configured.");
+        return;
+      }
+      const name = document.getElementById("adminRoleSelect").value;
+      const rule = currentRoleRule(name);
+      if (!rule) { toast("That role has no calculator rule."); return; }
+      const role_rules = Object.keys(roles).sort().map(roleName => currentRoleRule(roleName)).filter(Boolean);
+      const changes = [...catalogDraft.values()];
+      const res = await gatewayJSON("/api/catalog", { method: "POST", body: { revision: catalogRevision, changes, role_rules } });
+      if (!res || res.status === 401 || res.status === 403) { toast("Catalog edits are not authorized."); return; }
+      if (!res || res.status === 503) { toast("Catalog saves need durable storage."); return; }
+      if (!res || res.status !== 200) { toast("Catalog save was refused."); return; }
+      catalogRevision = res.body.revision || catalogRevision;
+      installRoleRules(res.body.role_rules || role_rules);
+      toast(res.body.saved ? "Role terms saved" : "No role changes");
+      render();
+    }
     async function saveManage() {
       const editor = document.getElementById("manageEditor");
       if (!editor || !adminAllowed() || !catalogConfigured) {
@@ -1823,9 +1921,99 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       catalogConfigured = res.body.configured === true;
       catalogRevision = Number.isInteger(res.body.revision) ? res.body.revision : 0;
+      installRoleRules(res.body.role_rules || null);
       setCatalogChanges(res.body.changes);
       if (accountMode === "admin") renderManage();
       else render();
+    }
+    function currentRoleRule(name) {
+      const saved = (loadedRoleRules || []).find(rule => rule && rule.name === name);
+      if (saved) return saved;
+      const rule = roles[name];
+      if (!rule) return null;
+      const effects = [];
+      Object.entries(rule.discounts || {}).forEach(([item, value]) => {
+        if (value) effects.push({ side: "buy", name: item, discount: { type: "percent", value } });
+      });
+      Object.entries(rule.discountFixed || {}).forEach(([item, value]) => {
+        effects.push({ side: "buy", name: item, discount: { type: "fixed", value } });
+      });
+      Object.entries(rule.bonuses || {}).forEach(([item, value]) => {
+        effects.push({ side: "sell", name: item, price: value });
+      });
+      return { name, cart_percent: rule.cartPercent || null, effects };
+    }
+    function renderAdminRoles() {
+      const select = document.getElementById("adminRoleSelect");
+      const note = document.getElementById("adminRoleNote");
+      const box = document.getElementById("adminRoleEffects");
+      if (!select || !box) return;
+      if (!select.options.length) {
+        Object.keys(roles).sort().forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      }
+      const rule = currentRoleRule(select.value || select.options[0].value);
+      if (note) {
+        note.textContent = catalogConfigured
+          ? "These are the calculator role terms. They apply only when a verified Discord role id map names this role. No role ids are guessed."
+          : "Saving needs a durable catalog store. The terms shown are the current calculator rules.";
+      }
+      box.replaceChildren();
+      if (rule && rule.cart_percent) {
+        const cart = document.createElement("p");
+        cart.className = "manage-note";
+        cart.textContent = "Buy cart discount " + rule.cart_percent + "% on lines without a catalog discount.";
+        box.appendChild(cart);
+      }
+      (rule && rule.effects || []).forEach(effect => {
+        const row = document.createElement("div");
+        row.className = "admin-role-row";
+        const label = document.createElement("span");
+        const kind = effect.price != null
+          ? "price " + fmt(effect.price) + " Cr"
+          : (effect.discount.type === "fixed" ? effect.discount.value + " Cr off" : effect.discount.value + "%");
+        label.textContent = (effect.side === "sell" ? "Sell " : "Buy ") + effect.name + " · " + kind;
+        row.appendChild(label);
+        box.appendChild(row);
+      });
+      if (rule && !(rule.effects || []).length && !(rule.cart_percent)) {
+        const empty = document.createElement("p");
+        empty.className = "manage-note";
+        empty.textContent = "No item terms are stored for this role.";
+        box.appendChild(empty);
+      }
+      const save = document.getElementById("adminRoleSave");
+      if (save) save.disabled = !catalogConfigured;
+    }
+    async function refreshDiscordRoleNames() {
+      const select = document.getElementById("adminRoleSelect");
+      if (!select || select.dataset.loaded === "1") return;
+      const res = await gatewayJSON("/api/catalog/roles");
+      const discord = res && res.status === 200 && res.body && Array.isArray(res.body.discord) ? res.body.discord : [];
+      if (!discord.length) return;
+      const names = discord.map(role => role.name).filter(Boolean);
+      const builtin = Object.keys(roles);
+      select.replaceChildren();
+      names.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = roles[name] ? name : "";
+        opt.textContent = roles[name] ? name : name + " (no calculator rule)";
+        opt.disabled = !roles[name];
+        select.appendChild(opt);
+      });
+      builtin.sort().forEach(name => {
+        if (names.includes(name)) return;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      select.dataset.loaded = "1";
+      renderAdminRoles();
     }
     function bindAccountControls() {
       const selfBtn = document.getElementById("modeSelfBtn");
@@ -1863,6 +2051,14 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         };
         document.getElementById("manageSave").onclick = () => { saveManage(); };
       }
+      const catalogTab = document.getElementById("adminCatalogTab");
+      const rolesTab = document.getElementById("adminRolesTab");
+      if (catalogTab) catalogTab.onclick = () => { adminPane = "catalog"; render(); };
+      if (rolesTab) rolesTab.onclick = () => { adminPane = "roles"; render(); refreshDiscordRoleNames(); };
+      const roleSelect = document.getElementById("adminRoleSelect");
+      if (roleSelect) roleSelect.onchange = () => renderAdminRoles();
+      const roleSave = document.getElementById("adminRoleSave");
+      if (roleSave) roleSave.onclick = () => saveAdminRole();
       if (signOut) signOut.onclick = () => { signOutAccount(); };
       if (change) change.onclick = () => {
         accountCustomer = null;
@@ -2033,8 +2229,13 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (row.salePrice != null && row.salePrice !== row.base) kept += total;
         else eligible += total;
       });
-      const fm = activeRoles.has("Day One");
-      const buyTotal = fm ? kept + eligible * 0.9 : kept + eligible;
+      let cartPct = 0;
+      activeRoles.forEach(name => {
+        const rule = roles[name];
+        if (rule && rule.cartPercent) cartPct = Math.max(cartPct, Number(rule.cartPercent) || 0);
+      });
+      const fm = cartPct > 0;
+      const buyTotal = fm ? kept + eligible * (1 - cartPct / 100) : kept + eligible;
       let sellTotal = 0;
       Object.entries(sellCart).forEach(([name, row]) => {
         const itemName = row.item || name;
@@ -2467,28 +2668,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       });
     }
 
-    function renderRoles() {
-      const grid = document.getElementById("rolesGrid");
-      grid.innerHTML = "";
-      Object.keys(roles).forEach(name => {
-        const btn = document.createElement("button");
-        btn.className = "role-btn" + (activeRoles.has(name) ? " active" : "");
-        btn.textContent = name;
-        btn.onclick = () => {
-          if (activeRoles.has(name)) activeRoles.delete(name);
-          else {
-            activeRoles.add(name);
-            toast(roles[name].description);
-          }
-          saveState();
-          render();
-        };
-        grid.appendChild(btn);
-      });
-      equalizeRoles();
-    }
+    function renderRoles() {}
 
     function render() {
+      syncPricingRoles();
       const adminOn = accountMode === "admin" && adminAllowed();
       document.body.dataset.tab = adminOn ? "admin" : currentTab;
       const tool = document.querySelector(".tool");
@@ -2499,7 +2682,16 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       document.getElementById("sellPanel").style.display = !adminOn && currentTab === "sell" ? "block" : "none";
       document.getElementById("buySummaryWrap").style.display = !adminOn && currentTab === "buy" ? "block" : "none";
       document.getElementById("sellSummaryWrap").style.display = !adminOn && currentTab === "sell" ? "block" : "none";
-      if (adminOn) renderManage();
+      const rolesPane = document.getElementById("adminRoles");
+      const tools = document.querySelector(".manage-tools");
+      const title = document.getElementById("manageTitle");
+      if (rolesPane) rolesPane.hidden = !(adminOn && adminPane === "roles");
+      if (tools) tools.hidden = !(adminOn && adminPane === "catalog");
+      const list = document.getElementById("manageList");
+      if (list) list.hidden = !(adminOn && adminPane === "catalog");
+      if (title) title.textContent = adminPane === "roles" ? "Roles" : "Manage catalog";
+      if (adminOn && adminPane === "catalog") renderManage();
+      else if (adminOn) renderAdminRoles();
       else if (currentTab === "buy") renderBuy();
       else renderSell();
       renderRoles();
@@ -2847,7 +3039,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (out && out.value) out.focus({ preventScroll: true });
       });
     }
-    document.getElementById("rolesDockBtn").onclick = revealRoles;
     document.getElementById("shareOrderBtn").onclick = shareOrder;
     const sheetCalc = document.getElementById("sheetCalcBtn");
     if (sheetCalc) sheetCalc.onclick = calculate;
@@ -2871,11 +3062,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       document.getElementById("copyCodeBtn").style.display = "none";
       toast("Carts cleared");
     };
-    document.getElementById("clearRolesBtn").onclick = () => {
-      activeRoles.clear(); saveState(); render();
-      toast("Roles cleared");
-    };
-
     bindAccountControls();
     render();
     renderKitSummaries();

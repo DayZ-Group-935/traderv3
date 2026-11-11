@@ -31,6 +31,7 @@ const CUSTOMER_ID = '444444444444444444';
 
 function installFetch(page, me, opts = {}) {
   return page.evaluateOnNewDocument((me, opts, customerId) => {
+    window.__935AccountFixture = true;
     const orig = window.fetch.bind(window);
     let release;
     const gate = opts.delayMe ? new Promise((resolve) => { release = resolve; window.__935ReleaseMe = resolve; }) : null;
@@ -155,11 +156,10 @@ async function overlaps(page, selector) {
     }));
     check('kit-token-price-is-zero', /TOKEN/.test(token.text) && /^0 Cr/.test(token.total.trim()), token);
 
+    check('player-has-no-role-controls', await page.evaluate(() => !document.getElementById('rolesDockBtn') && !document.getElementById('rolesGrid') && !document.getElementById('clearRolesBtn')));
     const legacy = await page.evaluate(() => {
-      document.querySelectorAll('.role-btn').forEach((btn) => {
-        if (['Roadkill', 'All Your Base', 'Dr. Greenthumb'].includes(btn.textContent)) btn.click();
-      });
-      return {
+      applyPricingRoles(['Roadkill', 'All Your Base', 'Dr. Greenthumb']);
+      const priced = {
         flagSell: lineUnit('Faction Flag', 2500, null),
         flagsBuy: lineUnit('Faction Flags', 500, null),
         battery: lineUnit('Car Battery', 200, null),
@@ -167,6 +167,8 @@ async function overlaps(page, selector) {
         truck: lineUnit('Trader Truck', 250000, null),
         bonus: lineUnit('Cannabis', 10, null)
       };
+      applyPricingRoles([]);
+      return priced;
     });
     check('legacy-flag-roadkill-bonus',
       legacy.flagSell === 2500 && legacy.flagsBuy === 0 && legacy.battery === 150 &&
@@ -209,14 +211,83 @@ async function overlaps(page, selector) {
       header: document.querySelector('h1').getBoundingClientRect().top
     }));
     check('admin-editor-defaults', editor.price === '3500' && editor.discount === '0' && editor.result === '3,500 Cr' && editor.header >= 0, editor);
+    const fit = await staff.evaluate(() => {
+      const editor = document.getElementById('manageEditor');
+      const save = document.getElementById('manageSave');
+      const cancel = document.getElementById('manageCancel');
+      const er = editor.getBoundingClientRect();
+      const sr = save.getBoundingClientRect();
+      const cr = cancel.getBoundingClientRect();
+      return {
+        saveInside: sr.right <= er.right + 1 && sr.left >= er.left - 1,
+        cancelInside: cr.left >= er.left - 1,
+        scroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        mode: document.getElementById('accountStatus').innerText.includes('ADMIN MODE')
+      };
+    });
+    check('admin-editor-fits-390', fit.saveInside && fit.cancelInside && fit.scroll && fit.mode, fit);
     check('admin-list-no-overlap-390', (await overlaps(staff, '.manage-row')).length === 0);
+    const accordion = await staff.evaluate(() => {
+      const click = () => [...document.querySelectorAll('.manage-row')].find(row => (row.querySelector('.nm') || {}).textContent === 'M4A1').click();
+      const before = document.getElementById('manageEditor').hidden === false;
+      const inline = document.getElementById('manageEditor').previousElementSibling.classList.contains('manage-row');
+      click();
+      const shut = document.getElementById('manageEditor').hidden === true;
+      click();
+      const open = document.getElementById('manageEditor').hidden === false;
+      return { before, inline, shut, open };
+    });
+    check('admin-accordion-toggles', accordion.before && accordion.inline && accordion.shut && accordion.open, accordion);
     await staff.screenshot({ path: path.join(OUT, 'badlands-admin-390.png'), fullPage: true });
+    await staff.click('#adminRolesTab');
+    await staff.waitForFunction(() => !document.getElementById('adminRoles').hidden && document.getElementById('adminRoleSelect').options.length > 10);
+    const prefill = await staff.evaluate(() => {
+      const text = document.getElementById('adminRoleEffects').innerText;
+      document.getElementById('adminRoleSelect').value = 'Roadkill';
+      document.getElementById('adminRoleSelect').dispatchEvent(new Event('change'));
+      return {
+        road: document.getElementById('adminRoleEffects').innerText,
+        noRolesButton: !document.getElementById('rolesDockBtn')
+      };
+    });
+    check('admin-roles-prefill-roadkill', /Car Battery/.test(prefill.road) && /25%/.test(prefill.road) && !/Trader Car/.test(prefill.road) && prefill.noRolesButton, prefill);
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-roles-390.png'), fullPage: true });
+    await staff.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1, isMobile: false });
+    await staff.evaluate(() => { if (!document.body.classList.contains('mode-admin')) document.getElementById('modeAdminBtn').click(); });
+    await staff.waitForFunction(() => document.body.classList.contains('mode-admin'));
+    await staff.evaluate(() => document.getElementById('adminRolesTab').click());
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-1280.png') });
+    await staff.setViewport({ width: 320, height: 900, deviceScaleFactor: 1, isMobile: true });
+    await staff.evaluate(() => { if (!document.body.classList.contains('mode-admin')) document.getElementById('modeAdminBtn').click(); document.getElementById('adminRolesTab').click(); });
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-roles-320.png') });
     await staff.setViewport({ width: 320, height: 1600, deviceScaleFactor: 1, isMobile: true });
-    await staff.evaluate(() => { document.getElementById('manageSearch').value = ''; document.getElementById('manageSearch').dispatchEvent(new Event('input')); });
-    await staff.waitForFunction(() => [...document.querySelectorAll('.manage-row .nm')].some(n => n.textContent === 'Truck Tires'));
+    await staff.evaluate(() => { if (!document.body.classList.contains('mode-admin')) document.getElementById('modeAdminBtn').click(); });
+    const fit320 = await staff.evaluate(() => {
+      document.getElementById('adminCatalogTab').click();
+      const search = document.getElementById('manageSearch');
+      search.value = 'M4A1';
+      search.dispatchEvent(new Event('input'));
+      const names = [...document.querySelectorAll('.manage-row .nm')].map(n => n.textContent);
+      const row = [...document.querySelectorAll('.manage-row')].find(btn => (btn.querySelector('.nm') || {}).textContent === 'M4A1');
+      if (row && document.getElementById('manageEditor').hidden) row.click();
+      const editor = document.getElementById('manageEditor');
+      editor.scrollIntoView({ block: 'nearest' });
+      const save = document.getElementById('manageSave');
+      const er = editor.getBoundingClientRect();
+      const sr = save.getBoundingClientRect();
+      return {
+        saveInside: !editor.hidden && sr.right <= er.right + 1 && sr.left >= er.left - 1 && sr.width > 40,
+        scroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        er: [Math.round(er.left), Math.round(er.right)],
+        sr: [Math.round(sr.left), Math.round(sr.right), Math.round(sr.width)],
+        hidden: editor.hidden,
+        names
+      };
+    });
+    check('admin-editor-fits-320', fit320.saveInside && fit320.scroll, fit320);
     check('admin-list-no-overlap-320', (await overlaps(staff, '.manage-row')).length === 0);
     await staff.screenshot({ path: path.join(OUT, 'badlands-admin-320.png'), fullPage: false });
-    await staff.evaluate(() => document.getElementById('manageEditor').scrollIntoView({ block: 'start' }));
+    await staff.evaluate(() => document.getElementById('manageEditor').scrollIntoView({ block: 'nearest' }));
     await staff.screenshot({ path: path.join(OUT, 'badlands-admin-editor-320.png') });
 
     const trader = await browser.newPage();
@@ -252,6 +323,17 @@ async function overlaps(page, selector) {
       trader: document.body.classList.contains('mode-trader')
     }));
     check('id-lookup-selects-customer', looked.trader && looked.calls === 1 && /Ada/.test(looked.who) && /Cash 5/.test(looked.meta), looked);
+    await trader.screenshot({ path: path.join(OUT, 'badlands-trader-390.png') });
+    await trader.setViewport({ width: 320, height: 844, deviceScaleFactor: 1, isMobile: true });
+    const traderScroll = await trader.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
+    check('trader-no-x-scroll-320', traderScroll);
+    await trader.screenshot({ path: path.join(OUT, 'badlands-trader-320.png') });
+    await trader.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
+    await trader.click('#modeSelfBtn');
+    await trader.waitForFunction(() => document.body.classList.contains('mode-self') && !document.body.classList.contains('mode-trader'));
+    await trader.screenshot({ path: path.join(OUT, 'badlands-my-account-390.png') });
+    await trader.setViewport({ width: 320, height: 844, deviceScaleFactor: 1, isMobile: true });
+    await trader.screenshot({ path: path.join(OUT, 'badlands-my-account-320.png') });
   } finally {
     await browser.close();
     await app.close();

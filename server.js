@@ -24,6 +24,7 @@ const { canonicalFromRedirect, assessRequest, safeAuthorizeLocation } = require(
 const { loadBaseCatalog } = require('./lib/catalog-base');
 const { openCatalogStoreFromEnv } = require('./lib/catalog-store');
 const { handleCatalogRoutes } = require('./lib/catalog-routes');
+const { pricingRoleNames } = require('./lib/role-rules');
 
 function isLoopbackHost(host) {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1';
@@ -341,6 +342,7 @@ function createApp(options = {}) {
           ? { id: targetId, member: publicMember(member.data) }
           : { error: member.error || 'lookup_failed', reason: member.reason, provider: member.provider },
         balance: sanitizeBalance(balance),
+        pricing_roles: member.ok ? pricingRoleNames((member.data && member.data.roles) || [], config.discordDiscountRoleMap) : [],
         live_customer_functionality: false,
       });
       logger.request(logReq, status, { user: session.discordUserId });
