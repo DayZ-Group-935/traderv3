@@ -88,6 +88,10 @@ const CUSTOMERS = {
   '333': {
     id: '333', username: 'jordan', global_name: 'Jordan Hale', nick: 'Jordan Hale', roles: ['role-customer'],
     balance: balance(4200, 800)
+  },
+  '334': {
+    id: '334', username: 'jonah', global_name: 'Jonah Pike', nick: 'Jonah Pike', roles: ['role-customer'],
+    balance: balance(10, 0)
   }
 };
 
@@ -98,7 +102,7 @@ async function shot(page, name) {
   fs.copyFileSync(file, path.join(ART, name + '.png'));
 }
 
-async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe } = {}) {
+async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe, slowQuery, slowMs } = {}) {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
@@ -145,6 +149,7 @@ async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe } =
       }
       if (u.pathname === '/api/trader/search' && method === 'GET') {
         const q = u.searchParams.get('q') || '';
+        if (opts.slowQuery && q === opts.slowQuery) await new Promise(resolve => setTimeout(resolve, opts.slowMs || 600));
         if (!q) return json(400, { reason: 'missing_query', provider: 'discord_member_lookup' });
         const results = Object.values(customers).filter(c => {
           const hay = [c.username, c.global_name, c.nick].join(' ').toLowerCase();
@@ -171,7 +176,7 @@ async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe } =
     window.__935AccountTest = {
       setMe(next) { state.me = next; }
     };
-  }, { gateway: gateway || null, me: me || null, customers: CUSTOMERS, failMe: failMe || '', lookupMs: lookupMs || 0, delayMe: !!delayMe });
+  }, { gateway: gateway || null, me: me || null, customers: CUSTOMERS, failMe: failMe || '', lookupMs: lookupMs || 0, delayMe: !!delayMe, slowQuery: slowQuery || '', slowMs: slowMs || 0 });
   await page.setViewport({ width: width || 375, height: 812, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await page.goto(URL, { waitUntil: 'load' });
   return { page, errors };
@@ -391,6 +396,30 @@ function readBar() {
       settled);
     await failed.page.close();
   }
+
+  const burst = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 390 });
+  await burst.page.click('#modeTraderBtn');
+  await burst.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
+  await burst.page.type('#customerSearch', 'jordan', { delay: 15 });
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const burstCalls = await burst.page.evaluate(() => (window.__935AccountCalls || []).filter(c => c.path.indexOf('/api/trader/search') === 0).map(c => c.path));
+  check('search-debounce-collapses-a-burst', burstCalls.length === 1 && burstCalls[0].indexOf('q=jordan') >= 0, burstCalls);
+  await burst.page.close();
+
+  const stale = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 390, slowQuery: 'jo', slowMs: 700 });
+  await stale.page.click('#modeTraderBtn');
+  await stale.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
+  await stale.page.type('#customerSearch', 'jo', { delay: 10 });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  await stale.page.type('#customerSearch', 'r', { delay: 0 });
+  await stale.page.waitForFunction(() => {
+    const text = document.getElementById('customerResults').innerText;
+    return text.includes('Jordan Hale') && !text.includes('Jonah');
+  });
+  await new Promise(resolve => setTimeout(resolve, 900));
+  const staleText = await stale.page.evaluate(() => document.getElementById('customerResults').innerText);
+  check('search-ignores-stale-response', staleText.includes('Jordan Hale') && !staleText.includes('Jonah'), staleText);
+  await stale.page.close();
 
   const ADMIN = JSON.parse(JSON.stringify(ALLOWED));
   ADMIN.access.admin_mode_allowed = true;
