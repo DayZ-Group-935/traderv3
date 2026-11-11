@@ -367,7 +367,16 @@ function createApp(options = {}) {
         logger.request(logReq, 503, { provider: 'discord_member_lookup', user: session.discordUserId });
         return;
       }
-      const query = url.searchParams.get('q') || '';
+      const query = (url.searchParams.get('q') || '').trim();
+      if (query.length < 2 || query.length > 32) {
+        sendJson(res, 400, {
+          error: 'invalid_query',
+          provider: 'discord_member_lookup',
+          reason: query.length < 2 ? 'query_too_short' : 'query_too_long',
+        });
+        logger.request(logReq, 400, { reason: 'invalid_query', user: session.discordUserId });
+        return;
+      }
       let result;
       try {
         result = await botLookup.searchMembers(query);
@@ -388,7 +397,7 @@ function createApp(options = {}) {
         logger.request(logReq, status, { reason: result.reason, user: session.discordUserId });
         return;
       }
-      const results = publicSearchResults(result.data);
+      const results = publicSearchResults(result.data).filter(Boolean);
       sendJson(res, 200, {
         results,
         live_customer_functionality: false,
@@ -502,7 +511,21 @@ function publicMember(data) {
 
 function publicSearchResults(data) {
   const list = Array.isArray(data) ? data : [];
-  return list.map(publicMember);
+  return list.map((row) => {
+    if (!row || typeof row !== 'object') return null;
+    const user = row.user || {};
+    const id = String(user.id || row.id || '');
+    if (!/^\d{17,20}$/.test(id)) return null;
+    const username = typeof user.username === 'string' ? user.username.slice(0, 32) : null;
+    const display = String(row.nick || user.global_name || user.username || '').replace(/[<>]/g, '').slice(0, 32);
+    const avatarHash = typeof user.avatar === 'string' && /^[A-Za-z0-9_]+$/.test(user.avatar) ? user.avatar : '';
+    return {
+      id,
+      username,
+      display_name: display || null,
+      avatar: avatarHash ? `https://cdn.discordapp.com/avatars/${id}/${avatarHash}.png` : null,
+    };
+  });
 }
 
 if (require.main === module) {

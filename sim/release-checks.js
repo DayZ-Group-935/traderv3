@@ -142,6 +142,20 @@ async function overlaps(page, selector) {
       });
     }
     const bar390 = await signInBar();
+    const emblemAt = () => page.evaluate(() => {
+      const mark = document.querySelector('.hero-mark svg');
+      const hero = document.querySelector('.hero');
+      if (!mark || !hero) return { overlap: 0 };
+      const mr = mark.getBoundingClientRect();
+      const hr = hero.getBoundingClientRect();
+      return {
+        overlap: Math.round(Math.min(mr.right, hr.right) - Math.max(mr.left, hr.left)),
+        iconW: Math.round(mr.width),
+        heroW: Math.round(hr.width)
+      };
+    });
+    const emblem390 = await emblemAt();
+    check('emblem-in-hero-390', emblem390.overlap >= 120 && emblem390.iconW >= 200, emblem390);
     check('signin-discord-mark-390', bar390.label === 'Sign in' && bar390.name === 'Sign in with Discord' && bar390.svgHidden === 'true' && bar390.iconH >= 16 && bar390.iconH <= 18 && bar390.centered && bar390.textClear && bar390.noPageScroll && bar390.modesInside && bar390.btnInside, bar390);
     await page.screenshot({ path: path.join(OUT, 'signed-out-390.png') });
     await page.screenshot({ path: path.join(OUT, 'badlands-weapons-390.png') });
@@ -162,6 +176,9 @@ async function overlaps(page, selector) {
     });
     const bar1280 = await signInBar();
     check('signin-discord-mark-1280', bar1280.noPageScroll && bar1280.modesInside && bar1280.btnInside && bar1280.iconH >= 16 && bar1280.iconH <= 18, bar1280);
+    const emblem1280 = await emblemAt();
+    check('emblem-in-hero-1280', emblem1280.overlap >= 120 && emblem1280.iconW >= 200, emblem1280);
+    await page.screenshot({ path: path.join(OUT, 'signed-out-1280.png') });
     await page.screenshot({ path: path.join(OUT, 'badlands-weapons-1280.png') });
 
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
@@ -429,7 +446,7 @@ async function overlaps(page, selector) {
     await trader.click('#modeTraderBtn');
     await trader.waitForFunction(() => document.body.classList.contains('mode-trader'));
     await trader.type('#customerSearch', 'ada');
-    await trader.waitForFunction(() => document.getElementById('customerSearchNote').textContent.includes('not available'));
+    await trader.waitForFunction(() => document.getElementById('customerResults').textContent.includes('Search unavailable'));
     const still = await trader.evaluate(() => ({
       trader: document.body.classList.contains('mode-trader'),
       searches: window.__935SearchCalls || 0,
