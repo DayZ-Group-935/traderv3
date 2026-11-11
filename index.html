@@ -386,12 +386,21 @@ body.mode-admin .mode-btn.is-on { border-color: var(--mode-admin); color: var(--
 }
 .manage-list { border-top: 1px solid var(--line); }
 .manage-row {
-  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: center;
-  width: 100%; min-height: 64px; padding: 8px 16px; border: 0; border-bottom: 1px solid var(--line);
-  background: transparent; color: var(--ink); text-align: left;
+  display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center;
+  width: 100%; min-height: 64px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: var(--ink); text-align: left; overflow: hidden;
 }
 .manage-row.is-on { box-shadow: inset 3px 0 0 var(--kicker); background: var(--sel-bg); }
-.manage-row .nm { display: block; font-weight: 600; }
+.manage-icon { width: 56px; height: 44px; overflow: hidden; display: grid; place-items: center; }
+.manage-row .ic { width: 56px; height: 44px; max-width: 56px; }
+.manage-row .ic svg,
+.manage-row .ic.ic-wide svg,
+.manage-row .has-wide > .ic svg { width: 40px; height: 28px; max-width: 52px; }
+.manage-copy { min-width: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.manage-row .nm, .manage-row .meta {
+  display: block; min-width: 0; white-space: normal; overflow-wrap: break-word;
+}
+.manage-row .nm { font-weight: 600; }
 .manage-row .meta { color: var(--dim); font-size: 13px; }
 .manage-editor label { display: block; margin: 8px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
 .manage-discount, .manage-stock, .manage-actions { display: flex; gap: 8px; margin-top: 8px; }
@@ -1699,8 +1708,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         btn.type = "button";
         btn.className = "manage-row" + (catalogKey(manageSide, item.name) === manageKey ? " is-on" : "");
         const icon = document.createElement("span");
+        icon.className = "manage-icon";
         icon.innerHTML = icTag(icKeyFor(item.name));
         const copy = document.createElement("span");
+        copy.className = "manage-copy";
         const nm = document.createElement("span");
         nm.className = "nm";
         nm.textContent = item.name;
@@ -2638,20 +2649,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
 
     function calculate() {
-      let buyTotal = 0;
-      Object.entries(buyCart).forEach(([name, {qty, base, salePrice, item}]) => {
-        const unit = salePrice != null ? salePrice : getDiscountedPrice(item || name, base);
-        buyTotal += unit * qty;
-      });
-      if (activeRoles.has("Day One")) buyTotal *= 0.9;
-
-      let sellTotal = 0;
-      Object.entries(sellCart).forEach(([name, {qty, base, item}]) => {
-        if ((item || name) === "Bible") sellTotal += getBibleTotal(qty);
-        else sellTotal += getDiscountedPrice(item || name, base) * qty;
-      });
-
-      const fm = activeRoles.has("Day One") ? " (FM)" : "";
+      const t = computeTotals();
+      const buyTotal = t.buyTotal;
+      const sellTotal = t.sellTotal;
+      const fm = t.fm ? " (FM)" : "";
       const msg = `Buy${fm}: ${fmt(buyTotal)} Cr | Sell: ${fmt(sellTotal)} Cr`;
       toast(msg);
       // Also flash the cart headers

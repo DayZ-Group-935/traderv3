@@ -1,0 +1,268 @@
+'use strict';
+
+// Focused release checks. Mock membership only. No live provider calls and no catalog save.
+const puppeteer = require('puppeteer-core');
+const path = require('path');
+const fs = require('fs');
+const { createApp } = require('../server');
+const { buildConfig } = require('../lib/config');
+
+const OUT = '/opt/cursor/artifacts';
+fs.mkdirSync(OUT, { recursive: true });
+const fails = [];
+function check(id, ok, detail) {
+  if (!ok) fails.push({ id, detail });
+  console.log((ok ? 'PASS ' : 'FAIL ') + id + (detail !== undefined ? ' :: ' + JSON.stringify(detail).slice(0, 500) : ''));
+}
+
+const STAFF = {
+  identity: { id: '222222222222222222', username: 'riley', global_name: 'Riley Chen' },
+  roles: { is_server_owner: true, is_high_level_staff: true, is_trader: false, discounts: { configured: false, applied: [], amounts_mapped: false, reason: 'discount_role_ids_unverified' } },
+  access: { trader_mode_allowed: true, admin_mode_allowed: true, writes: false },
+  balance: { available: true, mapped: true, cash: 80000, cash_str: '80000', bank: 0, bank_str: '0', write_access: false }
+};
+const TRADER = {
+  identity: { id: '333333333333333333', username: 'trader', global_name: 'Trader' },
+  roles: { is_trader: true, is_server_owner: false, is_high_level_staff: false, discounts: { configured: false, applied: [], amounts_mapped: false, reason: 'discount_role_ids_unverified' } },
+  access: { trader_mode_allowed: true, admin_mode_allowed: false, writes: false },
+  balance: { available: true, mapped: true, cash: 10, cash_str: '10', bank: 0, bank_str: '0', write_access: false }
+};
+const CUSTOMER_ID = '444444444444444444';
+
+function installFetch(page, me, opts = {}) {
+  return page.evaluateOnNewDocument((me, opts, customerId) => {
+    const orig = window.fetch.bind(window);
+    let release;
+    const gate = opts.delayMe ? new Promise((resolve) => { release = resolve; window.__935ReleaseMe = resolve; }) : null;
+    window.fetch = async (url, init) => {
+      const u = new URL(String(url), window.location.origin);
+      if (u.origin !== window.location.origin) return orig(url, init);
+      const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+      if (u.pathname === '/api/me') {
+        if (gate) await gate;
+        return json(200, me);
+      }
+      if (u.pathname === '/api/catalog') return json(200, { configured: false, revision: 0, changes: [] });
+      if (u.pathname === '/api/trader/search') {
+        window.__935SearchCalls = (window.__935SearchCalls || 0) + 1;
+        return json(503, { error: 'provider_unavailable', reason: 'member_search_unavailable', lookup_by_id: true });
+      }
+      if (u.pathname === '/api/trader/players/' + customerId) {
+        window.__935IdCalls = (window.__935IdCalls || 0) + 1;
+        return json(200, {
+          lookup: { id: customerId, member: { id: customerId, username: 'ada', global_name: 'Ada' } },
+          balance: { available: true, mapped: true, cash: 5, cash_str: '5', bank: 1, bank_str: '1', write_access: false }
+        });
+      }
+      return orig(url, init);
+    };
+    if (release) window.__935ReleaseMe = release;
+  }, me, opts, CUSTOMER_ID);
+}
+
+async function overlaps(page, selector) {
+  return page.evaluate((selector) => {
+    const bad = [];
+    document.querySelectorAll(selector).forEach((row) => {
+      const icon = row.querySelector('.ic');
+      const name = row.querySelector('.nm');
+      if (!icon || !name || name.getClientRects().length === 0) return;
+      const a = icon.getBoundingClientRect();
+      const b = name.getBoundingClientRect();
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      const clipped = name.scrollWidth > name.clientWidth + 1 || name.scrollHeight > name.clientHeight + 1;
+      if (w > 0.5 && h > 0.5) bad.push({ name: name.textContent, overlap: true });
+      else if (clipped) bad.push({ name: name.textContent, clipped: true, sw: name.scrollWidth, cw: name.clientWidth });
+    });
+    return bad.slice(0, 8);
+  }, selector);
+}
+
+(async () => {
+  const app = createApp({
+    config: buildConfig({
+      PORT: '0',
+      SESSION_SECRET: 'test-session-secret-not-used-as-token',
+      DISCORD_CLIENT_ID: 'mock-client-id',
+      DISCORD_CLIENT_SECRET: 'mock-secret',
+      DISCORD_REDIRECT_URI: 'http://127.0.0.1:9/auth/discord/callback',
+      DISCORD_GUILD_ID: '1213578527522431046',
+      DISCORD_TRADER_ROLE_ID: '1215060053191819324',
+      DISCORD_SERVER_OWNER_ROLE_ID: '1215040829186383912',
+      DISCORD_HIGH_LEVEL_STAFF_ROLE_ID: '1215042184764723251'
+    }),
+    logger: { info() {}, error() {}, request() {} }
+  });
+  const addr = await app.listen(0, '127.0.0.1');
+  const origin = `http://127.0.0.1:${addr.port}`;
+  const browser = await puppeteer.launch({
+    executablePath: '/usr/bin/google-chrome',
+    headless: 'new',
+    args: ['--no-sandbox', '--hide-scrollbars']
+  });
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(String(e)));
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
+    await page.goto(origin + '/', { waitUntil: 'networkidle0' });
+    await page.waitForFunction(() => document.getElementById('accountStatus').textContent === 'Signed out');
+    const signed = await page.evaluate(() => ({
+      status: document.getElementById('accountStatus').textContent,
+      injected: window.__935AccountGateway === window.location.origin,
+      configuredPhrase: document.body.innerText.includes('Sign-in is not configured'),
+      items: [...document.querySelectorAll('#buyGrid .item-btn .nm')].slice(0, 4).map(n => n.textContent),
+      trader: document.getElementById('modeTraderBtn').hidden,
+      admin: document.getElementById('modeAdminBtn').hidden
+    }));
+    check('hosted-gateway-says-signed-out', signed.status === 'Signed out' && signed.injected && !signed.configuredPhrase && signed.items.includes('Aug AX') && signed.trader && signed.admin, signed);
+    await page.screenshot({ path: path.join(OUT, 'badlands-weapons-390.png') });
+
+    for (const width of [390, 320]) {
+      await page.setViewport({ width, height: 844, deviceScaleFactor: 1, isMobile: true });
+      const itemOverlap = await overlaps(page, '#buyGrid .item-btn');
+      check('weapons-no-overlap-' + width, itemOverlap.length === 0, itemOverlap);
+    }
+    await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1, isMobile: false });
+    await page.screenshot({ path: path.join(OUT, 'badlands-weapons-1280.png') });
+
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('#buyGrid .cat-btn')].find(b => (b.querySelector('.nm') || b).textContent.trim().startsWith('Optics'));
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(() => [...document.querySelectorAll('#buyGrid .cat-btn')].some(b => b.textContent.includes('Short')));
+    check('optics-no-overlap-390', (await overlaps(page, '#buyGrid .cat-btn, #buyGrid .item-btn')).length === 0);
+    await page.screenshot({ path: path.join(OUT, 'badlands-optics-390.png') });
+
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('#buyGrid .cat-btn')].find(b => (b.querySelector('.nm') || b).textContent.trim().startsWith('Player'));
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(() => [...document.querySelectorAll('#buyGrid .nm')].some(n => n.textContent === 'Player Kit'));
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('#buyGrid .item-btn')].find(b => (b.querySelector('.nm') || {}).textContent === 'Player Kit');
+      if (btn) btn.click();
+    });
+    await page.waitForSelector('#kitTokenToggle');
+    await page.click('#kitTokenToggle');
+    await page.click('.kit-save');
+    await page.waitForFunction(() => /TOKEN/.test(document.getElementById('buySummary').innerText));
+    const token = await page.evaluate(() => ({
+      text: document.getElementById('buySummary').innerText,
+      total: document.querySelector('#totalChip .tc-value').textContent
+    }));
+    check('kit-token-price-is-zero', /TOKEN/.test(token.text) && /^0 Cr/.test(token.total.trim()), token);
+
+    const legacy = await page.evaluate(() => {
+      document.querySelectorAll('.role-btn').forEach((btn) => {
+        if (['Roadkill', 'All Your Base', 'Dr. Greenthumb'].includes(btn.textContent)) btn.click();
+      });
+      return {
+        flagSell: lineUnit('Faction Flag', 2500, null),
+        flagsBuy: lineUnit('Faction Flags', 500, null),
+        battery: lineUnit('Car Battery', 200, null),
+        car: lineUnit('Trader Car', 75000, null),
+        truck: lineUnit('Trader Truck', 250000, null),
+        bonus: lineUnit('Cannabis', 10, null)
+      };
+    });
+    check('legacy-flag-roadkill-bonus',
+      legacy.flagSell === 2500 && legacy.flagsBuy === 0 && legacy.battery === 150 &&
+      legacy.car === 75000 && legacy.truck === 250000 && legacy.bonus === 30,
+      legacy);
+
+    await page.evaluate(() => { document.body.classList.add('code-open'); });
+    check('order-no-overlap-390', (await overlaps(page, '.summary-item')).length === 0);
+    await page.screenshot({ path: path.join(OUT, 'badlands-order-390.png') });
+    await page.setViewport({ width: 320, height: 844, deviceScaleFactor: 1, isMobile: true });
+    check('order-no-overlap-320', (await overlaps(page, '.summary-item')).length === 0);
+    check('plain-console', errors.length === 0, errors.slice(0, 4));
+
+    const staff = await browser.newPage();
+    await installFetch(staff, STAFF);
+    await staff.setViewport({ width: 390, height: 1500, deviceScaleFactor: 2, isMobile: true });
+    await staff.goto(origin + '/', { waitUntil: 'networkidle0' });
+    await staff.waitForFunction(() => !document.getElementById('modeAdminBtn').hidden && !document.getElementById('modeTraderBtn').hidden && document.getElementById('accountStatus').innerText.includes('ADMIN MODE') === false);
+    const both = await staff.evaluate(() => ({
+      trader: !document.getElementById('modeTraderBtn').hidden,
+      admin: !document.getElementById('modeAdminBtn').hidden,
+      mode: document.body.classList.contains('mode-self'),
+      status: document.getElementById('accountStatus').innerText
+    }));
+    check('owner-or-staff-sees-both-modes', both.trader && both.admin && both.mode && /Riley Chen/.test(both.status), both);
+    await staff.click('#modeAdminBtn');
+    await staff.waitForFunction(() => document.body.classList.contains('mode-admin') && document.getElementById('accountStatus').innerText.includes('ADMIN MODE'));
+    await staff.evaluate(() => {
+      document.getElementById('manageSearch').value = 'M4A1';
+      document.getElementById('manageSearch').dispatchEvent(new Event('input'));
+    });
+    await staff.waitForFunction(() => document.querySelectorAll('.manage-row').length === 1);
+    await staff.click('.manage-row');
+    await staff.waitForFunction(() => document.getElementById('manageItemName').textContent === 'M4A1' && document.getElementById('manageResult').textContent.includes('3,500'));
+    const editor = await staff.evaluate(() => ({
+      price: document.getElementById('managePrice').value,
+      discount: document.getElementById('manageDiscount').value,
+      result: document.getElementById('manageResult').textContent,
+      top: document.getElementById('accountStatus').getBoundingClientRect().top,
+      header: document.querySelector('h1').getBoundingClientRect().top
+    }));
+    check('admin-editor-defaults', editor.price === '3500' && editor.discount === '0' && editor.result === '3,500 Cr' && editor.header >= 0, editor);
+    check('admin-list-no-overlap-390', (await overlaps(staff, '.manage-row')).length === 0);
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-390.png'), fullPage: true });
+    await staff.setViewport({ width: 320, height: 1600, deviceScaleFactor: 1, isMobile: true });
+    await staff.evaluate(() => { document.getElementById('manageSearch').value = ''; document.getElementById('manageSearch').dispatchEvent(new Event('input')); });
+    await staff.waitForFunction(() => [...document.querySelectorAll('.manage-row .nm')].some(n => n.textContent === 'Truck Tires'));
+    check('admin-list-no-overlap-320', (await overlaps(staff, '.manage-row')).length === 0);
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-320.png'), fullPage: false });
+    await staff.evaluate(() => document.getElementById('manageEditor').scrollIntoView({ block: 'start' }));
+    await staff.screenshot({ path: path.join(OUT, 'badlands-admin-editor-320.png') });
+
+    const trader = await browser.newPage();
+    await installFetch(trader, TRADER, { delayMe: true });
+    await trader.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true });
+    await trader.goto(origin + '/', { waitUntil: 'domcontentloaded' });
+    await trader.waitForFunction(() => document.getElementById('accountStatus').textContent === 'Checking account');
+    const early = await trader.evaluate(() => ({
+      trader: document.getElementById('modeTraderBtn').hidden,
+      admin: document.getElementById('modeAdminBtn').hidden,
+      traderW: document.getElementById('modeTraderBtn').getBoundingClientRect().width
+    }));
+    check('loading-shows-no-privileged-controls', early.trader && early.admin && early.traderW === 0, early);
+    await trader.evaluate(() => window.__935ReleaseMe());
+    await trader.waitForFunction(() => !document.getElementById('modeTraderBtn').hidden && document.getElementById('modeAdminBtn').hidden);
+    await trader.click('#modeTraderBtn');
+    await trader.waitForFunction(() => document.body.classList.contains('mode-trader'));
+    await trader.type('#customerSearch', 'ada');
+    await trader.waitForFunction(() => document.getElementById('customerSearchNote').textContent.includes('not available'));
+    const still = await trader.evaluate(() => ({
+      trader: document.body.classList.contains('mode-trader'),
+      searches: window.__935SearchCalls || 0,
+      note: document.getElementById('customerIdRow').hidden
+    }));
+    check('failed-name-search-keeps-trader-open', still.trader && still.searches >= 1 && still.note === false, still);
+    await trader.type('#customerIdInput', CUSTOMER_ID);
+    await trader.click('#customerIdBtn');
+    await trader.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Ada'));
+    const looked = await trader.evaluate(() => ({
+      who: document.getElementById('accountStatus').innerText,
+      meta: document.getElementById('accountMeta').textContent,
+      calls: window.__935IdCalls || 0,
+      trader: document.body.classList.contains('mode-trader')
+    }));
+    check('id-lookup-selects-customer', looked.trader && looked.calls === 1 && /Ada/.test(looked.who) && /Cash 5/.test(looked.meta), looked);
+  } finally {
+    await browser.close();
+    await app.close();
+  }
+  if (fails.length) {
+    console.log('RELEASE CHECKS FAILED ' + fails.length);
+    process.exitCode = 1;
+  } else {
+    console.log('RELEASE CHECKS OK');
+  }
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
