@@ -98,7 +98,7 @@ async function shot(page, name) {
   fs.copyFileSync(file, path.join(ART, name + '.png'));
 }
 
-async function boot(browser, { gateway, me, width } = {}) {
+async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe } = {}) {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
@@ -111,6 +111,7 @@ async function boot(browser, { gateway, me, width } = {}) {
       window.__935AccountGateway = opts.gateway;
       window.__935AccountFixture = true;
     }
+    if (opts.lookupMs) window.__935AccountLookupMs = opts.lookupMs;
     const orig = window.fetch.bind(window);
     window.fetch = async (url, init) => {
       const u = new URL(String(url), opts.gateway || 'http://127.0.0.1:8787');
@@ -124,6 +125,9 @@ async function boot(browser, { gateway, me, width } = {}) {
       if (!opts.gateway || u.origin !== opts.gateway) return orig(url, init);
       const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
       if (u.pathname === '/api/me' && method === 'GET') {
+        if (opts.failMe === 'reject') throw new Error('network');
+        if (opts.failMe === '500') return json(500, { error: 'internal_error' });
+        if (opts.failMe === 'hang') await new Promise(() => {});
         if (opts.delayMe) await new Promise(resolve => { window.__935ReleaseMe = resolve; });
         if (!state.me) return json(401, { error: 'unauthorized' });
         return json(200, state.me);
@@ -167,7 +171,7 @@ async function boot(browser, { gateway, me, width } = {}) {
     window.__935AccountTest = {
       setMe(next) { state.me = next; }
     };
-  }, { gateway: gateway || null, me: me || null, customers: CUSTOMERS });
+  }, { gateway: gateway || null, me: me || null, customers: CUSTOMERS, failMe: failMe || '', lookupMs: lookupMs || 0, delayMe: !!delayMe });
   await page.setViewport({ width: width || 375, height: 812, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await page.goto(URL, { waitUntil: 'load' });
   return { page, errors };
@@ -220,7 +224,7 @@ function readBar() {
     unconfigured.status === 'Sign-in is not configured' && unconfigured.meta === '' && unconfigured.fixture === '' &&
     !unconfigured.traderMode && unconfigured.traderHidden && unconfigured.adminHidden && unconfigured.signIn === '' && !unconfigured.signOut &&
     unconfigured.calls.length === 0 && unconfigured.nav >= 1 && unconfigured.rolesUi === false &&
-    unconfigured.selfH >= 44 && unconfigured.scrollW <= unconfigured.clientW + 1 &&
+    unconfigured.selfH === 0 && unconfigured.scrollW <= unconfigured.clientW + 1 &&
     /255,\s*155,\s*61/.test(unconfigured.outline) &&
     !/Cash|Bank|Jordan|Riley|4200|80000/.test(unconfigured.barText),
     unconfigured);
@@ -360,7 +364,7 @@ function readBar() {
   const loading = await boot(browser, { gateway: GATEWAY, me: ALLOWED, delayMe: true, width: 390 });
   const early = await loading.page.evaluate(readBar);
   check('loading-hides-privileged-controls',
-    early.traderHidden && early.adminHidden && !early.traderMode && !early.adminMode &&
+    early.traderHidden && early.adminHidden && early.selfH === 0 && !early.traderMode && !early.adminMode &&
     early.status === 'Checking account',
     early);
   await loading.page.evaluate(() => window.__935ReleaseMe && window.__935ReleaseMe());
@@ -370,6 +374,23 @@ function readBar() {
     !revealed.traderHidden && revealed.adminHidden && !revealed.adminMode && /255,\s*155,\s*61/.test(revealed.outline),
     revealed);
   await loading.page.close();
+
+  for (const failMe of ['401', '500', 'reject', 'hang']) {
+    const failed = await boot(browser, {
+      gateway: GATEWAY,
+      me: null,
+      width: 390,
+      failMe: failMe === '401' ? '' : failMe,
+      lookupMs: failMe === 'hang' ? 200 : 0
+    });
+    await failed.page.waitForFunction(() => document.getElementById('accountStatus').textContent === 'Signed out', { timeout: 4000 });
+    const settled = await failed.page.evaluate(readBar);
+    check('me-' + failMe + '-resolves-signed-out',
+      settled.status === 'Signed out' && settled.selfH === 0 && settled.traderHidden && settled.adminHidden &&
+      settled.signIn === GATEWAY + '/auth/discord/login' && !settled.signOut,
+      settled);
+    await failed.page.close();
+  }
 
   const ADMIN = JSON.parse(JSON.stringify(ALLOWED));
   ADMIN.access.admin_mode_allowed = true;

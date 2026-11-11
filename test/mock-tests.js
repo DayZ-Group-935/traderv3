@@ -293,6 +293,81 @@ async function run() {
     });
   });
 
+  await test('member search is role-gated, limited, and returns only public fields', async () => {
+    let called = '';
+    const botLookup = {
+      isConfigured() { return true; },
+      unavailable() { return { ok: false, status: 503, error: 'provider_unavailable', reason: 'not_configured' }; },
+      async searchMembers(query) {
+        called = query;
+        return {
+          ok: true,
+          status: 200,
+          data: [{
+            nick: 'Ada',
+            roles: ['1215060053191819324'],
+            user: { id: OTHER_ID, username: 'ada', global_name: 'Ada Lovelace', avatar: 'abc123' },
+          }],
+        };
+      },
+      async getMember() { return { ok: false, status: 404, reason: 'not_found' }; },
+    };
+    const anon = await (async () => {
+      let status = 0;
+      await withApp({ botLookup }, async (_app, origin) => {
+        const res = await request(origin, '/api/trader/search?q=ad');
+        status = res.status;
+      });
+      return status;
+    })();
+    assert.equal(anon, 401);
+
+    await withApp({ botLookup }, async (app, origin) => {
+      const cookie = sessionCookie(app, {
+        discordUserId: TRADER_ID,
+        username: 'trader',
+        accessToken: TRADER_AT,
+      });
+      const short = await request(origin, '/api/trader/search?q=a', { cookie });
+      assert.equal(short.status, 400);
+      assert.equal(short.json.reason, 'query_too_short');
+      const found = await request(origin, '/api/trader/search?q=ad', { cookie });
+      assert.equal(found.status, 200);
+      assert.equal(called, 'ad');
+      assert.equal(found.json.results.length, 1);
+      assert.deepEqual(Object.keys(found.json.results[0]).sort(), ['avatar', 'display_name', 'id', 'username']);
+      assert.equal(found.json.results[0].id, OTHER_ID);
+      assert.equal(found.json.results[0].display_name, 'Ada');
+      assert.equal(found.json.results[0].avatar, `https://cdn.discordapp.com/avatars/${OTHER_ID}/abc123.png`);
+      assert.equal(JSON.stringify(found.json).includes('1215060053191819324'), false);
+      const none = await request(origin, '/api/trader/search?q=zz', { cookie });
+      assert.equal(none.status, 200);
+    });
+
+    const lookup = createDiscordBotLookup({
+      discordBotToken: 'test-bot-token-not-real',
+      discordGuildId: '1213578527522431046',
+      discordApiBase: 'https://discord.test',
+    }, {
+      limiter: { async waitForSlot() {}, noteHeaders() {} },
+      fetch: async (url) => {
+        called = String(url);
+        return {
+          ok: true,
+          status: 200,
+          headers: { get() { return null; } },
+          json: async () => [],
+        };
+      },
+    });
+    const empty = await lookup.searchMembers('al');
+    assert.equal(empty.ok, true);
+    assert.match(called, /\/guilds\/1213578527522431046\/members\/search\?query=al&limit=10$/);
+    const tiny = await lookup.searchMembers('a');
+    assert.equal(tiny.status, 400);
+    assert.equal(tiny.reason, 'query_too_short');
+  });
+
   await test('stale/revoked roles fail closed', async () => {
     let roles = [TRADER_ROLE];
     const oauth = mockOAuth({

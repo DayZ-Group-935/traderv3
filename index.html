@@ -637,7 +637,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     </header>
     <div class="account" id="accountBar">
       <div class="account-modes" role="group" aria-label="Account mode">
-        <button class="mode-btn is-on" id="modeSelfBtn" type="button" aria-pressed="true">My account</button>
+        <button class="mode-btn is-on" id="modeSelfBtn" type="button" aria-pressed="true" hidden>My account</button>
         <button class="mode-btn" id="modeTraderBtn" type="button" aria-pressed="false" hidden>Trader</button>
         <button class="mode-btn" id="modeAdminBtn" type="button" aria-pressed="false" hidden>Admin</button>
         <a class="mode-btn" id="accountSignIn" href="" hidden aria-label="Sign in with Discord"><svg class="discord-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 59 44" fill="none"><path fill="white" d="M37.1937 0C36.6265 1.0071 36.1172 2.04893 35.6541 3.11392C31.2553 2.45409 26.7754 2.45409 22.365 3.11392C21.9136 2.04893 21.3926 1.0071 20.8254 0C16.6928 0.70613 12.6644 1.94475 8.84436 3.69271C1.27372 14.9098 -0.775214 25.8374 0.243466 36.6146C4.67704 39.8906 9.6431 42.391 14.9333 43.9884C16.1256 42.391 17.179 40.6893 18.0819 38.9182C16.3687 38.2815 14.7133 37.4828 13.1274 36.5567C13.5442 36.2557 13.9493 35.9432 14.3429 35.6422C23.6384 40.0179 34.4039 40.0179 43.711 35.6422C44.1046 35.9663 44.5097 36.2789 44.9264 36.5567C43.3405 37.4943 41.6852 38.2815 39.9604 38.9298C40.8633 40.7009 41.9167 42.4025 43.109 44C48.3992 42.4025 53.3653 39.9137 57.7988 36.6377C59.0027 24.1358 55.7383 13.3007 49.1748 3.70429C45.3663 1.95633 41.3379 0.717706 37.2053 0.0231518L37.1937 0ZM19.3784 29.9816C16.5192 29.9816 14.1461 27.3886 14.1461 24.1821C14.1461 20.9755 16.4266 18.371 19.3669 18.371C22.3071 18.371 24.6455 20.9871 24.5992 24.1821C24.5529 27.377 22.2956 29.9816 19.3784 29.9816ZM38.6639 29.9816C35.7931 29.9816 33.4431 27.3886 33.4431 24.1821C33.4431 20.9755 35.7236 18.371 38.6639 18.371C41.6042 18.371 43.9309 20.9871 43.8846 24.1821C43.8383 27.377 41.581 29.9816 38.6639 29.9816Z"/></svg><span>Sign in</span></a>
@@ -1527,7 +1527,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     function memberLabel(person) {
       if (!person) return "";
-      return String(person.nick || person.global_name || person.username || person.id || "");
+      return String(person.display_name || person.nick || person.global_name || person.username || person.id || "");
     }
     function balanceLine(balance) {
       if (!balance || balance.available !== true || balance.mapped !== true) return "";
@@ -1545,6 +1545,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (roles.is_trader === true) parts.push("Trader");
       return parts.join(", ");
     }
+    function accountLookupMs() {
+      const custom = Number(window.__935AccountLookupMs);
+      return Number.isFinite(custom) && custom >= 50 ? custom : 8000;
+    }
     async function gatewayJSON(path, options) {
       const base = accountGatewayBase();
       if (!base) return { unconfigured: true };
@@ -1555,11 +1559,24 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         headers["content-type"] = "application/json";
         init.body = JSON.stringify(options.body);
       }
+      const timer = new AbortController();
+      init.signal = timer.signal;
       let response;
+      let timeout;
       try {
-        response = await fetch(base + path, init);
+        response = await Promise.race([
+          fetch(base + path, init),
+          new Promise((_, reject) => {
+            timeout = setTimeout(() => {
+              timer.abort();
+              reject(new Error('timeout'));
+            }, accountLookupMs());
+          })
+        ]);
       } catch (e) {
         return { offline: true };
+      } finally {
+        clearTimeout(timeout);
       }
       let body = null;
       try { body = await response.json(); } catch (e) { body = null; }
@@ -1585,6 +1602,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       const traderBtn = document.getElementById("modeTraderBtn");
       const adminBtn = document.getElementById("modeAdminBtn");
       if (selfBtn) {
+        selfBtn.hidden = accountAuth !== "signedin";
         selfBtn.classList.toggle("is-on", !traderOn && !adminOn);
         selfBtn.setAttribute("aria-pressed", traderOn || adminOn ? "false" : "true");
       }
@@ -1675,8 +1693,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         return;
       }
       const res = await gatewayJSON("/api/me");
-      if (res.unconfigured || res.offline || !res.status || res.status >= 500) {
-        accountAuth = "offline";
+      if (res.unconfigured) {
+        accountAuth = "unconfigured";
         accountMe = null;
         ownPricingRoles = [];
         accountMode = "self";
@@ -1685,7 +1703,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAccount();
         return;
       }
-      if (res.status === 401 || !res.body || !res.body.identity) {
+      if (res.offline || !res.status || res.status !== 200 || !res.body || !res.body.identity) {
         accountAuth = "signedout";
         accountMe = null;
         ownPricingRoles = [];
@@ -2351,7 +2369,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         const token = ++customerSearchToken;
         const box = document.getElementById("customerResults");
         if (!box) return;
-        if (accountMode !== "trader" || !traderAllowed() || !q) {
+        if (accountMode !== "trader" || !traderAllowed() || q.length < 2) {
           box.hidden = true;
           box.replaceChildren();
           return;
@@ -2368,22 +2386,25 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           }
           box.replaceChildren();
           const list = res && res.status === 200 && res.body && Array.isArray(res.body.results) ? res.body.results.filter(row => row && row.id) : null;
+          const note = document.getElementById("customerSearchNote");
+          const idRow = document.getElementById("customerIdRow");
           if (!list) {
-            const note = document.getElementById("customerSearchNote");
-            const idRow = document.getElementById("customerIdRow");
-            if (note) note.textContent = "Customer name search is not available. Enter a Discord user id.";
+            const err = document.createElement("div");
+            err.className = "account-meta";
+            err.textContent = "Search unavailable";
+            box.appendChild(err);
+            box.hidden = false;
+            if (note) note.textContent = "Search unavailable. Enter a Discord user id.";
             if (idRow) idRow.hidden = false;
-            box.hidden = true;
             return;
           }
+          if (idRow) idRow.hidden = true;
           if (!list.length) {
             const empty = document.createElement("div");
             empty.className = "account-meta";
-            empty.textContent = "No customers";
+            empty.textContent = "No matches";
             box.appendChild(empty);
           }
-          const idRow = document.getElementById("customerIdRow");
-          if (idRow) idRow.hidden = true;
           list.forEach(row => {
             const btn = document.createElement("button");
             btn.type = "button";
@@ -2398,7 +2419,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           box.replaceChildren();
           const err = document.createElement("div");
           err.className = "account-meta";
-          err.textContent = "Customer search is unavailable";
+          err.textContent = "Search unavailable";
           box.appendChild(err);
           box.hidden = false;
         });
