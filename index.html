@@ -44,7 +44,7 @@
   --banner: 136px;
   --tool: 56px;
   --cat: 52px;
-  --dock: 84px;
+  --dock: 156px;
   --kb: 0px;
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -150,15 +150,20 @@ img, svg { display: block; }
 .content { padding: 0 0 var(--dock); }
 #buyPanel, #sellPanel { min-width: 0; }
 
+.catstack {
+  position: sticky; top: var(--tool); z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
 .catrow {
   display: flex; align-items: center; gap: 0;
-  height: var(--cat); padding: 4px 12px;
+  min-height: var(--cat); height: auto; padding: 4px 12px;
   overflow-x: auto; overflow-y: hidden;
   border-bottom: 1px solid var(--line);
   background: var(--bg);
-  position: sticky; top: var(--tool); z-index: 5;
+  position: static;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
 }
+.catstack .catrow:last-child { border-bottom: 0; }
 .catrow::-webkit-scrollbar { display: none; }
 .item-grid { display: flex; flex-direction: column; min-width: 0; }
 .group-label {
@@ -266,11 +271,27 @@ img, svg { display: block; }
   position: fixed; z-index: 30;
   left: calc(10px + var(--sal)); right: calc(10px + var(--sar));
   bottom: calc(10px + var(--sab) + var(--kb));
-  height: 56px; padding: 6px 6px 6px 14px;
-  display: flex; align-items: center; gap: 10px;
+  height: auto; padding: 6px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
   background: var(--dock-bg); border: 1px solid var(--line-2); border-radius: 0;
   box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
 }
+.dock-main { display: flex; align-items: center; gap: 8px; min-width: 0; padding-left: 8px; }
+.dock-actions { display: flex; gap: 6px; min-width: 0; }
+.dock-act {
+  flex: 1 1 0; min-width: 44px; min-height: 44px; padding: 4px 8px;
+  border: 1px solid var(--line-2); background: transparent; color: var(--dim);
+  font-family: ui-monospace, monospace; font-size: 12px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase; line-height: 1.15;
+  display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;
+  white-space: nowrap; overflow: hidden;
+}
+.dock-act .count {
+  font-size: 11px; color: var(--ink); letter-spacing: 0; text-transform: none;
+}
+.dock-act.is-unavailable { flex-direction: column; gap: 0; color: var(--faint); }
+.dock-act .note { display: none; font-size: 9px; letter-spacing: .04em; color: var(--faint); text-transform: uppercase; font-weight: 600; }
+.dock-act.is-unavailable .note { display: block; }
 .dock-open {
   flex: 1; min-height: 44px; min-width: 0; border: 0; background: transparent;
   display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
@@ -363,7 +384,8 @@ body.code-open { overflow: hidden; }
 .sheet-calc { width: 100%; min-width: 0; height: 52px; margin: 4px 0 8px; }
 
 .roles-section { margin-top: 12px; padding: 16px 0 0; border-top: 1px solid var(--line); }
-.roles-title { padding: 0 0 10px; font-size: 16px; font-weight: 600; }
+.roles-title, #shareHeading { margin: 0; padding: 0 0 10px; font-size: 16px; font-weight: 600; }
+#shareHeading { padding-top: 8px; }
 .roles-title small { display: block; font-size: 13px; font-weight: 500; color: var(--dim); letter-spacing: 0; }
 .roles-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch;
@@ -517,11 +539,20 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     </main>
   </div>
   <div class="dock" aria-label="Order summary">
-    <button class="dock-open" id="codeSheetBtn" type="button" aria-label="Open order">
-      <span class="lbl" id="dockCount">Cart empty</span>
-      <span class="dock-total" id="totalChip" aria-live="polite"><span class="tc-label">Buy total</span><span class="tc-value">0 Cr</span></span>
-    </button>
-    <button id="calculateBtn" type="button">Calculate</button>
+    <div class="dock-main">
+      <button class="dock-open" id="codeSheetBtn" type="button" aria-label="Open order">
+        <span class="lbl" id="dockCount">Cart empty</span>
+        <span class="dock-total" id="totalChip" aria-live="polite"><span class="tc-label">Buy total</span><span class="tc-value">0 Cr</span></span>
+      </button>
+      <button id="calculateBtn" type="button">Calculate</button>
+    </div>
+    <div class="dock-actions">
+      <button class="dock-act" id="rolesDockBtn" type="button" aria-label="Roles">Roles <span class="count" id="roleCount" hidden></span></button>
+      <button class="dock-act" id="shareOrderBtn" type="button">
+        <span class="dock-act-label">Share order</span>
+        <span class="note">Buy cart only</span>
+      </button>
+    </div>
   </div>
   <div class="sheet-backdrop" id="codeBackdrop"></div>
   <div class="order-sheet" id="orderSheet" role="dialog" aria-label="Order">
@@ -546,6 +577,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <button id="clearAllBtn" type="button">Clear</button>
       </div>
       <div class="order-code-box" id="orderCodeBox">
+        <h3 id="shareHeading">Share order</h3>
         <input type="text" id="orderCodeOut" readonly placeholder="Link appears here..." style="display:none;" autocomplete="off" aria-label="Generated order link">
         <button id="copyCodeBtn" type="button" style="display:none;" title="Copy" aria-label="Copy order link">Copy</button>
         <button id="clearCodeBtn" type="button" title="Clear" aria-label="Clear link">Clear link</button>
@@ -556,9 +588,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         </div>
         <p class="sheet-note">The link opens this buy cart and kit definitions. Older order codes still work.</p>
       </div>
-      <section class="roles-section">
-        <div class="roles-title">Roles<small>Tap to toggle</small></div>
-        <div class="roles-grid" id="rolesGrid"></div>
+      <section class="roles-section" id="rolesSection">
+        <h3 class="roles-title" id="rolesHeading">Roles<small>Tap to toggle</small></h3>
+        <div class="roles-grid" id="rolesGrid" tabindex="-1" aria-label="Roles"></div>
       </section>
     </div>
   </div>
@@ -1193,6 +1225,22 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (dock) dock.textContent = n ? (n + (n === 1 ? " item" : " items")) : "Cart empty";
       const title = document.getElementById("sheetTitle");
       if (title) title.textContent = isBuy ? "Buy cart" : "Sell cart";
+      const rc = document.getElementById("roleCount");
+      const roleBtn = document.getElementById("rolesDockBtn");
+      const selected = activeRoles.size;
+      if (rc) {
+        rc.hidden = selected === 0;
+        rc.textContent = selected ? String(selected) : "";
+      }
+      if (roleBtn) roleBtn.setAttribute("aria-label", selected ? ("Roles, " + selected + " selected") : "Roles");
+      const share = document.getElementById("shareOrderBtn");
+      if (share) {
+        const buy = currentTab === "buy";
+        share.classList.toggle("is-unavailable", !buy);
+        share.setAttribute("aria-disabled", buy ? "false" : "true");
+        share.setAttribute("aria-label", buy ? "Share order" : "Share order, available on the buy cart");
+        share.title = buy ? "" : "Order links are for the buy cart";
+      }
     }
 
     // ----- item icons (display only: no effect on names, prices, carts or codes) -----
@@ -1256,35 +1304,61 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
 
 
-    function appendSiblingRail(grid, path, tree) {
-      if (!path.length) return;
-      let parent = tree;
-      for (const p of path.slice(0, -1)) {
-        if (!parent || typeof parent !== "object") return;
-        parent = parent[p];
+    function isBranch(node) {
+      return !!(node && typeof node === "object" && !Array.isArray(node));
+    }
+    function nodeAt(tree, path) {
+      let node = tree;
+      for (const p of path) {
+        if (!node || typeof node !== "object") return null;
+        node = node[p];
       }
-      if (!parent || Array.isArray(parent)) return;
-      const current = path[path.length - 1];
-      Object.keys(parent).forEach(key => {
-        if (key.startsWith("_")) return;
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "cat-btn" + (key === current ? " is-on" : "");
-        btn.textContent = key;
-        chipCat(btn, parent[key]);
-        withIcon(btn, ICON_CAT[path.slice(0, -1).concat(key).join(" / ")] || "crate");
-        if (parent[key] && parent[key]._outOfStock) {
-          btn.style.textDecoration = "line-through";
-          btn.style.opacity = "0.5";
-        }
-        btn.onclick = () => {
-          if (parent[key] && parent[key]._outOfStock) { toast("OUT OF STOCK"); return; }
-          if (tree === buyitems) buyPath = path.slice(0, -1).concat(key);
-          else sellPath = path.slice(0, -1).concat(key);
-          render();
-        };
-        grid.appendChild(btn);
-      });
+      return node;
+    }
+    function renderLevelRails(grid, path, tree, onPick) {
+      const stack = document.createElement("div");
+      stack.className = "catstack";
+      for (let level = 0; level <= path.length; level++) {
+        const prefix = path.slice(0, level);
+        const parent = nodeAt(tree, prefix);
+        if (!isBranch(parent)) break;
+        const selected = path[level];
+        const nav = document.createElement("nav");
+        nav.className = "catrow";
+        nav.dataset.level = String(level);
+        nav.setAttribute("aria-label", level === 0 ? "Categories" : (prefix[prefix.length - 1] + " categories"));
+        Object.keys(parent).forEach(key => {
+          if (key.startsWith("_")) return;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cat-btn" + (key === selected ? " is-on" : "");
+          btn.textContent = key;
+          btn.setAttribute("aria-pressed", key === selected ? "true" : "false");
+          chipCat(btn, parent[key]);
+          if (parent[key] && parent[key]._outOfStock) {
+            btn.style.textDecoration = "line-through";
+            btn.style.opacity = "0.5";
+          }
+          btn.onclick = () => {
+            if (parent[key] && parent[key]._outOfStock) { toast("OUT OF STOCK"); return; }
+            onPick(prefix.concat(key));
+          };
+          nav.appendChild(btn);
+        });
+        stack.appendChild(nav);
+        if (level === path.length) break;
+        if (!isBranch(parent[selected])) break;
+      }
+      if (path.length && stack.lastElementChild) {
+        const back = document.createElement("button");
+        back.type = "button";
+        back.className = "item-btn back-btn";
+        back.textContent = "← Back";
+        back.setAttribute("aria-label", "Back");
+        back.onclick = () => onPick(path.slice(0, -1));
+        stack.lastElementChild.insertBefore(back, stack.lastElementChild.firstChild);
+      }
+      if (stack.childElementCount) grid.appendChild(stack);
     }
     function equalizeRoles() {
       const grid = document.getElementById("rolesGrid");
@@ -1416,11 +1490,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
 
       renderBreadcrumb(buyPath, bc, true);
+      renderLevelRails(grid, buyPath, buyitems, next => { buyPath = next; render(); });
       let node = buyitems;
       for (const p of buyPath) node = node[p];
 
       if (Array.isArray(node)) {
-        appendSiblingRail(grid, buyPath, buyitems);
         node.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
@@ -1430,35 +1504,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           btn.onclick = () => handleBuyItem(item);
           grid.appendChild(btn);
         });
-      } else {
-        Object.keys(node).forEach(key => {
-          if (key.startsWith("_")) return;
-          const btn = document.createElement("button");
-          btn.className = "cat-btn";
-          btn.textContent = key;
-          chipCat(btn, node[key]); withIcon(btn, ICON_CAT[buyPath.concat(key).join(" / ")] || "crate");
-          if (node[key] && node[key]._outOfStock) {
-            btn.style.textDecoration = "line-through";
-            btn.style.opacity = "0.5";
-          }
-          btn.onclick = () => {
-            if (node[key] && node[key]._outOfStock) {
-              toast("OUT OF STOCK");
-              return;
-            }
-            buyPath.push(key);
-            render();
-          };
-          grid.appendChild(btn);
-        });
-      }
-      if (buyPath.length > 0) {
-        const back = document.createElement("button");
-        back.className = "item-btn";
-        back.textContent = "← Back";
-        back.style.gridColumn = "1 / -1"; back.classList.add("back-btn");
-        back.onclick = () => { buyPath.pop(); render(); };
-        grid.appendChild(back);
       }
       decorateRoster(grid, "buy");
       renderSummary("buy");
@@ -1491,21 +1536,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
 
       renderBreadcrumb(sellPath, bc, false);
-
-      if (sellPath.length === 0) {
-        Object.keys(sellitems).forEach(cat => {
-          const btn = document.createElement("button");
-          btn.className = "cat-btn";
-          btn.textContent = cat;
-          chipCat(btn, sellitems[cat]); withIcon(btn, ICON_CAT[cat] || "crate");
-          btn.onclick = () => { sellPath.push(cat); render(); };
-          grid.appendChild(btn);
-        });
-      } else {
-        appendSiblingRail(grid, sellPath, sellitems);
-        const cat = sellPath[0];
-        const items = sellitems[cat] || [];
-        items.forEach(item => {
+      renderLevelRails(grid, sellPath, sellitems, next => { sellPath = next; render(); });
+      const sellNode = nodeAt(sellitems, sellPath);
+      if (Array.isArray(sellNode)) {
+        sellNode.forEach(item => {
           const btn = document.createElement("button");
           btn.className = "item-btn";
           btn.innerHTML = itemDisplayName(item);
@@ -1513,12 +1547,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           btn.onclick = () => handleSellItem(item);
           grid.appendChild(btn);
         });
-        const back = document.createElement("button");
-        back.className = "item-btn";
-        back.textContent = "← Back";
-        back.style.gridColumn = "1 / -1"; back.classList.add("back-btn");
-        back.onclick = () => { sellPath.pop(); render(); };
-        grid.appendChild(back);
       }
       decorateRoster(grid, "sell");
       renderSummary("sell");
@@ -1917,7 +1945,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         navigator.clipboard.writeText(link).then(() => {
           const t = document.getElementById("toast");
           if (t && t.textContent === "Link generated") toast("Link copied");
-        }).catch(() => {});
+        }).catch(() => {
+          const t = document.getElementById("toast");
+          if (t && (t.textContent === "Link generated" || t.textContent === "Link copied")) toast("Copy failed — use the link below");
+        });
       }
     };
     document.getElementById("copyCodeBtn").onclick = () => {
@@ -1942,6 +1973,37 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     // Order-code sheet (display only)
     const openCodeSheet = () => { document.body.classList.add("code-open"); setTimeout(equalizeRoles, 40); };
     const closeCodeSheet = () => { document.body.classList.remove("code-open"); };
+    function scrollSheetTo(el) {
+      const body = document.getElementById("orderSheetBody");
+      if (!body || !el) return;
+      const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+      body.scrollTop = Math.max(0, top - 4);
+    }
+    function revealRoles() {
+      openCodeSheet();
+      requestAnimationFrame(() => {
+        scrollSheetTo(document.getElementById("rolesSection"));
+        equalizeRoles();
+        const grid = document.getElementById("rolesGrid");
+        if (grid) grid.focus({ preventScroll: true });
+      });
+    }
+    function shareOrder() {
+      if (currentTab !== "buy") {
+        toast("Order links are for the buy cart");
+        return;
+      }
+      document.getElementById("genCodeBtn").click();
+      if (Object.keys(buyCart).length === 0) return;
+      openCodeSheet();
+      requestAnimationFrame(() => {
+        scrollSheetTo(document.getElementById("orderCodeBox"));
+        const out = document.getElementById("orderCodeOut");
+        if (out && out.value) out.focus({ preventScroll: true });
+      });
+    }
+    document.getElementById("rolesDockBtn").onclick = revealRoles;
+    document.getElementById("shareOrderBtn").onclick = shareOrder;
     const sheetCalc = document.getElementById("sheetCalcBtn");
     if (sheetCalc) sheetCalc.onclick = calculate;
     if (window.visualViewport) {
