@@ -1,0 +1,13 @@
+{
+  "name": "935-calc-sim",
+  "private": true,
+  "description": "Headless regressions for the 935 trading calculator. Requires puppeteer-core and system Chrome.",
+  "scripts": {
+    "test": "node sim.js",
+    "icons": "node icons-check.js",
+    "geometry": "node ui-geometry.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "24.43.1"
+  }
+}
