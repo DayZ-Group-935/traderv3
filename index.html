@@ -555,7 +555,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     </div>
   </div>
   <div class="sheet-backdrop" id="codeBackdrop"></div>
-  <div class="order-sheet" id="orderSheet" role="dialog" aria-label="Order">
+  <div class="order-sheet" id="orderSheet" role="dialog" aria-label="Order" tabindex="-1">
     <div class="grabber"></div>
     <div class="sheet-head">
       <h2 id="sheetTitle">Buy cart</h2>
@@ -1914,6 +1914,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderSummary("buy");
         renderKitSummaries();
         toast("Order loaded");
+        revealLoadedCart();
         return true;
       } catch(e) {
         toast("Invalid code");
@@ -1973,6 +1974,18 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     // Order-code sheet (display only)
     const openCodeSheet = () => { document.body.classList.add("code-open"); setTimeout(equalizeRoles, 40); };
     const closeCodeSheet = () => { document.body.classList.remove("code-open"); };
+    function revealLoadedCart() {
+      if (currentTab !== "buy") document.querySelector('.tab-btn[data-tab="buy"]').click();
+      openCodeSheet();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const sheet = document.getElementById("orderSheet");
+        const body = document.getElementById("orderSheetBody");
+        const active = document.activeElement;
+        if (active && active !== sheet && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) active.blur();
+        if (sheet) sheet.focus({ preventScroll: true });
+        if (body) body.scrollTop = 0;
+      }));
+    }
     function scrollSheetTo(el) {
       const body = document.getElementById("orderSheetBody");
       if (!body || !el) return;
