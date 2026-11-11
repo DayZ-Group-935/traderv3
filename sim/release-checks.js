@@ -118,6 +118,32 @@ async function overlaps(page, selector) {
       admin: document.getElementById('modeAdminBtn').hidden
     }));
     check('hosted-gateway-says-signed-out', signed.status === 'Signed out' && signed.injected && !signed.configuredPhrase && signed.items.includes('Aug AX') && signed.trader && signed.admin, signed);
+    async function signInBar() {
+      return page.evaluate(() => {
+        const bar = document.getElementById('accountBar');
+        const btn = document.getElementById('accountSignIn');
+        const svg = btn.querySelector('svg.discord-mark');
+        const label = btn.querySelector('span');
+        const modes = document.querySelector('.account-modes').getBoundingClientRect();
+        const icon = svg.getBoundingClientRect();
+        const text = label.getBoundingClientRect();
+        const btnBox = btn.getBoundingClientRect();
+        return {
+          label: label.textContent,
+          name: btn.getAttribute('aria-label'),
+          svgHidden: svg.getAttribute('aria-hidden'),
+          iconH: Math.round(icon.height),
+          centered: Math.abs(((icon.top + icon.bottom) / 2) - ((text.top + text.bottom) / 2)) <= 1.5,
+          textClear: text.left >= icon.right - 0.5,
+          noPageScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+          modesInside: modes.right <= bar.getBoundingClientRect().right + 1 && modes.height <= 52,
+          btnInside: btnBox.right <= document.documentElement.clientWidth + 1
+        };
+      });
+    }
+    const bar390 = await signInBar();
+    check('signin-discord-mark-390', bar390.label === 'Sign in' && bar390.name === 'Sign in with Discord' && bar390.svgHidden === 'true' && bar390.iconH >= 16 && bar390.iconH <= 18 && bar390.centered && bar390.textClear && bar390.noPageScroll && bar390.modesInside && bar390.btnInside, bar390);
+    await page.screenshot({ path: path.join(OUT, 'signed-out-390.png') });
     await page.screenshot({ path: path.join(OUT, 'badlands-weapons-390.png') });
 
     for (const width of [390, 320]) {
@@ -125,7 +151,17 @@ async function overlaps(page, selector) {
       const itemOverlap = await overlaps(page, '#buyGrid .item-btn');
       check('weapons-no-overlap-' + width, itemOverlap.length === 0, itemOverlap);
     }
+    const bar320 = await signInBar();
+    check('signin-discord-mark-320', bar320.label === 'Sign in' && bar320.iconH >= 16 && bar320.iconH <= 18 && bar320.centered && bar320.noPageScroll && bar320.modesInside && bar320.btnInside, bar320);
+    await page.screenshot({ path: path.join(OUT, 'signed-out-320.png') });
     await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1, isMobile: false });
+    await page.waitForFunction(() => {
+      const btn = document.getElementById('accountSignIn');
+      const svg = btn && btn.querySelector('svg.discord-mark');
+      return btn && !btn.hidden && svg && svg.getBoundingClientRect().height >= 16 && document.getElementById('accountStatus').textContent === 'Signed out';
+    });
+    const bar1280 = await signInBar();
+    check('signin-discord-mark-1280', bar1280.noPageScroll && bar1280.modesInside && bar1280.btnInside && bar1280.iconH >= 16 && bar1280.iconH <= 18, bar1280);
     await page.screenshot({ path: path.join(OUT, 'badlands-weapons-1280.png') });
 
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
