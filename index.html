@@ -411,6 +411,7 @@ body.mode-admin .mode-btn.is-on { color: var(--ink); }
 .role-edit-name { font-weight: 650; overflow-wrap: anywhere; }
 .role-missing { color: var(--faint); font-size: 12px; font-weight: 500; }
 .role-source, .role-ref { margin: 4px 0; font-size: 12px; color: var(--faint); font-weight: 500; }
+.role-caution { margin: 4px 0 8px; font-size: 12px; line-height: 1.35; color: var(--kicker); }
 .role-edit .tabs { display: flex; max-width: 100%; }
 .role-edit .tab-btn { flex: 1 1 0; min-width: 0; }
 .role-edit input[type="number"] { width: 100%; max-width: 100%; box-sizing: border-box; }
@@ -927,18 +928,35 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       "The Vaccinator":{description:"Turn in 100 Syringes to Trader.",bonuses:{"Syringe":1500},discounts:{"NBC Filters":50,"PoX Antidote":50}},
       "Day One":{description:"Special pricing for founding members.",discounts:{},bonuses:{},cartPercent:10}
     };
-    // Discord perk text is a reference. It becomes a buy-line percent only when the calculator has no terms for that role.
+    // Discord earnable-roles text is read-only reference. Calculator terms stay the prices.
     const discordStatements = {
-      "Click Click Boom":{"percent":7,"statement":"7% off everything"},
-      "Daryl Dixon":{"percent":15,"statement":"15% off everything"},
-      "Deadshot":{"percent":20,"statement":"20% off everything"},
-      "Head Hunter":{"percent":5,"statement":"5% off everything"},
-      "Hotshot":{"percent":25,"statement":"25% off everything"},
-      "Kamikaze":{"percent":20,"statement":"20% off everything"},
-      "Negan":{"percent":10,"statement":"10% off everything"},
-      "Day 1":{"percent":10,"statement":"10% off everything","calculator":"Day One"}
+      "Road Kill":{"calculator":"Roadkill","statement":"5% off","caution":"Calculator is 25% on car parts. Discord says 5% off."},
+      "Day 1":{"calculator":"Day One","statement":"10% off everything","caution":"Calculator is a 10% buy-cart discount that skips lines with a catalog discount. Discord says 10% off everything."},
+      "Click Click Boom":{"statement":"7%","caution":"Calculator is 20% on listed explosives. Discord says 7%."},
+      "Daryl Dixon":{"statement":"15%","caution":"Calculator is 50% on Crossbow and Crossbow Bolts. Discord says 15%."},
+      "Deadshot":{"statement":"20%","caution":"Calculator is 50% on listed sniper items. Discord says 20%."},
+      "Head Hunter":{"statement":"5%","caution":"Calculator is 50% on listed ammo. Discord says 5%."},
+      "Hotshot":{"statement":"25%","caution":"Calculator is 25% on listed sniper items, not every buy. Discord says 25%."},
+      "Kamikaze":{"statement":"20%","caution":"Calculator is 25% on Grenade. Discord says 20%."},
+      "Negan":{"statement":"10%","caution":"Calculator is 20% on Box of Nails. Discord says 10%."},
+      "Dr. Greenthumb":{"statement":"ongoing bonuses, no % listed"},
+      "All Your Base":{"statement":"ongoing bonuses, no % listed","caution":"Calculator is 100% off Faction Flags. Discord lists ongoing bonuses and no percent."},
+      "Big Game Hunter":{"statement":"ongoing bonuses, no % listed"},
+      "Hat Trick":{"statement":"ongoing bonuses, no % listed"},
+      "Librarian":{"statement":"ongoing bonuses, no % listed"},
+      "Marlboro Man":{"statement":"ongoing bonuses, no % listed"},
+      "Pathfinder":{"statement":"ongoing bonuses, no % listed","caution":"Calculator also discounts Rangefinder and Tourist Map by 100%. Discord lists ongoing bonuses and no percent."},
+      "Build A Bear":{"calculator":"Build-A-Bear","statement":"ongoing bonuses, no % listed"},
+      "Meet My Beat":{"calculator":"Meet Your Beat","statement":"ongoing bonuses, no % listed"}
     };
     const discordOngoing = {};
+    const discordMissing = {
+      "Julius Caesar":{},
+      "The Milkman":{},
+      "Rose Reaper":{},
+      "The Vaccinator":{},
+      "Without A Paddle":{}
+    };
     Object.keys(discordStatements).forEach(name => {
       const row = discordStatements[name];
       if (!row || row.calculator || roles[name]) return;
@@ -2015,14 +2033,15 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       return alias ? { name: alias[0], row: alias[1] } : null;
     }
     function selectedRoleMeta(roleName) {
+      if (discordMissing[roleName]) return { source: "unmapped", tag: "no Discord role", statement: "", caution: "" };
       const rule = roles[roleName];
       const has = roleHasCalculatorTerms(rule);
       const ref = discordReference(roleName);
-      if (has) return { source: "calculator", tag: "calculator term", statement: ref ? ref.row.statement : "" };
-      if (discordOngoing[roleName]) return { source: "none", tag: "no defined terms", statement: "ongoing bonuses, no %" };
+      if (has) return { source: "calculator", tag: "calculator term", statement: ref ? ref.row.statement : "", caution: ref && ref.row.caution ? ref.row.caution : "" };
+      if (discordOngoing[roleName]) return { source: "none", tag: "no defined terms", statement: "ongoing bonuses, no %", caution: "" };
       const direct = discordStatements[roleName];
-      if (direct && direct.percent && !direct.calculator) return { source: "discord", tag: "from Discord", statement: direct.statement, percent: direct.percent };
-      return { source: "unknown", tag: "", statement: "" };
+      if (direct && direct.percent && !direct.calculator) return { source: "discord", tag: "from Discord", statement: direct.statement, caution: "", percent: direct.percent };
+      return { source: "unknown", tag: "", statement: "", caution: "" };
     }
     function renderAdminRoles() {
       const select = document.getElementById("adminRoleSelect");
@@ -2038,6 +2057,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           opt.textContent = name;
           select.appendChild(opt);
         });
+        if (![...select.options].some(opt => opt.value === "Without A Paddle")) {
+          const extra = document.createElement("option");
+          extra.value = "Without A Paddle";
+          extra.textContent = "Without A Paddle";
+          select.appendChild(extra);
+        }
       }
       const roleName = select.value || (select.options[0] && select.options[0].value);
       const draft = ensureRoleDraft(roleName);
@@ -2060,7 +2085,13 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         ref.textContent = "Discord: " + meta.statement;
         box.appendChild(ref);
       }
-      if (!draft || meta.source === "none") {
+      if (meta.caution) {
+        const caution = document.createElement("p");
+        caution.className = "role-caution";
+        caution.textContent = meta.caution;
+        box.appendChild(caution);
+      }
+      if (!draft || meta.source === "none" || (meta.source === "unmapped" && !roles[roleName])) {
         const save = document.getElementById("adminRoleSave");
         if (save) { save.disabled = !catalogConfigured; save.setAttribute("aria-disabled", save.disabled ? "true" : "false"); }
         return;
@@ -2240,6 +2271,12 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         opt.textContent = name;
         select.appendChild(opt);
       });
+      if (![...select.options].some(opt => opt.value === "Without A Paddle")) {
+        const extra = document.createElement("option");
+        extra.value = "Without A Paddle";
+        extra.textContent = "Without A Paddle";
+        select.appendChild(extra);
+      }
       if (previous && [...select.options].some(opt => opt.value === previous && !opt.disabled)) select.value = previous;
       else {
         const usable = [...select.options].find(opt => opt.value && !opt.disabled);
@@ -2473,6 +2510,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         const rule = roles[name];
         if (rule && rule.cartPercent) cartPct = Math.max(cartPct, Number(rule.cartPercent) || 0);
       });
+      // Line percents already kept the lower price. This cart percent is extra
+      // on lines without a catalog discount, so Day One stacks with a role line discount.
       const fm = cartPct > 0;
       const buyTotal = fm ? kept + eligible * (1 - cartPct / 100) : kept + eligible;
       let sellTotal = 0;

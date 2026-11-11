@@ -7,9 +7,48 @@
   "discord_redirect_uri": "http://localhost:8787/auth/discord/callback",
   "bot_user_id": "1569978589556904077",
   "bot_username": "Group 935 Calculator",
-  "discount_role_map": {},
+  "discount_role_map": {
+    "1217087146838458378": "Roadkill",
+    "1217083260782383296": "Dr. Greenthumb",
+    "1217098630981488800": "All Your Base",
+    "1303434093941493821": "Day One",
+    "1217086557127708702": "Click Click Boom",
+    "1217084605346222130": "Daryl Dixon",
+    "1217082732899864576": "Deadshot",
+    "1217086433744126022": "Head Hunter",
+    "1217082094086520902": "Hotshot",
+    "1217083866955649158": "Kamikaze",
+    "1217085171224940625": "Negan",
+    "1217083406425526282": "Big Game Hunter",
+    "1217098762233712660": "Hat Trick",
+    "1217084040663011358": "Librarian",
+    "1217084230459199589": "Marlboro Man",
+    "1557875476742144020": "Pathfinder",
+    "1511813956749234388": "Build-A-Bear",
+    "1217083405284675684": "Meet Your Beat"
+  },
+  "discount_role_discord_labels": {
+    "1217087146838458378": "Road Kill",
+    "1217083260782383296": "Dr. Greenthumb",
+    "1217098630981488800": "All Your Base",
+    "1303434093941493821": "Day 1",
+    "1217086557127708702": "Click Click Boom",
+    "1217084605346222130": "Daryl Dixon",
+    "1217082732899864576": "Deadshot",
+    "1217086433744126022": "Head Hunter",
+    "1217082094086520902": "Hotshot",
+    "1217083866955649158": "Kamikaze",
+    "1217085171224940625": "Negan",
+    "1217083406425526282": "Big Game Hunter",
+    "1217098762233712660": "Hat Trick",
+    "1217084040663011358": "Librarian",
+    "1217084230459199589": "Marlboro Man",
+    "1557875476742144020": "Pathfinder",
+    "1511813956749234388": "Build A Bear",
+    "1217083405284675684": "Meet My Beat"
+  },
   "amounts_mapped": false,
-  "aliases_merged": false,
+  "aliases_merged": true,
   "high_level_staff": {
     "configured": true,
     "discord_role_id": "1215042184764723251",
@@ -20,5 +59,5 @@
     "other_aliases": false,
     "source": "official Get Roles 200 on 2026-11-11; unique exact live name 'High Lvl Staff'"
   },
-  "notes": "Nonsecret IDs only. Trader and Server Owner IDs are exact Get Roles names. High Level Staff grant is the verified unique Discord role 'High Lvl Staff' 1215042184764723251: a Design interpretation of Alex's 12:24 phrase 'High Level Staff' as that known abbreviation, not a literal exact-name claim and not an alias of any other staff/admin role. Discord Administrator and other admin/staff labels are not grants. Discount map left empty: exact name/ID evidence is in live/discord-verify-2026-11-11.json. Aliases and discount percentages are not authorized. Secrets stay in process environment, not this file."
+  "notes": "Nonsecret IDs only. Trader and Server Owner IDs are exact Get Roles names. High Level Staff grant is the verified unique Discord role 'High Lvl Staff' 1215042184764723251: a Design interpretation of Alex's 12:24 phrase 'High Level Staff' as that known abbreviation, not a literal exact-name claim and not an alias of any other staff/admin role. Discord Administrator and other admin/staff labels are not grants. discount_role_map is verified Get Roles snowflakes for guild 1213578527522431046, values are calculator role names. The only aliases are Road Kill to Roadkill, Day 1 to Day One, Build A Bear to Build-A-Bear, and Meet My Beat to Meet Your Beat. Julius Caesar, The Milkman, Rose Reaper, The Vaccinator, Without A Paddle, and Mayweather are not in the map. Amounts stay the calculator's current terms. Secrets stay in process environment, not this file."
 }

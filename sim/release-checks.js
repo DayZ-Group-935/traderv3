@@ -280,6 +280,35 @@ async function overlaps(page, selector) {
       };
     });
     check('admin-roles-prefill-roadkill', prefill.battery === '25' && prefill.editable && prefill.add && /not in catalog/.test(prefill.pelt) && prefill.saveDisabled && prefill.notes === 1 && prefill.noRolesButton, prefill);
+    const discordRef = await staff.evaluate(() => {
+      const select = document.getElementById('adminRoleSelect');
+      const read = (name) => {
+        select.value = name;
+        select.dispatchEvent(new Event('change'));
+        return {
+          tag: (document.querySelector('.role-source') || {}).textContent || '',
+          discord: (document.querySelector('.role-ref') || {}).textContent || '',
+          caution: (document.querySelector('.role-caution') || {}).textContent || '',
+          battery: (document.querySelector('.role-edit input') || {}).value || ''
+        };
+      };
+      const road = read('Roadkill');
+      const quiet = read('Big Game Hunter');
+      const missing = read('Julius Caesar');
+      const paddle = read('Without A Paddle');
+      select.value = 'Roadkill';
+      select.dispatchEvent(new Event('change'));
+      return { road, quiet, missing, paddle };
+    });
+    check('admin-roles-discord-reference',
+      discordRef.road.discord === 'Discord: 5% off' &&
+      discordRef.road.caution.includes('25%') && discordRef.road.caution.includes('5% off') &&
+      discordRef.road.battery === '25' &&
+      discordRef.quiet.discord === 'Discord: ongoing bonuses, no % listed' &&
+      discordRef.quiet.caution === '' &&
+      discordRef.missing.tag === 'no Discord role' &&
+      discordRef.paddle.tag === 'no Discord role',
+      discordRef);
     const precedence = await staff.evaluate(() => {
       applyPricingRoles(['Click Click Boom']);
       const grenade = Math.round(getDiscountedPrice('Grenade', 1000, 'buy'));

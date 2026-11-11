@@ -292,7 +292,7 @@ async function run() {
     const boom = table.find((row) => row.name === 'Click Click Boom');
     assert.equal(boom.source, 'calculator');
     assert.equal(boom.tag, 'calculator term');
-    assert.equal(boom.discord_statement, '7% off everything');
+    assert.equal(boom.discord_statement, '7%');
     assert.equal(boom.applied_percent, null);
     assert.equal(rules.find((rule) => rule.name === 'Click Click Boom').effects.find((effect) => effect.name === 'Grenade').discount.value, 20);
     const day = table.find((row) => row.name === 'Day 1');

@@ -569,6 +569,31 @@ async function run() {
     assert.equal(raw.high_level_staff.literal_exact_name_match, false);
     assert.equal(raw.high_level_staff.other_aliases, false);
     assert.equal(raw.high_level_staff.discord_role_id, '1215042184764723251');
+    assert.equal(raw.discord_guild_id, '1213578527522431046');
+    assert.equal(raw.discount_role_map['1217087146838458378'], 'Roadkill');
+    assert.equal(raw.discount_role_discord_labels['1217087146838458378'], 'Road Kill');
+    assert.equal(raw.discount_role_map['1303434093941493821'], 'Day One');
+    assert.equal(raw.discount_role_discord_labels['1303434093941493821'], 'Day 1');
+    assert.equal(raw.discount_role_map['1511813956749234388'], 'Build-A-Bear');
+    assert.equal(raw.discount_role_map['1217083405284675684'], 'Meet Your Beat');
+    assert.equal(Object.values(raw.discount_role_map).includes('Julius Caesar'), false);
+    assert.equal(Object.values(raw.discount_role_map).includes('The Milkman'), false);
+    assert.equal(Object.values(raw.discount_role_map).includes('Rose Reaper'), false);
+    assert.equal(Object.values(raw.discount_role_map).includes('The Vaccinator'), false);
+    assert.equal(Object.values(raw.discount_role_map).includes('Without A Paddle'), false);
+    assert.equal(Object.values(raw.discount_role_map).includes('Mayweather'), false);
+    const { pricingRoleNames } = require('../lib/role-rules');
+    const { loadConfig, buildConfig, loadDiscountRoleMap } = require('../lib/config');
+    const mapped = loadDiscountRoleMap();
+    assert.equal(mapped['1217086557127708702'], 'Click Click Boom');
+    assert.deepEqual(
+      pricingRoleNames(Object.keys(mapped), mapped).sort(),
+      [...new Set(Object.values(mapped))].sort()
+    );
+    assert.deepEqual(pricingRoleNames(['1217087146838458378'], mapped), ['Roadkill']);
+    assert.equal(loadConfig().discountRolesConfigured, true);
+    assert.equal(loadConfig().discordDiscountRoleMap['1217083866955649158'], 'Kamikaze');
+    assert.deepEqual(buildConfig().discordDiscountRoleMap, {});
   });
 
   await test('secret redaction', async () => {
