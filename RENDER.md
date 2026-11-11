@@ -1,6 +1,6 @@
 # Render deploy contract
 
-This file is the host contract for a later manual deploy. It does not create a Render service, spend money, or name a live public origin. Payment is not ready: Render does not take PayPal, and no card has been entered. Do not start a paid instance from this change.
+This file is the host contract for a later manual deploy. It does not create a Render service, spend money, or name a live public origin. Alex reports a card was added and the Render dashboard shows it on file. No charge has been made and no service has been created. The real tax-inclusive charge is still unknown, so this change does not accept that charge or create the service.
 
 GitHub Pages on `main` stays the static calculator. That copy does not set an account gateway and does not run Node.
 
@@ -58,7 +58,19 @@ Set these on the host. Do not commit values.
 | `KILLFEED_USER_ID_SEMANTICS` | `discord_user_id` |
 | `KILLFEED_API_KEY` or `KILLFEED_API_KEY_FILE` | Host secret. Prefer a Render secret file. Not in git. |
 
-The process exits if it is asked to bind a non-loopback address without `COOKIE_SECURE=true` and a long `SESSION_SECRET`.
+The process exits if it is asked to bind a non-loopback address without `COOKIE_SECURE=true`, a long `SESSION_SECRET`, and an explicit `https` callback. It does not guess a hostname.
+
+When a service is created later, Auto-Deploy must be Off. A git push must not create or update a paid instance.
+
+## Request boundary
+
+The canonical origin is only the origin of `DISCORD_REDIRECT_URI`. Hosted mode accepts that value when it is `https`, has no userinfo, and its path is exactly `/auth/discord/callback`. The Host header must name that host (`:443` is the same host). A different Host gets HTTP 421 and the response does not echo it.
+
+`X-Forwarded-Proto` is not a scheme, a cookie flag, or a redirect. On ordinary hosted routes a present value must be exactly `https`. A missing value is allowed, because normal browser navigation does not send it and the app does not need it. `/health` and `/status` ignore the header. Render terminates TLS at the edge and probes the process over plain HTTP; a probe that omits the header, or sends `http`, still gets HTTP 200 and is not redirected. Render sets the health-check Host to a verified custom domain when one exists, otherwise the service hostname. That host has to be the callback host. This repo does not read `RENDER_EXTERNAL_HOSTNAME`.
+
+Origin is optional. A normal page load and the Discord callback often omit it. When Origin is present it must be the canonical origin. The callback may also carry the Discord authorize origin. Responses do not copy Origin, Host, or forwarded headers into `Location`, a cookie `Domain`, or the HTML. Login redirects only to the configured Discord authorize URL. Logout and a successful callback redirect to the relative path `/`.
+
+The local mock path works only when the callback is explicitly `http://localhost` or `http://127.0.0.1` and `COOKIE_SECURE` is off. That path accepts those loopback names on any port and ignores `X-Forwarded-Proto`.
 
 ## Limits that stay in code
 
@@ -66,4 +78,4 @@ The process exits if it is asked to bind a non-loopback address without `COOKIE_
 - Killfeed calls are GET only, at least 2 seconds apart, honoring `RateLimit-Policy: 30;w=60;gcra-burst=3`.
 - The bot client may GET only guild member-by-id, member search, and guild roles. It never lists all members and never opens a Discord gateway.
 - `balance.write_access` and `balance_writes` stay false. There is no cash-write or role-write route.
-- Cookies `g935_sid` and `g935_oauth` are HttpOnly and SameSite=Lax. `Secure` is on when `COOKIE_SECURE=true`.
+- Cookies `g935_sid` and `g935_oauth` are HttpOnly and SameSite=Lax, with no `Domain` attribute. `Secure` is on when `COOKIE_SECURE=true`.

@@ -20,6 +20,7 @@ const {
   sendRedirect,
   readUrl,
 } = require('./lib/http-util');
+const { canonicalFromRedirect, assessRequest, safeAuthorizeLocation } = require('./lib/request-guard');
 
 function isLoopbackHost(host) {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1';
@@ -28,12 +29,22 @@ function isLoopbackHost(host) {
 // Hosted HTTPS (Render) must not boot with an ephemeral session secret or an
 // insecure cookie. Loopback without COOKIE_SECURE keeps the local POC path.
 function assertHostReady(config, host) {
-  if (isLoopbackHost(host) && !config.cookieSecure) return;
+  if (isLoopbackHost(host) && !config.cookieSecure) {
+    const local = canonicalFromRedirect(config.discordRedirectUri);
+    if (!local || local.mode !== 'local') {
+      throw new Error('Local loopback requires an explicit http://localhost or http://127.0.0.1 DISCORD_REDIRECT_URI.');
+    }
+    return;
+  }
   if (!config.cookieSecure) {
     throw new Error('COOKIE_SECURE=true is required when the process is not bound to loopback.');
   }
   if (config.sessionSecretGenerated || !config.sessionSecret || config.sessionSecret.length < 32) {
     throw new Error('A durable SESSION_SECRET of at least 32 characters is required when COOKIE_SECURE is true.');
+  }
+  const canon = canonicalFromRedirect(config.discordRedirectUri);
+  if (!canon || canon.mode !== 'https') {
+    throw new Error('DISCORD_REDIRECT_URI must be an explicit https callback on the public host. No hostname is guessed.');
   }
 }
 
@@ -120,19 +131,31 @@ function createApp(options = {}) {
   }
 
   async function handle(req, res) {
-    const url = readUrl(req, 'localhost:8787');
-    const path = url.pathname;
+    const url = readUrl(req);
     const method = req.method || 'GET';
+    if (!url) {
+      sendJson(res, 400, { error: 'invalid_request' });
+      logger.request({ method, url: '' }, 400, { reason: 'invalid_request' });
+      return;
+    }
+    const path = url.pathname;
+    const verdict = assessRequest(config, req, path, method);
+    if (!verdict.ok) {
+      sendJson(res, verdict.status, { error: verdict.error });
+      logger.request({ method, url: path }, verdict.status, { reason: verdict.error });
+      return;
+    }
+    const logReq = { method, url: path };
 
     if (path === '/health' || path === '/status') {
       sendJson(res, 200, publicStatus(config));
-      logger.request(req, 200);
+      logger.request(logReq, 200);
       return;
     }
 
     if (path === '/' && method === 'GET') {
       sendHtml(res, 200, calculatorDocument(config));
-      logger.request(req, 200);
+      logger.request(logReq, 200);
       return;
     }
 
@@ -143,15 +166,20 @@ function createApp(options = {}) {
           provider: 'discord_oauth',
           reason: 'not_configured',
         });
-        logger.request(req, 503);
+        logger.request(logReq, 503);
         return;
       }
       const issued = oauthStates.issue();
-      const location = oauth.authorizeUrl(issued.state, issued.challenge);
+      const location = safeAuthorizeLocation(oauth.authorizeUrl(issued.state, issued.challenge), config);
+      if (!location) {
+        sendJson(res, 500, { error: 'invalid_authorize_url' });
+        logger.request(logReq, 500);
+        return;
+      }
       sendRedirect(res, location, {
         'Set-Cookie': cookieHeader(oauthStates.cookieName, issued.nonce, cookieOpts(config, 600)),
       });
-      logger.request(req, 302);
+      logger.request(logReq, 302);
       return;
     }
 
@@ -166,7 +194,7 @@ function createApp(options = {}) {
 
       if (!pending || !code) {
         sendJson(res, 400, { error: 'invalid_state' }, { 'Set-Cookie': clearOauth });
-        logger.request(req, 400, { reason: 'oauth_state_mismatch' });
+        logger.request(logReq, 400, { reason: 'oauth_state_mismatch' });
         return;
       }
 
@@ -175,7 +203,7 @@ function createApp(options = {}) {
         const user = await oauth.getCurrentUser(token.access_token);
         if (!user || !user.id) {
           sendJson(res, 502, { error: 'identity_unavailable' }, { 'Set-Cookie': clearOauth });
-          logger.request(req, 502);
+          logger.request(logReq, 502);
           return;
         }
         const session = sessions.create({
@@ -191,11 +219,11 @@ function createApp(options = {}) {
             clearOauth,
           ],
         });
-        logger.request(req, 302, { user: session.discordUserId });
+        logger.request(logReq, 302, { user: session.discordUserId });
         return;
       } catch {
         sendJson(res, 502, { error: 'oauth_exchange_failed' }, { 'Set-Cookie': clearOauth });
-        logger.request(req, 502, { reason: 'oauth_exchange_failed' });
+        logger.request(logReq, 502, { reason: 'oauth_exchange_failed' });
         return;
       }
     }
@@ -211,14 +239,14 @@ function createApp(options = {}) {
       } else {
         sendJson(res, 200, { ok: true }, headers);
       }
-      logger.request(req, method === 'GET' ? 302 : 200);
+      logger.request(logReq, method === 'GET' ? 302 : 200);
       return;
     }
 
     if (path === '/api/me' && method === 'GET') {
       const session = await requireSession(req, res);
       if (!session) {
-        logger.request(req, 401);
+        logger.request(logReq, 401);
         return;
       }
       ignoredCallerHints(url);
@@ -232,27 +260,27 @@ function createApp(options = {}) {
         },
       });
       sendJson(res, 200, body);
-      logger.request(req, 200, { user: session.discordUserId });
+      logger.request(logReq, 200, { user: session.discordUserId });
       return;
     }
 
     if (path === '/api/me/balance' && method === 'GET') {
       const session = await requireSession(req, res);
       if (!session) {
-        logger.request(req, 401);
+        logger.request(logReq, 401);
         return;
       }
       ignoredCallerHints(url);
       const balance = await killfeed.getBalance(session.discordUserId);
       sendJson(res, 200, sanitizeBalance(balance));
-      logger.request(req, 200, { user: session.discordUserId });
+      logger.request(logReq, 200, { user: session.discordUserId });
       return;
     }
 
     if (path === '/api/me/roles' && method === 'GET') {
       const session = await requireSession(req, res);
       if (!session) {
-        logger.request(req, 401);
+        logger.request(logReq, 401);
         return;
       }
       ignoredCallerHints(url);
@@ -266,7 +294,7 @@ function createApp(options = {}) {
         is_trader: Boolean(accessPayload(config, membership).grants.trader),
         access: accessPayload(config, membership),
       });
-      logger.request(req, 200, { user: session.discordUserId });
+      logger.request(logReq, 200, { user: session.discordUserId });
       return;
     }
 
@@ -274,19 +302,19 @@ function createApp(options = {}) {
     if (traderPlayer && method === 'GET') {
       const session = await requireSession(req, res);
       if (!session) {
-        logger.request(req, 401);
+        logger.request(logReq, 401);
         return;
       }
       ignoredCallerHints(url);
       const gate = await evaluateTraderAccess(session, oauth, config);
       if (!gate.allowed) {
         sendJson(res, 403, { error: gate.error, reason: gate.reason });
-        logger.request(req, 403, { reason: gate.reason, user: session.discordUserId });
+        logger.request(logReq, 403, { reason: gate.reason, user: session.discordUserId });
         return;
       }
       if (!botLookup.isConfigured()) {
         sendJson(res, 503, botLookup.unavailable());
-        logger.request(req, 503, { provider: 'discord_member_lookup', user: session.discordUserId });
+        logger.request(logReq, 503, { provider: 'discord_member_lookup', user: session.discordUserId });
         return;
       }
       const targetId = decodeURIComponent(traderPlayer[1]);
@@ -300,26 +328,26 @@ function createApp(options = {}) {
         balance: sanitizeBalance(balance),
         live_customer_functionality: false,
       });
-      logger.request(req, status, { user: session.discordUserId });
+      logger.request(logReq, status, { user: session.discordUserId });
       return;
     }
 
     if (path === '/api/trader/search' && method === 'GET') {
       const session = await requireSession(req, res);
       if (!session) {
-        logger.request(req, 401);
+        logger.request(logReq, 401);
         return;
       }
       ignoredCallerHints(url);
       const gate = await evaluateTraderAccess(session, oauth, config);
       if (!gate.allowed) {
         sendJson(res, 403, { error: gate.error, reason: gate.reason });
-        logger.request(req, 403, { reason: gate.reason, user: session.discordUserId });
+        logger.request(logReq, 403, { reason: gate.reason, user: session.discordUserId });
         return;
       }
       if (!botLookup.isConfigured()) {
         sendJson(res, 503, botLookup.unavailable());
-        logger.request(req, 503, { provider: 'discord_member_lookup', user: session.discordUserId });
+        logger.request(logReq, 503, { provider: 'discord_member_lookup', user: session.discordUserId });
         return;
       }
       const query = url.searchParams.get('q') || '';
@@ -330,12 +358,12 @@ function createApp(options = {}) {
         live_customer_functionality: false,
         killfeed_search: killfeed.search(),
       });
-      logger.request(req, status, { user: session.discordUserId });
+      logger.request(logReq, status, { user: session.discordUserId });
       return;
     }
 
     sendJson(res, 404, { error: 'not_found' });
-    logger.request(req, 404);
+    logger.request(logReq, 404);
   }
 
   const server = http.createServer((req, res) => {

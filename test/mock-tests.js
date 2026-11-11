@@ -8,6 +8,8 @@
  */
 
 const assert = require('node:assert/strict');
+const http = require('node:http');
+const net = require('node:net');
 const { buildConfig, publicStatus, loadRuntimeIds } = require('../lib/config');
 const { redact } = require('../lib/redact');
 const { createKillfeedAdapter } = require('../lib/killfeed');
@@ -16,7 +18,8 @@ const { createRateLimiter } = require('../lib/http-util');
 const os = require('node:os');
 const { mapDiscounts, parseVerifiedMap } = require('../lib/discounts');
 const { createDiscordBotLookup, isAllowlistedBotPath } = require('../lib/discord-bot-lookup');
-const { createApp } = require('../server');
+const { createApp, assertHostReady } = require('../server');
+const { canonicalFromRedirect } = require('../lib/request-guard');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -966,16 +969,195 @@ async function run() {
   });
 
   await test('a public bind requires COOKIE_SECURE and a durable SESSION_SECRET', async () => {
-    const { assertHostReady } = require('../server');
     const open = baseConfig({});
     assert.doesNotThrow(() => assertHostReady(open, '127.0.0.1'));
     assert.throws(() => assertHostReady(open, '0.0.0.0'), /COOKIE_SECURE/);
     const secureShort = baseConfig({ COOKIE_SECURE: 'true', SESSION_SECRET: 'too-short' });
     assert.throws(() => assertHostReady(secureShort, '0.0.0.0'), /SESSION_SECRET/);
-    const secure = baseConfig({ COOKIE_SECURE: 'true', SESSION_SECRET: 'x'.repeat(32) });
-    assert.equal(secure.sessionSecretGenerated, false);
-    assert.equal(secure.cookieSecure, true);
-    assert.doesNotThrow(() => assertHostReady(secure, '0.0.0.0'));
+    const secureLocal = baseConfig({ COOKIE_SECURE: 'true', SESSION_SECRET: 'x'.repeat(32) });
+    assert.throws(() => assertHostReady(secureLocal, '0.0.0.0'), /https callback/);
+    const hosted = baseConfig({
+      COOKIE_SECURE: 'true',
+      SESSION_SECRET: 'x'.repeat(32),
+      DISCORD_REDIRECT_URI: 'https://calc.example/auth/discord/callback',
+    });
+    assert.equal(hosted.sessionSecretGenerated, false);
+    assert.equal(hosted.cookieSecure, true);
+    assert.doesNotThrow(() => assertHostReady(hosted, '0.0.0.0'));
+    assert.equal(canonicalFromRedirect('https://localhost/auth/discord/callback'), null);
+    assert.equal(canonicalFromRedirect('http://calc.example/auth/discord/callback'), null);
+  });
+
+  function hostedConfig() {
+    return baseConfig({
+      COOKIE_SECURE: 'true',
+      SESSION_SECRET: 'h'.repeat(32),
+      DISCORD_REDIRECT_URI: 'https://calc.example/auth/discord/callback',
+    });
+  }
+
+  function rawRequest(origin, target, options = {}) {
+    const u = new URL(origin);
+    return new Promise((resolve, reject) => {
+      const headers = { ...(options.headers || {}) };
+      if (options.cookie) headers.Cookie = options.cookie;
+      const req = http.request({
+        hostname: u.hostname,
+        port: u.port,
+        path: target,
+        method: options.method || 'GET',
+        headers,
+      }, (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf8');
+          let json = null;
+          try {
+            json = JSON.parse(text);
+          } catch {
+            json = null;
+          }
+          const setCookie = res.headers['set-cookie']
+            ? (Array.isArray(res.headers['set-cookie']) ? res.headers['set-cookie'] : [res.headers['set-cookie']])
+            : [];
+          resolve({
+            status: res.statusCode,
+            location: res.headers.location || '',
+            text,
+            json,
+            setCookie,
+          });
+        });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+  }
+
+  function bareRequest(origin, raw) {
+    const u = new URL(origin);
+    return new Promise((resolve, reject) => {
+      const socket = net.connect(Number(u.port), u.hostname, () => socket.write(raw));
+      const chunks = [];
+      socket.on('data', (chunk) => chunks.push(chunk));
+      socket.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        const status = Number((text.match(/^HTTP\/\d(?:\.\d)? (\d+)/) || [])[1] || 0);
+        const body = text.split('\r\n\r\n').slice(1).join('\r\n\r\n');
+        resolve({ status, text: body, raw: text });
+      });
+      socket.on('error', reject);
+    });
+  }
+
+  await test('hostile Host is rejected and not reflected', async () => {
+    await withApp({}, async (_app, origin) => {
+      const res = await rawRequest(origin, '/health', { headers: { Host: 'evil.example' } });
+      assert.equal(res.status, 421);
+      assert.equal(res.json.error, 'invalid_host');
+      assert.equal(res.text.includes('evil.example'), false);
+      assert.equal(res.location, '');
+    });
+    await withApp({ config: hostedConfig() }, async (_app, origin) => {
+      const res = await rawRequest(origin, '/', { headers: { Host: 'evil.example' } });
+      assert.equal(res.status, 421);
+      assert.equal(res.json.error, 'invalid_host');
+      assert.equal(res.text.includes('evil.example'), false);
+      assert.equal(res.location, '');
+      const sneaky = await rawRequest(origin, 'http://evil.example/auth/logout', {
+        headers: { Host: 'calc.example' },
+      });
+      assert.equal(sneaky.status, 302);
+      assert.equal(sneaky.location, '/');
+    });
+  });
+
+  await test('hostile Origin is rejected and a missing Origin still works', async () => {
+    await withApp({}, async (_app, origin) => {
+      const hostile = await request(origin, '/auth/logout', {
+        method: 'POST',
+        headers: { Origin: 'https://evil.example' },
+      });
+      assert.equal(hostile.status, 403);
+      assert.equal(hostile.json.error, 'invalid_origin');
+      assert.equal(hostile.text.includes('evil.example'), false);
+      const plain = await request(origin, '/auth/logout', { method: 'POST' });
+      assert.equal(plain.status, 200);
+      assert.equal(plain.json.ok, true);
+    });
+    await withApp({ config: hostedConfig() }, async (_app, origin) => {
+      const page = await rawRequest(origin, '/', { headers: { Host: 'calc.example' } });
+      assert.equal(page.status, 200);
+      const hostile = await rawRequest(origin, '/', {
+        headers: { Host: 'calc.example', Origin: 'https://evil.example' },
+      });
+      assert.equal(hostile.status, 403);
+      assert.equal(hostile.text.includes('evil.example'), false);
+      const same = await rawRequest(origin, '/', {
+        headers: { Host: 'calc.example', Origin: 'https://calc.example' },
+      });
+      assert.equal(same.status, 200);
+    });
+  });
+
+  await test('forwarded proto cannot spoof scheme or redirects', async () => {
+    await withApp({ config: hostedConfig() }, async (app, origin) => {
+      const downgrade = await rawRequest(origin, '/auth/discord/login', {
+        headers: { Host: 'calc.example', 'X-Forwarded-Proto': 'http' },
+      });
+      assert.equal(downgrade.status, 400);
+      assert.equal(downgrade.json.error, 'invalid_forwarded_proto');
+      assert.equal(downgrade.location, '');
+      const chain = await rawRequest(origin, '/', {
+        headers: { Host: 'calc.example', 'X-Forwarded-Proto': 'https, http' },
+      });
+      assert.equal(chain.status, 400);
+      const login = await rawRequest(origin, '/auth/discord/login', {
+        headers: { Host: 'calc.example', 'X-Forwarded-Proto': 'https' },
+      });
+      assert.equal(login.status, 302);
+      assert.equal(new URL(login.location).origin, 'https://discord.com');
+      const state = new URL(login.location).searchParams.get('state');
+      const oauthCookie = login.setCookie.find((c) => c.startsWith(`${app.oauthStates.cookieName}=`));
+      const callback = await rawRequest(origin, `/auth/discord/callback?code=mock-code&state=${state}`, {
+        headers: { Host: 'calc.example', 'X-Forwarded-Proto': 'https' },
+        cookie: oauthCookie.split(';')[0],
+      });
+      assert.equal(callback.status, 302);
+      assert.equal(callback.location, '/');
+    });
+  });
+
+  await test('hosted health and navigation tolerate Render TLS termination', async () => {
+    await withApp({ config: hostedConfig() }, async (_app, origin) => {
+      const health = await rawRequest(origin, '/health', { headers: { Host: 'calc.example' } });
+      assert.equal(health.status, 200);
+      assert.equal(health.text.includes('calc.example'), false);
+      const probeProto = await rawRequest(origin, '/health', {
+        headers: { Host: 'calc.example', 'X-Forwarded-Proto': 'http' },
+      });
+      assert.equal(probeProto.status, 200);
+      const portHost = await rawRequest(origin, '/status', { headers: { Host: 'calc.example:443' } });
+      assert.equal(portHost.status, 200);
+      const page = await rawRequest(origin, '/', { headers: { Host: 'calc.example' } });
+      assert.equal(page.status, 200);
+      assert.ok(page.text.includes('window.__935AccountGateway=window.location.origin'));
+      const noHost = await bareRequest(origin, 'GET /health HTTP/1.0\r\n\r\n');
+      assert.equal(noHost.status, 200);
+      const noHostPage = await bareRequest(origin, 'GET / HTTP/1.0\r\n\r\n');
+      assert.equal(noHostPage.status, 421);
+      const callback = await rawRequest(origin, '/auth/discord/callback?code=x&state=y', {
+        headers: { Host: 'calc.example', Origin: 'https://discord.com' },
+      });
+      assert.equal(callback.status, 400);
+      assert.equal(callback.json.error, 'invalid_state');
+      const foreignCallback = await rawRequest(origin, '/auth/discord/callback', {
+        headers: { Host: 'calc.example', Origin: 'https://evil.example' },
+      });
+      assert.equal(foreignCallback.status, 403);
+      assert.equal(foreignCallback.text.includes('evil.example'), false);
+    });
   });
 
   console.log('');
