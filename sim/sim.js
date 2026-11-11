@@ -16,7 +16,11 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
   async function fresh() { await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); consoleErrors = []; }
   await fresh();
   const E = (fn, ...a) => page.evaluate(fn, ...a);
-  const clickText = async (sel, text) => E((sel, text) => { const b = [...document.querySelectorAll(sel)].find(x => x.textContent.trim() === text); if (!b) return false; b.click(); return true; }, sel, text);
+  const clickText = async (sel, text) => E((sel, text) => {
+    const all = [...document.querySelectorAll(sel)].filter(x => x.textContent.trim() === text);
+    const b = sel.indexOf("cat-btn") >= 0 ? all[all.length - 1] : all[0];
+    if (!b) return false; b.click(); return true;
+  }, sel, text);
   const header = (t) => E(t => document.querySelector(`#${t}SummaryWrap .summary-header`).textContent, t);
 
   // ---------- 1. Catalog walk: every buy item clickable via UI ----------

@@ -38,7 +38,8 @@ async function boot(browser, width) {
     const browse = await page.evaluate(() => {
       const banner = document.querySelector('.hero').getBoundingClientRect();
       const clickCat = (name) => {
-        const b = [...document.querySelectorAll('#buyGrid .cat-btn')].find(x => x.textContent.trim() === name);
+        const all = [...document.querySelectorAll('#buyGrid .cat-btn')].filter(x => x.textContent.trim() === name);
+        const b = all[all.length - 1];
         if (b) b.click();
       };
       clickCat('Weapons');
@@ -147,12 +148,8 @@ async function boot(browser, width) {
   // kit sheet at 390
   const kit = await boot(browser, 390);
   await kit.page.evaluate(() => {
-    const clickCat = (name) => {
-      const b = [...document.querySelectorAll('#buyGrid .cat-btn')].find(x => x.textContent.trim() === name);
-      if (b) b.click();
-    };
-    // kits live at the top level
-      const kitCat = [...document.querySelectorAll('#buyGrid .cat-btn')].find(b => b.textContent.trim() === 'Player Kit');
+    const kitCats = [...document.querySelectorAll('#buyGrid .cat-btn')].filter(b => b.textContent.trim() === 'Player Kit');
+      const kitCat = kitCats[kitCats.length - 1];
     if (kitCat) kitCat.click();
     const item = [...document.querySelectorAll('#buyGrid .item-btn')].find(b => (b.querySelector('.nm')?.textContent || b.textContent).trim() === 'Player Kit');
     if (item) item.click();

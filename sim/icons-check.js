@@ -16,6 +16,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       document.querySelectorAll(scope + ' .item-btn:not(.back-btn), ' + scope + ' .cat-btn').forEach(b => {
         if (b.classList.contains('role-turnin')) return;
         const isCat = b.classList.contains('cat-btn'); isCat ? out.cats++ : out.tiles++;
+        if (isCat && !b.querySelector('.ic')) return;
         const u = b.querySelector('.ic use'); const href = u && u.getAttribute('href');
         const t = href && document.getElementById(href.slice(1));
         if (!t || t.tagName.toLowerCase() !== 'symbol') out.bad.push(b.textContent);
