@@ -53,7 +53,8 @@ const DENIED = {
     source: 'live_membership'
   },
   balance: balance(840, 100),
-  customer_lookup: { configured: true, available: true }
+  customer_lookup: { configured: true, available: true },
+  pricing_roles: []
 };
 
 // Server Owner grant is expressed only by trader_mode_allowed. is_trader is false.
@@ -81,17 +82,20 @@ const ALLOWED = {
     source: 'live_membership'
   },
   balance: balance(80000, 0),
-  customer_lookup: { configured: true, available: true }
+  customer_lookup: { configured: true, available: true },
+  pricing_roles: ['Roadkill', 'Hotshot', 'Librarian', 'Mayweather']
 };
 
 const CUSTOMERS = {
   '333': {
     id: '333', username: 'jordan', global_name: 'Jordan Hale', nick: 'Jordan Hale', roles: ['role-customer'],
-    balance: balance(4200, 800)
+    balance: balance(4200, 800),
+    pricing_roles: ['Deadshot', 'Dr. Greenthumb', 'Pathfinder', 'Kamikaze']
   },
-  '334': {
-    id: '334', username: 'jonah', global_name: 'Jonah Pike', nick: 'Jonah Pike', roles: ['role-customer'],
-    balance: balance(10, 0)
+  '444444444444444444': {
+    id: '444444444444444444', username: 'jonah', global_name: 'Jonah Pike', nick: 'Jonah Pike', roles: ['role-customer'],
+    balance: balance(10, 0),
+    pricing_roles: null
   }
 };
 
@@ -165,11 +169,13 @@ async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe, sl
         const id = decodeURIComponent(u.pathname.slice('/api/trader/players/'.length));
         const c = customers[id];
         if (!c) return json(404, { error: 'not_found' });
-        return json(200, {
+        const body = {
           lookup: { id, member: { id: c.id, username: c.username, global_name: c.global_name, nick: c.nick, roles: c.roles } },
           balance: c.balance,
           live_customer_functionality: false
-        });
+        };
+        if (Array.isArray(c.pricing_roles)) body.pricing_roles = c.pricing_roles;
+        return json(200, body);
       }
       return json(404, { error: 'not_found' });
     };
@@ -177,7 +183,14 @@ async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe, sl
       setMe(next) { state.me = next; }
     };
   }, { gateway: gateway || null, me: me || null, customers: CUSTOMERS, failMe: failMe || '', lookupMs: lookupMs || 0, delayMe: !!delayMe, slowQuery: slowQuery || '', slowMs: slowMs || 0 });
-  await page.setViewport({ width: width || 375, height: 812, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  const wideViewport = (width || 375) >= 1000;
+  await page.setViewport({
+    width: width || 375,
+    height: wideViewport ? 900 : 812,
+    deviceScaleFactor: 1,
+    isMobile: !wideViewport,
+    hasTouch: !wideViewport
+  });
   await page.goto(URL, { waitUntil: 'load' });
   return { page, errors };
 }
@@ -453,6 +466,140 @@ function readBar() {
     !/ADMIN MODE/.test(dropped.barText),
     dropped);
   await staff.page.close();
+
+  const roles = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 390 });
+  await roles.page.waitForFunction(() => document.getElementById('rolesChip').textContent === 'Roles 4/23');
+  await roles.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:0;left:0;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+  });
+  const mineChip = await roles.page.evaluate(() => ({
+    text: document.getElementById('rolesChip').textContent,
+    quiet: document.getElementById('rolesChip').classList.contains('is-quiet'),
+    disabled: document.getElementById('rolesChip').disabled
+  }));
+  check('my-account-roles-chip', mineChip.text === 'Roles 4/23' && !mineChip.quiet && !mineChip.disabled, mineChip);
+  await shot(roles.page, 'roles-my-account-390-mock');
+  await roles.page.click('#rolesChip');
+  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 23);
+  await roles.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const sheet = await roles.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const road = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Roadkill'));
+    const julius = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Julius Caesar'));
+    const held = grid.querySelectorAll('.earn-role.is-held').length;
+    return {
+      open: document.body.classList.contains('roles-open'),
+      count: grid.querySelectorAll('.earn-role').length,
+      held,
+      road: road ? road.textContent.replace(/\s+/g, ' ').trim() : '',
+      roadHeld: !!(road && road.classList.contains('is-held')),
+      julius: julius ? julius.textContent.replace(/\s+/g, ' ').trim() : '',
+      juliusHeld: !!(julius && julius.classList.contains('is-held')),
+      controls: grid.querySelectorAll('input, select, textarea, button, [role="switch"], .role-btn').length,
+      note: document.getElementById('rolesSheetNote').textContent
+    };
+  });
+  check('roles-sheet-lists-held-and-missing',
+    sheet.open && sheet.count === 23 && sheet.held === 4 && sheet.roadHeld && /25% off car parts/.test(sheet.road) &&
+    !sheet.juliusHeld && /No Discord role/.test(sheet.julius) && sheet.controls === 0 && /Read only/.test(sheet.note) && /Riley Chen/.test(sheet.note),
+    sheet);
+  await shot(roles.page, 'roles-sheet-390-mock');
+  const beforeClick = sheet.held;
+  await roles.page.click('#earnRolesGrid .earn-role');
+  const afterClick = await roles.page.evaluate(() => ({
+    held: document.querySelectorAll('#earnRolesGrid .earn-role.is-held').length,
+    chip: document.getElementById('rolesChip').textContent,
+    mode: document.body.classList.contains('mode-self')
+  }));
+  check('roles-sheet-is-read-only', afterClick.held === beforeClick && afterClick.chip === 'Roles 4/23' && afterClick.mode, afterClick);
+  await roles.page.click('#rolesSheetClose');
+  await roles.page.waitForFunction(() => !document.body.classList.contains('roles-open'));
+  const back = await roles.page.evaluate(() => document.getElementById('accountStatus').innerText.includes('Riley Chen') && !document.body.classList.contains('roles-open'));
+  check('roles-sheet-closes-to-my-account', back);
+  await roles.page.click('#modeTraderBtn');
+  await roles.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
+  const hiddenWhilePicking = await roles.page.evaluate(() => document.getElementById('rolesChip').hidden);
+  check('roles-chip-hidden-until-customer', hiddenWhilePicking === true);
+  await roles.page.type('#customerSearch', 'jor');
+  await roles.page.waitForFunction(() => [...document.querySelectorAll('#customerResults [role="option"]')].some(b => b.textContent === 'Jordan Hale'));
+  await roles.page.click('#customerResults [role="option"]');
+  await roles.page.waitForFunction(() => document.getElementById('rolesChip').textContent === 'Roles 4/23' && document.getElementById('accountStatus').innerText.includes('Jordan Hale'));
+  await shot(roles.page, 'roles-trader-customer-390-mock');
+  await roles.page.click('#rolesChip');
+  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open'));
+  const customerSheet = await roles.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const text = (name) => {
+      const row = [...grid.querySelectorAll('.earn-role')].find(item => item.textContent.includes(name));
+      return row ? row.classList.contains('is-held') : false;
+    };
+    return {
+      deadshot: text('Deadshot'),
+      roadkill: text('Roadkill'),
+      note: document.getElementById('rolesSheetNote').textContent,
+      border: getComputedStyle(document.body).boxShadow
+    };
+  });
+  check('customer-roles-follow-server-list',
+    customerSheet.deadshot && !customerSheet.roadkill && /Jordan Hale/.test(customerSheet.note) && /61,\s*220,\s*151/.test(customerSheet.border),
+    customerSheet);
+  await roles.page.click('#rolesSheetClose');
+  await roles.page.evaluate(() => document.getElementById('customerChangeBtn').click());
+  await roles.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Select a customer'));
+  await roles.page.evaluate(() => { document.getElementById('customerIdRow').hidden = false; document.getElementById('customerIdInput').value = '444444444444444444'; });
+  await roles.page.click('#customerIdBtn');
+  await roles.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Jonah Pike'));
+  const unavailable = await roles.page.evaluate(() => ({
+    chip: document.getElementById('rolesChip').textContent,
+    who: document.getElementById('accountStatus').innerText,
+    meta: document.getElementById('accountMeta').textContent,
+    dock: !!document.getElementById('calculateBtn')
+  }));
+  check('missing-role-lookup-keeps-the-order-panel',
+    unavailable.chip === 'Roles unavailable' && /Jonah Pike/.test(unavailable.who) && /Cash 10/.test(unavailable.meta) && unavailable.dock,
+    unavailable);
+  check('roles-console', roles.errors.length === 0, roles.errors.slice(0, 4));
+  await roles.page.close();
+
+  const widePage = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 1280 });
+  await widePage.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:8px;left:8px;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+  });
+  await widePage.page.click('#modeTraderBtn');
+  await widePage.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
+  await widePage.page.type('#customerSearch', 'jor');
+  await widePage.page.waitForFunction(() => [...document.querySelectorAll('#customerResults [role="option"]')].some(b => b.textContent === 'Jordan Hale'));
+  await widePage.page.click('#customerResults [role="option"]');
+  await widePage.page.waitForFunction(() => document.getElementById('rolesChip').textContent === 'Roles 4/23' && document.getElementById('accountStatus').innerText.includes('Jordan Hale'));
+  await widePage.page.click('#rolesChip');
+  await widePage.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 23);
+  await widePage.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const wide = await widePage.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+    const sheet = document.getElementById('rolesSheet').getBoundingClientRect();
+    const deadshot = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Deadshot'));
+    return {
+      cols,
+      width: Math.round(sheet.width),
+      open: document.body.classList.contains('roles-open'),
+      note: document.getElementById('rolesSheetNote').textContent,
+      deadshot: !!(deadshot && deadshot.classList.contains('is-held')),
+      controls: grid.querySelectorAll('input, select, textarea, button, [role="switch"], .role-btn').length
+    };
+  });
+  check('roles-sheet-two-columns-at-1280',
+    wide.open && wide.cols === 2 && wide.width > 500 && /Jordan Hale/.test(wide.note) && wide.deadshot && wide.controls === 0,
+    wide);
+  await shot(widePage.page, 'roles-sheet-1280-mock');
+  check('roles-wide-console', widePage.errors.length === 0, widePage.errors.slice(0, 4));
+  await widePage.page.close();
 
   await browser.close();
   const summary = { pass: fails.length === 0, failed: fails.length, fails };

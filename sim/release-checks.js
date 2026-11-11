@@ -19,13 +19,15 @@ const STAFF = {
   identity: { id: '222222222222222222', username: 'riley', global_name: 'Riley Chen' },
   roles: { is_server_owner: true, is_high_level_staff: true, is_trader: false, discounts: { configured: false, applied: [], amounts_mapped: false, reason: 'discount_role_ids_unverified' } },
   access: { trader_mode_allowed: true, admin_mode_allowed: true, writes: false },
-  balance: { available: true, mapped: true, cash: 80000, cash_str: '80000', bank: 0, bank_str: '0', write_access: false }
+  balance: { available: true, mapped: true, cash: 80000, cash_str: '80000', bank: 0, bank_str: '0', write_access: false },
+  pricing_roles: ['Roadkill', 'Hotshot']
 };
 const TRADER = {
   identity: { id: '333333333333333333', username: 'trader', global_name: 'Trader' },
   roles: { is_trader: true, is_server_owner: false, is_high_level_staff: false, discounts: { configured: false, applied: [], amounts_mapped: false, reason: 'discount_role_ids_unverified' } },
   access: { trader_mode_allowed: true, admin_mode_allowed: false, writes: false },
-  balance: { available: true, mapped: true, cash: 10, cash_str: '10', bank: 0, bank_str: '0', write_access: false }
+  balance: { available: true, mapped: true, cash: 10, cash_str: '10', bank: 0, bank_str: '0', write_access: false },
+  pricing_roles: ['Hotshot']
 };
 const CUSTOMER_ID = '444444444444444444';
 
@@ -52,7 +54,8 @@ function installFetch(page, me, opts = {}) {
         window.__935IdCalls = (window.__935IdCalls || 0) + 1;
         return json(200, {
           lookup: { id: customerId, member: { id: customerId, username: 'ada', global_name: 'Ada' } },
-          balance: { available: true, mapped: true, cash: 5, cash_str: '5', bank: 1, bank_str: '1', write_access: false }
+          balance: { available: true, mapped: true, cash: 5, cash_str: '5', bank: 1, bank_str: '1', write_access: false },
+          pricing_roles: ['Deadshot', 'Kamikaze']
         });
       }
       return orig(url, init);

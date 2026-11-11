@@ -145,6 +145,40 @@ img, svg { display: block; }
 .account-status { font-size: 13px; font-weight: 600; color: var(--ink); }
 .account-who { display: block; white-space: normal; }
 .account-meta { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.roles-chip {
+  align-self: flex-start; margin: 4px 0 2px; min-height: 28px; padding: 0 8px;
+  border: 1px solid var(--line-2); background: var(--surf); color: var(--wood);
+  font-family: ui-monospace, monospace; font-size: 11px; font-weight: 650;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+body.mode-self .roles-chip:not(.is-quiet) { border-color: var(--mode-customer); }
+body.mode-trader .roles-chip:not(.is-quiet) { border-color: var(--mode-trader); }
+.roles-chip.is-quiet { color: var(--faint); border-color: var(--line); background: transparent; }
+.roles-backdrop {
+  position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.55);
+  opacity: 0; pointer-events: none;
+}
+body.roles-open .roles-backdrop { opacity: 1; pointer-events: auto; }
+body.roles-open .roles-sheet {
+  display: flex; z-index: 46; top: var(--sat); bottom: 0; max-height: none;
+}
+body.roles-open { overflow: hidden; }
+.earn-role {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
+  gap: 4px; min-width: 0; min-height: 72px; padding: 8px;
+  border: 1px solid var(--line); background: transparent; color: var(--faint); text-align: left;
+}
+.earn-role-name { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; line-height: 1.25; color: var(--dim); }
+.earn-role-sum { font-size: 11px; line-height: 1.3; }
+.earn-role-tag {
+  font-family: ui-monospace, monospace; font-size: 10px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.earn-role.is-held {
+  background: var(--cta); border-color: var(--cta); color: var(--cta-ink);
+}
+.earn-role.is-held .earn-role-name { color: var(--cta-ink); }
+.earn-role-mark { font-size: 13px; line-height: 1; }
 .account-flag { display: block; font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 .account-flag.flag-trader { color: var(--mode-trader); }
 .account-flag.flag-admin { color: var(--mode-admin); }
@@ -647,6 +681,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <p class="account-fixture" id="accountFixture" hidden>Test fixture</p>
         <p class="account-status" id="accountStatus">Sign-in is not configured</p>
         <p class="account-meta" id="accountMeta" hidden></p>
+        <button class="roles-chip" id="rolesChip" type="button" hidden aria-controls="rolesSheet" aria-expanded="false">Roles</button>
       </div>
       <button class="account-change" id="customerChangeBtn" type="button" hidden>Change</button>
       <div class="account-search" id="accountSearch" hidden>
@@ -792,6 +827,19 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <button type="button" class="kit-save" onclick="saveKit()">Add Kit</button>
       </div>
       <div id="kitFields"></div>
+    </div>
+  </div>
+
+  <div class="roles-backdrop" id="rolesBackdrop"></div>
+  <div class="order-sheet roles-sheet" id="rolesSheet" role="dialog" aria-modal="true" aria-labelledby="rolesSheetTitle" tabindex="-1">
+    <div class="grabber"></div>
+    <div class="sheet-head">
+      <h2 id="rolesSheetTitle">Roles</h2>
+      <button class="sheet-close" id="rolesSheetClose" type="button" aria-label="Close roles">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p class="sheet-note" id="rolesSheetNote"></p>
+      <div class="roles-grid" id="earnRolesGrid"></div>
     </div>
   </div>
 
@@ -1394,6 +1442,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     function catalogKey(side, name) { return side + "\n" + name; }
     let ownPricingRoles = [];
+    let ownRolesReady = false;
+    let accountRolesPending = false;
     let loadedRoleRules = null;
     let roleDrafts = {};
     let roleAddSide = "buy";
@@ -1539,6 +1589,120 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!cash && !bank) return "";
       return "Cash " + cash + " · Bank " + bank;
     }
+    function discordLinked(name) {
+      if (discordStatements[name] && !discordStatements[name].calculator) return true;
+      return Object.values(discordStatements).some(row => row && row.calculator === name);
+    }
+    function discordFallbackPercent(name) {
+      const direct = discordStatements[name];
+      const via = Object.values(discordStatements).find(row => row && row.calculator === name);
+      const row = direct && !direct.calculator ? direct : via;
+      if (!row) return 0;
+      if (Number(row.percent) > 0) return Number(row.percent);
+      const match = String(row.statement || "").match(/(\d+)\s*%/);
+      return match ? Number(match[1]) : 0;
+    }
+    function percentPhrase(entries) {
+      if (!entries.length) return "";
+      const pct = entries[0][1];
+      if (!entries.every(([, value]) => value === pct)) return "mixed discounts on " + entries.length + " items";
+      if (entries.length === 1) return pct + "% off " + entries[0][0];
+      if (entries.length === 2) return pct + "% off " + entries[0][0] + " and " + entries[1][0];
+      return pct + "% off " + entries.length + " items";
+    }
+    function roleEffectSummary(name) {
+      const def = roles[name] || {};
+      const discounts = Object.entries(def.discounts || {}).filter(([, value]) => value);
+      const fixed = Object.entries(def.discountFixed || {}).filter(([, value]) => value);
+      const bonuses = Object.entries(def.bonuses || {}).filter(([, value]) => value);
+      const parts = [];
+      if (def.cartPercent) parts.push(def.cartPercent + "% off the buy cart");
+      if (name === "Roadkill" && discounts.length) parts.push(discounts[0][1] + "% off car parts");
+      else if (discounts.length) parts.push(percentPhrase(discounts));
+      fixed.forEach(([item, value]) => parts.push(value + " off " + item));
+      if (bonuses.length === 1) parts.push(bonuses[0][0] + " sells for " + fmt(bonuses[0][1]));
+      else if (bonuses.length) parts.push("sell bonuses on " + bonuses.length + " items");
+      if (parts.length) return parts.filter(Boolean).join(", ");
+      const fallback = discordFallbackPercent(name);
+      if (fallback) return fallback + "% off buys";
+      return "No defined terms";
+    }
+    function relevantRoleNames() {
+      return Object.keys(roles).sort((a, b) => a.localeCompare(b));
+    }
+    function rolesView() {
+      if (accountAuth === "loading" || (accountRolesPending && !(accountMode === "trader" && accountCustomer))) return { state: "loading" };
+      if (accountAuth !== "signedin" || !accountMe) return { state: "hidden" };
+      if (accountMode === "admin" && adminAllowed()) return { state: "hidden" };
+      if (accountMode === "trader" && traderAllowed()) {
+        if (!accountCustomer) return accountRolesPending ? { state: "loading" } : { state: "hidden" };
+        if (accountCustomer.rolesUnavailable || !Array.isArray(accountCustomer.pricingRoles)) return { state: "unavailable" };
+        return { state: "ready", held: accountCustomer.pricingRoles.filter(name => roles[name]) };
+      }
+      if (!ownRolesReady) return { state: "unavailable" };
+      return { state: "ready", held: ownPricingRoles.filter(name => roles[name]) };
+    }
+    function closeRolesSheet(restore) {
+      const open = document.body.classList.contains("roles-open");
+      document.body.classList.remove("roles-open");
+      const chip = document.getElementById("rolesChip");
+      if (chip) chip.setAttribute("aria-expanded", "false");
+      if (restore && open && chip && !chip.hidden) chip.focus();
+    }
+    function paintRolesSheet() {
+      const view = rolesView();
+      const grid = document.getElementById("earnRolesGrid");
+      const note = document.getElementById("rolesSheetNote");
+      if (!grid || view.state !== "ready") return;
+      const total = relevantRoleNames().length;
+      const who = accountMode === "trader" && accountCustomer
+        ? accountCustomer.label
+        : (memberLabel(accountMe && accountMe.identity) || "My account");
+      if (note) note.textContent = who + " · " + view.held.length + " of " + total + " · Read only";
+      const held = new Set(view.held);
+      grid.replaceChildren();
+      relevantRoleNames().forEach(name => {
+        const row = document.createElement("div");
+        row.className = "earn-role" + (held.has(name) ? " is-held" : "");
+        const title = document.createElement("span");
+        title.className = "earn-role-name";
+        if (held.has(name)) {
+          const mark = document.createElement("span");
+          mark.className = "earn-role-mark";
+          mark.setAttribute("aria-hidden", "true");
+          mark.textContent = "✓";
+          title.append(mark);
+        }
+        title.append(document.createTextNode(name));
+        const sum = document.createElement("span");
+        sum.className = "earn-role-sum";
+        sum.textContent = roleEffectSummary(name);
+        row.append(title, sum);
+        if (!discordLinked(name)) {
+          const tag = document.createElement("span");
+          tag.className = "earn-role-tag";
+          tag.textContent = "No Discord role";
+          row.append(tag);
+        }
+        grid.appendChild(row);
+      });
+      requestAnimationFrame(() => {
+        const cells = [...grid.querySelectorAll(".earn-role")];
+        cells.forEach(cell => { cell.style.minHeight = "72px"; });
+        const max = Math.max(72, ...cells.map(cell => Math.ceil(cell.getBoundingClientRect().height)));
+        cells.forEach(cell => { cell.style.minHeight = max + "px"; });
+      });
+    }
+    function openRolesSheet() {
+      const view = rolesView();
+      if (view.state !== "ready") return;
+      paintRolesSheet();
+      document.body.classList.add("roles-open");
+      const chip = document.getElementById("rolesChip");
+      if (chip) chip.setAttribute("aria-expanded", "true");
+      const close = document.getElementById("rolesSheetClose");
+      if (close) close.focus();
+    }
     function standingLine(me) {
       const roles = me && me.roles;
       if (!roles) return "";
@@ -1671,10 +1835,25 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         meta.hidden = !metaText;
         meta.textContent = metaText;
       }
+      const chip = document.getElementById("rolesChip");
+      const view = rolesView();
+      if (view.state !== "ready") closeRolesSheet(false);
+      if (chip) {
+        const total = relevantRoleNames().length;
+        chip.hidden = view.state === "hidden";
+        chip.disabled = view.state !== "ready";
+        chip.classList.toggle("is-quiet", view.state !== "ready");
+        chip.textContent = view.state === "ready"
+          ? ("Roles " + view.held.length + "/" + total)
+          : (view.state === "unavailable" ? "Roles unavailable" : "Roles");
+        chip.setAttribute("aria-expanded", document.body.classList.contains("roles-open") ? "true" : "false");
+        chip.setAttribute("aria-label", chip.textContent);
+      }
       const readout = document.getElementById("accountReadout");
       if (readout) {
         const name = status ? status.textContent.replace(/\s+/g, " ").trim() : "My account";
-        readout.setAttribute("aria-label", [window.__935AccountFixture === true ? "Test fixture" : "", name, metaText].filter(Boolean).join(". "));
+        const chipText = chip && !chip.hidden ? chip.textContent : "";
+        readout.setAttribute("aria-label", [window.__935AccountFixture === true ? "Test fixture" : "", name, metaText, chipText].filter(Boolean).join(". "));
       }
       const change = document.getElementById("customerChangeBtn");
       if (change) change.hidden = !(traderOn && accountCustomer);
@@ -1705,6 +1884,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         accountAuth = "unconfigured";
         accountMe = null;
         ownPricingRoles = [];
+        ownRolesReady = false;
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
@@ -1715,6 +1895,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         accountAuth = "signedout";
         accountMe = null;
         ownPricingRoles = [];
+        ownRolesReady = false;
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
@@ -1723,7 +1904,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       accountAuth = "signedin";
       accountMe = res.body;
-      ownPricingRoles = Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : [];
+      ownRolesReady = Array.isArray(res.body.pricing_roles);
+      ownPricingRoles = ownRolesReady ? res.body.pricing_roles : [];
       if (!(res.body.access && res.body.access.trader_mode_allowed === true) && accountMode === "trader") {
         accountMode = "self";
         accountCustomer = null;
@@ -1797,7 +1979,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAccount();
         return;
       }
+      accountRolesPending = true;
+      renderAccount();
       const res = await gatewayJSON("/api/trader/players/" + encodeURIComponent(id));
+      accountRolesPending = false;
       if (accountMode !== "trader" || !traderAllowed()) {
         accountCustomer = null;
         renderAccount();
@@ -1805,8 +1990,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       const member = res && res.status === 200 && res.body && res.body.lookup && res.body.lookup.member;
       if (!member) {
-        accountCustomer = null;
-        if (res && res.status === 403) {
+        if (accountCustomer) accountCustomer.rolesUnavailable = true;
+        else if (res && res.status === 403) {
           accountMode = "self";
           accountPicking = false;
           toast("Trader mode is not authorized for this account.");
@@ -1814,11 +1999,13 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAccount();
         return;
       }
+      const priced = Array.isArray(res.body.pricing_roles);
       accountCustomer = {
         id: String(member.id || id),
         label: memberLabel(member) || "Customer",
         balanceText: balanceLine(res.body.balance),
-        pricingRoles: Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : []
+        pricingRoles: priced ? res.body.pricing_roles : [],
+        rolesUnavailable: !priced
       };
       accountPicking = false;
       const input = document.getElementById("customerSearch");
@@ -2366,6 +2553,15 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAdminRoles();
       };
       if (signOut) signOut.onclick = () => { signOutAccount(); };
+      const rolesChip = document.getElementById("rolesChip");
+      if (rolesChip) rolesChip.onclick = () => openRolesSheet();
+      const rolesClose = document.getElementById("rolesSheetClose");
+      if (rolesClose) rolesClose.onclick = () => closeRolesSheet(true);
+      const rolesBackdrop = document.getElementById("rolesBackdrop");
+      if (rolesBackdrop) rolesBackdrop.onclick = () => closeRolesSheet(true);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && document.body.classList.contains("roles-open")) closeRolesSheet(true);
+      });
       if (change) change.onclick = () => {
         accountCustomer = null;
         accountPicking = true;
