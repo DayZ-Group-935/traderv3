@@ -1,7 +1,7 @@
 // 935 Trading Calculator simulation harness (puppeteer-core + system Chrome)
 const puppeteer = require('puppeteer-core');
 const fs = require('fs'); const path = require('path');
-const FILE = process.argv[2] || path.join(__dirname, '..', 'index.html');
+const FILE = process.argv[2] || path.join(__dirname, '..', 'app', 'index.html');
 const URL = 'file://' + FILE;
 const OUT = path.join(__dirname, 'out');
 const results = []; let consoleErrors = [];

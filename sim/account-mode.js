@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 
-const FILE = process.argv[2] || path.join(__dirname, '..', 'index.html');
+const FILE = process.argv[2] || path.join(__dirname, '..', 'app', 'index.html');
 const URL = 'file://' + FILE;
 const OUT = process.env.OUT || path.join(__dirname, 'out', 'account-mode');
 const ART = '/opt/cursor/artifacts';

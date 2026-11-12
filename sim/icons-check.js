@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer-core');
-const FILE = 'file://' + (process.argv[2] || require('path').join(__dirname, '..', 'index.html'));
+const FILE = 'file://' + (process.argv[2] || require('path').join(__dirname, '..', 'app', 'index.html'));
 const OUT = process.env.OUT || require('path').join(__dirname, 'out', 'icons') + '/';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {

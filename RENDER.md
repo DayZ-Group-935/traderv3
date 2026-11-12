@@ -23,7 +23,7 @@ One Web Service. One instance. No autoscaling. No persistent disk. No database. 
 
 ## Same origin
 
-`GET /` serves `index.html` and injects `window.__935AccountGateway = window.location.origin` into that response only. The file in git does not contain that assignment, so GitHub Pages keeps the offline “Sign-in is not configured” state and makes no account request.
+`GET /` serves `app/index.html` and injects `window.__935AccountGateway = window.location.origin` into that response only. There is no root `index.html`, so GitHub Pages does not serve the calculator. `index(disabled).html` stays in the repo and is not the file this process reads. The app file in git does not contain the gateway assignment.
 
 The browser then calls only these same-origin routes, with `credentials: "include"` and no `Authorization` header:
 

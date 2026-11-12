@@ -145,47 +145,6 @@ img, svg { display: block; }
 .account-status { font-size: 13px; font-weight: 600; color: var(--ink); }
 .account-who { display: block; white-space: normal; }
 .account-meta { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.day-one-star { margin-left: 4px; color: var(--wood); font-weight: 700; }
-.account-actions { flex: 1 1 100%; display: flex; align-items: stretch; padding: 2px 0 4px; }
-.account-actions[hidden] { display: none !important; }
-.account-actions .account-change + .account-change { border-left: 0; }
-.account-actions .account-change.is-quiet { color: var(--faint); border-color: var(--line); }
-.roles-backdrop {
-  position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.55);
-  opacity: 0; pointer-events: none;
-}
-body.roles-open .roles-backdrop { opacity: 1; pointer-events: auto; }
-.roles-pop {
-  position: fixed; z-index: 46; left: 12px; right: 12px;
-  top: calc(var(--account-bottom, 160px) + 8px);
-  max-height: min(68dvh, 480px); display: none; flex-direction: column;
-  background: var(--sheet); border: 1px solid var(--line-2);
-}
-body.roles-open .roles-pop { display: flex; }
-.roles-pop-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 2px 4px 2px 12px; border-bottom: 1px solid var(--line); flex: none;
-}
-.roles-pop-head h2 { margin: 0; font-size: 15px; font-weight: 650; }
-.roles-pop-body { overflow: auto; padding: 10px; }
-.roles-pop .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; }
-button.earn-role {
-  width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 6px 8px;
-  border: 1px solid var(--line); background: transparent; color: var(--faint);
-  font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center;
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-}
-button.earn-role.is-held { background: var(--cta); border-color: var(--cta); color: var(--cta-ink); }
-.earn-role-detail {
-  grid-column: 1 / -1; padding: 8px 10px; border: 1px solid var(--line-2);
-  background: var(--surf); color: var(--ink); font-size: 13px; line-height: 1.35;
-}
-.earn-role-detail p { margin: 0; }
-.earn-role-detail .earn-effect { margin-top: 4px; color: var(--wood); }
-.earn-role-detail .earn-tag {
-  display: block; margin-top: 4px; font-family: ui-monospace, monospace;
-  font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--dim);
-}
 .account-flag { display: block; font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 .account-flag.flag-trader { color: var(--mode-trader); }
 .account-flag.flag-admin { color: var(--mode-admin); }
@@ -534,18 +493,12 @@ body.code-open { overflow: hidden; }
 }
 .order-code-row input, #orderCodeOut { flex: 1; min-width: 0; padding: 0 12px; outline: none; }
 #orderCodeOut { display: block; width: 100%; margin: 8px 0; font-family: ui-monospace, monospace; font-size: 13px; }
-#genCodeBtn, #loadCodeBtn, #clearAllBtn, #clearRolesBtn, .text-action {
+#genCodeBtn, #loadCodeBtn, #clearAllBtn, #clearRolesBtn, #copyCodeBtn, #clearCodeBtn, .text-action {
   min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--dim);
   font-family: ui-monospace, monospace; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
 }
 #genCodeBtn { color: var(--ink); }
-.sheet-actions { display: flex; justify-content: stretch; gap: 8px; flex-wrap: nowrap; margin: 4px 0 8px; }
-.sheet-actions #genCodeBtn, .sheet-actions #clearAllBtn {
-  flex: 1 1 0; min-width: 0; border: 1px solid var(--line-2); background: transparent;
-}
-.sheet-actions #clearAllBtn { color: var(--dim); }
-.sheet-actions #genCodeBtn:disabled { color: var(--faint); border-color: var(--line); }
-#orderCodeOut[hidden] { display: none !important; }
+.sheet-actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 4px 0 8px; }
 .sheet-calc { width: 100%; min-width: 0; height: 52px; margin: 4px 0 8px; }
 
 .roles-section { margin-top: 12px; padding: 16px 0 0; border-top: 1px solid var(--line); }
@@ -649,7 +602,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 @media (min-width: 840px) {
-  .roles-pop { left: calc(50% - 280px); right: auto; width: 560px; }
   body { background: #0c0d0a; }
   .app { max-width: 720px; min-height: calc(100dvh - var(--sat)); border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--bg); }
   .dock { left: calc(50% - 350px); right: calc(50% - 350px); width: auto; }
@@ -696,10 +648,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <p class="account-status" id="accountStatus">Sign-in is not configured</p>
         <p class="account-meta" id="accountMeta" hidden></p>
       </div>
-      <div class="account-actions" id="accountActions" hidden>
-        <button class="account-change" id="customerChangeBtn" type="button" hidden>Change</button>
-        <button class="account-change" id="rolesBtn" type="button" hidden aria-controls="rolesPop" aria-expanded="false">Roles</button>
-      </div>
+      <button class="account-change" id="customerChangeBtn" type="button" hidden>Change</button>
       <div class="account-search" id="accountSearch" hidden>
         <label class="sr-only" for="customerSearch">Search customers</label>
         <input id="customerSearch" type="search" autocomplete="off" placeholder="Search customers" enterkeyhint="search">
@@ -816,11 +765,14 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       </section>
       <button class="sheet-calc" id="sheetCalcBtn" type="button">Calculate</button>
       <div class="sheet-actions">
-        <button id="genCodeBtn" type="button" disabled>Copy order link</button>
-        <button id="clearAllBtn" type="button">Clear cart</button>
+        <button id="genCodeBtn" type="button">Copy order link</button>
+        <button id="clearAllBtn" type="button">Clear</button>
       </div>
       <div class="order-code-box" id="orderCodeBox">
-        <input type="text" id="orderCodeOut" readonly hidden placeholder="Link appears here..." autocomplete="off" aria-label="Order link">
+        <h3 id="shareHeading">Share order</h3>
+        <input type="text" id="orderCodeOut" readonly placeholder="Link appears here..." style="display:none;" autocomplete="off" aria-label="Generated order link">
+        <button id="copyCodeBtn" type="button" style="display:none;" title="Copy" aria-label="Copy order link">Copy</button>
+        <button id="clearCodeBtn" type="button" title="Clear" aria-label="Clear link">Clear link</button>
         <div class="code-divider">Load a link or code</div>
         <div class="order-code-row">
           <input type="text" id="orderCodeIn" placeholder="Paste order link or code..." autocomplete="off" aria-label="Paste order link or code">
@@ -840,17 +792,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         <button type="button" class="kit-save" onclick="saveKit()">Add Kit</button>
       </div>
       <div id="kitFields"></div>
-    </div>
-  </div>
-
-  <div class="roles-backdrop" id="rolesBackdrop"></div>
-  <div class="roles-pop" id="rolesPop" role="dialog" aria-modal="true" aria-labelledby="rolesPopTitle">
-    <div class="roles-pop-head">
-      <h2 id="rolesPopTitle">Roles</h2>
-      <button class="sheet-close" id="rolesPopClose" type="button" aria-label="Close roles">✕</button>
-    </div>
-    <div class="roles-pop-body">
-      <div class="roles-grid" id="earnRolesGrid"></div>
     </div>
   </div>
 
@@ -1453,8 +1394,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
     function catalogKey(side, name) { return side + "\n" + name; }
     let ownPricingRoles = [];
-    let ownRolesReady = false;
-    let accountRolesPending = false;
     let loadedRoleRules = null;
     let roleDrafts = {};
     let roleAddSide = "buy";
@@ -1600,143 +1539,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!cash && !bank) return "";
       return "Cash " + cash + " · Bank " + bank;
     }
-    function discordLinked(name) {
-      if (discordStatements[name] && !discordStatements[name].calculator) return true;
-      return Object.values(discordStatements).some(row => row && row.calculator === name);
-    }
-    function discordFallbackPercent(name) {
-      const direct = discordStatements[name];
-      const via = Object.values(discordStatements).find(row => row && row.calculator === name);
-      const row = direct && !direct.calculator ? direct : via;
-      if (!row) return 0;
-      if (Number(row.percent) > 0) return Number(row.percent);
-      const match = String(row.statement || "").match(/(\d+)\s*%/);
-      return match ? Number(match[1]) : 0;
-    }
-    function percentPhrase(entries) {
-      if (!entries.length) return "";
-      const pct = entries[0][1];
-      if (!entries.every(([, value]) => value === pct)) return "mixed discounts on " + entries.length + " items";
-      if (entries.length === 1) return pct + "% off " + entries[0][0];
-      if (entries.length === 2) return pct + "% off " + entries[0][0] + " and " + entries[1][0];
-      return pct + "% off " + entries.length + " items";
-    }
-    function roleEffectSummary(name) {
-      const def = roles[name] || {};
-      const discounts = Object.entries(def.discounts || {}).filter(([, value]) => value);
-      const fixed = Object.entries(def.discountFixed || {}).filter(([, value]) => value);
-      const bonuses = Object.entries(def.bonuses || {}).filter(([, value]) => value);
-      const parts = [];
-      if (def.cartPercent) parts.push(def.cartPercent + "% off the buy cart");
-      if (name === "Roadkill" && discounts.length) parts.push(discounts[0][1] + "% off car parts");
-      else if (discounts.length) parts.push(percentPhrase(discounts));
-      fixed.forEach(([item, value]) => parts.push(value + " off " + item));
-      if (bonuses.length === 1) parts.push(bonuses[0][0] + " sells for " + fmt(bonuses[0][1]));
-      else if (bonuses.length) parts.push("sell bonuses on " + bonuses.length + " items");
-      if (parts.length) return parts.filter(Boolean).join(", ");
-      const fallback = discordFallbackPercent(name);
-      if (fallback) return fallback + "% off buys";
-      return "No defined terms";
-    }
-    let openRoleName = "";
-    function popupRoleNames() {
-      return Object.keys(roles).filter(name => name !== "Day One").sort((a, b) => a.localeCompare(b));
-    }
-    function nameWithStar(label, held) {
-      const who = document.createElement("span");
-      who.className = "account-who";
-      who.append(document.createTextNode(label));
-      if (held && held.indexOf("Day One") >= 0) {
-        const star = document.createElement("span");
-        star.className = "day-one-star";
-        star.textContent = "★";
-        star.title = "Day One";
-        star.setAttribute("role", "img");
-        star.setAttribute("aria-label", "Day One");
-        who.append(star);
-      }
-      return who;
-    }
-    function rolesView() {
-      if (accountAuth === "loading" || (accountRolesPending && !(accountMode === "trader" && accountCustomer))) return { state: "loading" };
-      if (accountAuth !== "signedin" || !accountMe) return { state: "hidden" };
-      if (accountMode === "admin" && adminAllowed()) return { state: "hidden" };
-      if (accountMode === "trader" && traderAllowed()) {
-        if (!accountCustomer) return accountRolesPending ? { state: "loading" } : { state: "hidden" };
-        if (accountCustomer.rolesUnavailable || !Array.isArray(accountCustomer.pricingRoles)) return { state: "unavailable" };
-        return { state: "ready", held: accountCustomer.pricingRoles.filter(name => roles[name]) };
-      }
-      if (!ownRolesReady) return { state: "unavailable" };
-      return { state: "ready", held: ownPricingRoles.filter(name => roles[name]) };
-    }
-    function closeRolesPopup(restore) {
-      const open = document.body.classList.contains("roles-open");
-      document.body.classList.remove("roles-open");
-      openRoleName = "";
-      const btn = document.getElementById("rolesBtn");
-      if (btn) btn.setAttribute("aria-expanded", "false");
-      if (restore && open && btn && !btn.hidden) btn.focus();
-    }
-    function paintRolesPopup() {
-      const view = rolesView();
-      const grid = document.getElementById("earnRolesGrid");
-      if (!grid || view.state !== "ready") return;
-      const names = popupRoleNames();
-      const held = new Set(view.held);
-      if (openRoleName && names.indexOf(openRoleName) < 0) openRoleName = "";
-      const openIndex = names.indexOf(openRoleName);
-      grid.replaceChildren();
-      names.forEach((name, index) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "earn-role" + (held.has(name) ? " is-held" : "");
-        btn.setAttribute("aria-expanded", name === openRoleName ? "true" : "false");
-        if (held.has(name)) {
-          const mark = document.createElement("span");
-          mark.setAttribute("aria-hidden", "true");
-          mark.textContent = "✓";
-          btn.append(mark);
-        }
-        btn.append(document.createTextNode(name));
-        btn.onclick = () => {
-          openRoleName = openRoleName === name ? "" : name;
-          paintRolesPopup();
-        };
-        grid.appendChild(btn);
-        const rowEnd = index % 2 === 1 || index === names.length - 1;
-        const rowStart = index - (index % 2);
-        if (rowEnd && openIndex >= rowStart && openIndex <= index) {
-          const detail = document.createElement("div");
-          detail.className = "earn-role-detail";
-          const chosen = names[openIndex];
-          const def = roles[chosen] || {};
-          const copy = document.createElement("p");
-          copy.textContent = def.description || "";
-          const effect = document.createElement("p");
-          effect.className = "earn-effect";
-          effect.textContent = roleEffectSummary(chosen);
-          detail.append(copy, effect);
-          if (!discordLinked(chosen)) {
-            const tag = document.createElement("span");
-            tag.className = "earn-tag";
-            tag.textContent = "No Discord role";
-            detail.append(tag);
-          }
-          grid.appendChild(detail);
-        }
-      });
-    }
-    function openRolesPopup() {
-      const view = rolesView();
-      if (view.state !== "ready") return;
-      openRoleName = "";
-      paintRolesPopup();
-      document.body.classList.add("roles-open");
-      const btn = document.getElementById("rolesBtn");
-      if (btn) btn.setAttribute("aria-expanded", "true");
-      const close = document.getElementById("rolesPopClose");
-      if (close) close.focus();
-    }
     function standingLine(me) {
       const roles = me && me.roles;
       if (!roles) return "";
@@ -1843,10 +1645,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           const flag = document.createElement("span");
           flag.className = "account-flag flag-trader";
           flag.textContent = "TRADER MODE";
-          const heldNow = rolesView();
-          const who = accountCustomer
-            ? nameWithStar(accountCustomer.label, heldNow.state === "ready" ? heldNow.held : [])
-            : nameWithStar("Select a customer", []);
+          const who = document.createElement("span");
+          who.className = "account-who";
+          who.textContent = accountCustomer ? accountCustomer.label : "Select a customer";
           status.append(flag, who);
         } else if (adminOn) {
           const flag = document.createElement("span");
@@ -1854,8 +1655,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
           flag.textContent = "ADMIN MODE";
           status.append(flag);
         } else {
-          const heldNow = rolesView();
-          status.append(nameWithStar(memberLabel(accountMe.identity) || "My account", heldNow.state === "ready" ? heldNow.held : []));
+          const who = document.createElement("span");
+          who.className = "account-who";
+          who.textContent = memberLabel(accountMe.identity) || "My account";
+          status.append(who);
         }
       }
       const meta = document.getElementById("accountMeta");
@@ -1868,30 +1671,13 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         meta.hidden = !metaText;
         meta.textContent = metaText;
       }
-      const rolesBtn = document.getElementById("rolesBtn");
-      const view = rolesView();
-      if (view.state !== "ready") closeRolesPopup(false);
-      if (rolesBtn) {
-        const listed = view.state === "ready" ? view.held.filter(name => name !== "Day One").length : 0;
-        rolesBtn.hidden = view.state === "hidden";
-        rolesBtn.disabled = view.state !== "ready";
-        rolesBtn.classList.toggle("is-quiet", view.state !== "ready");
-        rolesBtn.textContent = view.state === "ready"
-          ? ("Roles " + listed)
-          : (view.state === "unavailable" ? "Roles unavailable" : "Roles");
-        rolesBtn.setAttribute("aria-expanded", document.body.classList.contains("roles-open") ? "true" : "false");
-        rolesBtn.setAttribute("aria-label", view.state === "unavailable" ? "Roles unavailable" : rolesBtn.textContent);
-      }
       const readout = document.getElementById("accountReadout");
       if (readout) {
         const name = status ? status.textContent.replace(/\s+/g, " ").trim() : "My account";
-        const rolesText = rolesBtn && !rolesBtn.hidden ? rolesBtn.textContent : "";
-        readout.setAttribute("aria-label", [window.__935AccountFixture === true ? "Test fixture" : "", name, metaText, rolesText].filter(Boolean).join(". "));
+        readout.setAttribute("aria-label", [window.__935AccountFixture === true ? "Test fixture" : "", name, metaText].filter(Boolean).join(". "));
       }
       const change = document.getElementById("customerChangeBtn");
       if (change) change.hidden = !(traderOn && accountCustomer);
-      const actions = document.getElementById("accountActions");
-      if (actions) actions.hidden = (!change || change.hidden) && (!rolesBtn || rolesBtn.hidden);
       const search = document.getElementById("accountSearch");
       const showSearch = traderOn && (accountPicking || !accountCustomer);
       if (search) search.hidden = !showSearch;
@@ -1902,11 +1688,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         if (idRow) idRow.hidden = true;
       }
       const bar = document.getElementById("accountBar");
-      if (bar) {
-        const box = bar.getBoundingClientRect();
-        document.documentElement.style.setProperty("--account", Math.max(44, Math.ceil(box.height)) + "px");
-        document.documentElement.style.setProperty("--account-bottom", Math.ceil(box.bottom) + "px");
-      }
+      if (bar) document.documentElement.style.setProperty("--account", Math.max(44, Math.ceil(bar.getBoundingClientRect().height)) + "px");
     }
     async function refreshAccount() {
       if (!accountGatewayBase()) {
@@ -1923,7 +1705,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         accountAuth = "unconfigured";
         accountMe = null;
         ownPricingRoles = [];
-        ownRolesReady = false;
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
@@ -1934,7 +1715,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         accountAuth = "signedout";
         accountMe = null;
         ownPricingRoles = [];
-        ownRolesReady = false;
         accountMode = "self";
         accountCustomer = null;
         accountPicking = false;
@@ -1943,8 +1723,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       accountAuth = "signedin";
       accountMe = res.body;
-      ownRolesReady = Array.isArray(res.body.pricing_roles);
-      ownPricingRoles = ownRolesReady ? res.body.pricing_roles : [];
+      ownPricingRoles = Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : [];
       if (!(res.body.access && res.body.access.trader_mode_allowed === true) && accountMode === "trader") {
         accountMode = "self";
         accountCustomer = null;
@@ -2018,10 +1797,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAccount();
         return;
       }
-      accountRolesPending = true;
-      renderAccount();
       const res = await gatewayJSON("/api/trader/players/" + encodeURIComponent(id));
-      accountRolesPending = false;
       if (accountMode !== "trader" || !traderAllowed()) {
         accountCustomer = null;
         renderAccount();
@@ -2029,8 +1805,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       }
       const member = res && res.status === 200 && res.body && res.body.lookup && res.body.lookup.member;
       if (!member) {
-        if (accountCustomer) accountCustomer.rolesUnavailable = true;
-        else if (res && res.status === 403) {
+        accountCustomer = null;
+        if (res && res.status === 403) {
           accountMode = "self";
           accountPicking = false;
           toast("Trader mode is not authorized for this account.");
@@ -2038,13 +1814,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAccount();
         return;
       }
-      const priced = Array.isArray(res.body.pricing_roles);
       accountCustomer = {
         id: String(member.id || id),
         label: memberLabel(member) || "Customer",
         balanceText: balanceLine(res.body.balance),
-        pricingRoles: priced ? res.body.pricing_roles : [],
-        rolesUnavailable: !priced
+        pricingRoles: Array.isArray(res.body.pricing_roles) ? res.body.pricing_roles : []
       };
       accountPicking = false;
       const input = document.getElementById("customerSearch");
@@ -2592,15 +2366,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         renderAdminRoles();
       };
       if (signOut) signOut.onclick = () => { signOutAccount(); };
-      const rolesBtn = document.getElementById("rolesBtn");
-      if (rolesBtn) rolesBtn.onclick = () => openRolesPopup();
-      const rolesClose = document.getElementById("rolesPopClose");
-      if (rolesClose) rolesClose.onclick = () => closeRolesPopup(true);
-      const rolesBackdrop = document.getElementById("rolesBackdrop");
-      if (rolesBackdrop) rolesBackdrop.onclick = () => closeRolesPopup(true);
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && document.body.classList.contains("roles-open")) closeRolesPopup(true);
-      });
       if (change) change.onclick = () => {
         accountCustomer = null;
         accountPicking = true;
@@ -2713,10 +2478,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       buyCart = {}; sellCart = {}; kitConfigs = []; activeRoles = new Set(); searchTerm = "";
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "buy"));
       ["search", "orderCodeIn", "orderCodeOut"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-      const out = document.getElementById("orderCodeOut");
-      if (out) { out.value = ""; out.hidden = true; out.style.display = "none"; }
-      const shareBtn = document.getElementById("genCodeBtn");
-      if (shareBtn) { shareBtn.disabled = true; shareBtn.textContent = "Copy order link"; }
+      const out = document.getElementById("orderCodeOut"); if (out) out.style.display = "none";
+      const copyBtn = document.getElementById("copyCodeBtn"); if (copyBtn) copyBtn.style.display = "none";
       const kp = document.getElementById("kitPanel"); if (kp) { kp.style.display = "none"; delete kp.dataset.ghillie; }
       const kf = document.getElementById("kitFields"); if (kf) kf.innerHTML = "";   // kit form is rebuilt fresh on open
       const t = document.getElementById("toast"); if (t) { t.classList.remove("show"); t.textContent = ""; }
@@ -2837,7 +2600,6 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         rc.textContent = selected ? String(selected) : "";
       }
       if (roleBtn) roleBtn.setAttribute("aria-label", selected ? ("Roles, " + selected + " selected") : "Roles");
-      syncOrderShare();
       const share = document.getElementById("shareOrderBtn");
       if (share) {
         const buy = currentTab === "buy";
@@ -3447,40 +3209,14 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       searchTerm = e.target.value.toLowerCase().trim();
       render();
     };
+    const ORDER_SHARE_BASE = "https://dayz-group-935.github.io/traderv3/";
+
     function encodeOrderPayload() {
       const data = JSON.stringify({v: 2, cart: buyCart, kits: kitConfigs});
       return btoa(unescape(encodeURIComponent(data)));
     }
-    function pageShareBase() {
-      const url = new URL(location.href);
-      url.hash = "";
-      url.search = "";
-      return url.toString();
-    }
     function makeOrderShareLink(payload) {
-      return pageShareBase() + "#order=" + encodeURIComponent(payload || encodeOrderPayload());
-    }
-    function syncOrderShare() {
-      const empty = Object.keys(buyCart).length === 0;
-      const btn = document.getElementById("genCodeBtn");
-      const out = document.getElementById("orderCodeOut");
-      if (btn) {
-        btn.disabled = empty;
-        if (empty) btn.textContent = "Copy order link";
-      }
-      if (empty && out) {
-        out.value = "";
-        out.hidden = true;
-        out.style.display = "none";
-      }
-    }
-    let copiedTimer = 0;
-    function showCopied(btn) {
-      btn.textContent = "Copied";
-      clearTimeout(copiedTimer);
-      copiedTimer = setTimeout(() => {
-        if (btn.textContent === "Copied") btn.textContent = "Copy order link";
-      }, 1600);
+      return ORDER_SHARE_BASE + "#order=" + encodeURIComponent(payload || encodeOrderPayload());
     }
     function extractOrderPayload(text) {
       const s = String(text == null ? "" : text).trim();
@@ -3561,26 +3297,39 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
 
     document.getElementById("genCodeBtn").onclick = () => {
-      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); syncOrderShare(); return; }
+      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); return; }
       const link = makeOrderShareLink();
       const out = document.getElementById("orderCodeOut");
-      const btn = document.getElementById("genCodeBtn");
       out.value = link;
-      out.hidden = false;
       out.style.display = "block";
+      document.getElementById("copyCodeBtn").style.display = "block";
+      toast("Link generated");
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(link).then(() => {
-          showCopied(btn);
-          toast("Copied");
+          const t = document.getElementById("toast");
+          if (t && t.textContent === "Link generated") toast("Link copied");
         }).catch(() => {
-          toast("Copy failed — use the link below");
+          const t = document.getElementById("toast");
+          if (t && (t.textContent === "Link generated" || t.textContent === "Link copied")) toast("Copy failed — use the link below");
         });
-      } else {
-        toast("Copy failed — use the link below");
       }
+    };
+    document.getElementById("copyCodeBtn").onclick = () => {
+      const out = document.getElementById("orderCodeOut");
+      out.select();
+      navigator.clipboard.writeText(out.value).then(() => toast("Copied!")).catch(() => toast("Copy failed"));
     };
     document.getElementById("loadCodeBtn").onclick = () => {
       applyOrderCode(document.getElementById("orderCodeIn").value);
+    };
+    document.getElementById("clearCodeBtn").onclick = () => {
+      const out = document.getElementById("orderCodeOut");
+      const copyBtn = document.getElementById("copyCodeBtn");
+      const inp = document.getElementById("orderCodeIn");
+      if (out) { out.value = ""; out.style.display = "none"; }
+      if (copyBtn) copyBtn.style.display = "none";
+      if (inp) inp.value = "";
+      toast("Link cleared");
     };
 
     document.getElementById("calculateBtn").onclick = calculate;
@@ -3619,8 +3368,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         toast("Order links are for the buy cart");
         return;
       }
-      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); return; }
       document.getElementById("genCodeBtn").click();
+      if (Object.keys(buyCart).length === 0) return;
       openCodeSheet();
       requestAnimationFrame(() => {
         scrollSheetTo(document.getElementById("orderCodeBox"));
@@ -3647,8 +3396,9 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     document.getElementById("clearAllBtn").onclick = () => {
       buyCart = {}; sellCart = {}; kitConfigs = []; saveState(); render();
       renderKitSummaries();
-      syncOrderShare();
-      toast("Cart cleared");
+      const out = document.getElementById("orderCodeOut"); out.value = ""; out.style.display = "none";
+      document.getElementById("copyCodeBtn").style.display = "none";
+      toast("Carts cleared");
     };
     bindAccountControls();
     render();

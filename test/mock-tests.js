@@ -1211,7 +1211,9 @@ async function run() {
   });
 
   await test('GET / serves the calculator on the same origin only', async () => {
-    const disk = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const rootIndex = path.join(__dirname, '..', 'index.html');
+    assert.equal(fs.existsSync(rootIndex), false);
+    const disk = fs.readFileSync(path.join(__dirname, '..', 'app', 'index.html'), 'utf8');
     assert.equal(disk.includes('window.__935AccountGateway='), false);
     assert.equal(disk.includes('onrender.com'), false);
     await withApp({ config: baseConfig({ DISCORD_CLIENT_SECRET: SECRET }) }, async (_app, origin) => {
