@@ -1,7 +1,7 @@
 // 935 Trading Calculator simulation harness (puppeteer-core + system Chrome)
 const puppeteer = require('puppeteer-core');
 const fs = require('fs'); const path = require('path');
-const FILE = process.argv[2] || path.join(__dirname, '..', 'index.html');
+const FILE = process.argv[2] || path.join(__dirname, '..', 'app', 'index.html');
 const URL = 'file://' + FILE;
 const OUT = path.join(__dirname, 'out');
 const results = []; let consoleErrors = [];
@@ -351,7 +351,8 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
     addToCart('buy', 'M4A1', 1, 3500); addToCart('sell', 'Bible', 1, 10000);
     document.querySelector('.tab-btn[data-tab="sell"]').click(); o.sellVisible = document.getElementById('sellSummaryWrap').style.display; o.buyHidden = document.getElementById('buySummaryWrap').style.display; o.orderBoxVisibleOnSell = getComputedStyle(document.getElementById('orderCodeBox')).display;
     document.querySelector('.tab-btn[data-tab="buy"]').click(); o.cartsKept = [Object.keys(buyCart), Object.keys(sellCart)];
-    document.getElementById('clearRolesBtn').click(); o.rolesCleared = activeRoles.size === 0 && Object.keys(buyCart).length === 1;
+    o.rolesCleared = !document.getElementById('clearRolesBtn') && Object.keys(buyCart).length === 1;
+    activeRoles = new Set();
     document.getElementById('genCodeBtn').click(); document.getElementById('clearAllBtn').click(); o.cleared = Object.keys(buyCart).length + Object.keys(sellCart).length; o.codeStillShown = document.getElementById('orderCodeOut').value.length > 0;
     o.lsAfterClear = localStorage.getItem('935calc');
     // remove-one with quotes in name? data-name attribute injection
@@ -360,7 +361,7 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
   });
   rec('cart: remove-one decrements; at qty 1 removes; remove-all removes', ctl.afterMinus === 2 && ctl.beltGone && ctl.empty, ctl);
   rec('cart: tab switch keeps both carts', ctl.cartsKept[0].length === 1 && ctl.cartsKept[1].length === 1, ctl.cartsKept);
-  rec('cart: Clear Roles clears roles only', ctl.rolesCleared);
+  rec('cart: player side has no Clear Roles button', ctl.rolesCleared);
   rec('cart: Clear empties carts and localStorage cart', ctl.cleared === 0, ctl.lsAfterClear);
   rec('cart: Clear also clears a generated order code', !ctl.codeStillShown, { codeStillShown: ctl.codeStillShown });
   rec('cart: info — order code box visible on Sell tab', true, ctl.orderBoxVisibleOnSell);
@@ -765,15 +766,18 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
     document.getElementById('kitTokenToggle').checked = true;
     saveKit();
     document.getElementById('genCodeBtn').click();
+    const url = new URL(location.href);
+    url.hash = '';
+    url.search = '';
     return {
       link: document.getElementById('orderCodeOut').value,
+      base: url.toString(),
       toast: document.getElementById('toast').textContent,
       cart: JSON.parse(JSON.stringify(buyCart)),
       kits: JSON.parse(JSON.stringify(kitConfigs))
     };
   });
-  const SHARE_BASE = 'https://dayz-group-935.github.io/traderv3/';
-  rec('share: generated link uses the canonical production URL with #order=', typeof shareBuilt.link === 'string' && shareBuilt.link.startsWith(SHARE_BASE + '#order=') && !shareBuilt.link.includes('file:'), shareBuilt.link.slice(0, 160));
+  rec('share: generated link uses this page with #order=', typeof shareBuilt.link === 'string' && shareBuilt.link.startsWith(shareBuilt.base + '#order=') && !shareBuilt.link.includes('github.io'), shareBuilt.link.slice(0, 160));
 
   const shareHash = '#' + String(shareBuilt.link).split('#').slice(1).join('#');
   // Same-document hash changes are ignored (existing carts are not replaced). Go via about:blank so this is a fresh open.
@@ -781,7 +785,8 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
   await page.goto(URL + shareHash, { waitUntil: 'load' });
   await page.waitForFunction(() => {
     const t = document.getElementById('toast');
-    return !!t && (t.textContent === 'Order loaded' || t.textContent === 'Invalid code');
+    const text = t.textContent || '';
+    return text.indexOf('Order loaded') === 0 || text === 'Invalid code';
   }, { timeout: 5000 });
   const opened = await E(() => ({
     hash: location.hash,
@@ -817,7 +822,7 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
   }, shareBuilt.link);
   rec('share: a pasted production link imports the order', pasted.full.toast === 'Order loaded' && pasted.full.cart.M4A1?.qty === 2 && pasted.full.cart['Trader Truck']?.qty === 1 && pasted.full.kits[0]?.token === true && pasted.full.kits[0]?.weapon1?.item === 'M4A1', pasted.full);
   rec('share: a pasted #order= fragment imports the order', pasted.hashOnly.toast === 'Order loaded' && pasted.hashOnly.cart.M4A1?.qty === 2 && pasted.hashOnly.kits[0]?.token === true, pasted.hashOnly);
-  rec('share: legacy v1 raw codes still import and re-price from the catalog', pasted.v1.toast === 'Order loaded' && pasted.v1.cart.M4A1?.qty === 3 && pasted.v1.cart.M4A1?.base === 3500, pasted.v1);
+  rec('share: legacy v1 raw codes still import and re-price from the catalog', pasted.v1.toast.indexOf('Order loaded') === 0 && pasted.v1.cart.M4A1?.qty === 3 && pasted.v1.cart.M4A1?.base === 3500, pasted.v1);
   rec('share: legacy v2 raw codes still import kit equipment', pasted.v2.toast === 'Order loaded' && pasted.v2.kits[0]?.weapon1?.item === 'KAM' && pasted.v2.cart['Player Kit 1']?.base === 16000, pasted.v2);
 
   await fresh();

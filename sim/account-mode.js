@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 
-const FILE = process.argv[2] || path.join(__dirname, '..', 'index.html');
+const FILE = process.argv[2] || path.join(__dirname, '..', 'app', 'index.html');
 const URL = 'file://' + FILE;
 const OUT = process.env.OUT || path.join(__dirname, 'out', 'account-mode');
 const ART = '/opt/cursor/artifacts';
@@ -53,7 +53,8 @@ const DENIED = {
     source: 'live_membership'
   },
   balance: balance(840, 100),
-  customer_lookup: { configured: true, available: true }
+  customer_lookup: { configured: true, available: true },
+  pricing_roles: []
 };
 
 // Server Owner grant is expressed only by trader_mode_allowed. is_trader is false.
@@ -81,17 +82,20 @@ const ALLOWED = {
     source: 'live_membership'
   },
   balance: balance(80000, 0),
-  customer_lookup: { configured: true, available: true }
+  customer_lookup: { configured: true, available: true },
+  pricing_roles: ['Roadkill', 'Hotshot', 'Librarian', 'Mayweather']
 };
 
 const CUSTOMERS = {
   '333': {
     id: '333', username: 'jordan', global_name: 'Jordan Hale', nick: 'Jordan Hale', roles: ['role-customer'],
-    balance: balance(4200, 800)
+    balance: balance(4200, 800),
+    pricing_roles: ['Deadshot', 'Dr. Greenthumb', 'Pathfinder', 'Kamikaze', 'Day One']
   },
-  '334': {
-    id: '334', username: 'jonah', global_name: 'Jonah Pike', nick: 'Jonah Pike', roles: ['role-customer'],
-    balance: balance(10, 0)
+  '444444444444444444': {
+    id: '444444444444444444', username: 'jonah', global_name: 'Jonah Pike', nick: 'Jonah Pike', roles: ['role-customer'],
+    balance: balance(10, 0),
+    pricing_roles: null
   }
 };
 
@@ -165,11 +169,13 @@ async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe, sl
         const id = decodeURIComponent(u.pathname.slice('/api/trader/players/'.length));
         const c = customers[id];
         if (!c) return json(404, { error: 'not_found' });
-        return json(200, {
+        const body = {
           lookup: { id, member: { id: c.id, username: c.username, global_name: c.global_name, nick: c.nick, roles: c.roles } },
           balance: c.balance,
           live_customer_functionality: false
-        });
+        };
+        if (Array.isArray(c.pricing_roles)) body.pricing_roles = c.pricing_roles;
+        return json(200, body);
       }
       return json(404, { error: 'not_found' });
     };
@@ -177,7 +183,14 @@ async function boot(browser, { gateway, me, width, failMe, lookupMs, delayMe, sl
       setMe(next) { state.me = next; }
     };
   }, { gateway: gateway || null, me: me || null, customers: CUSTOMERS, failMe: failMe || '', lookupMs: lookupMs || 0, delayMe: !!delayMe, slowQuery: slowQuery || '', slowMs: slowMs || 0 });
-  await page.setViewport({ width: width || 375, height: 812, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  const wideViewport = (width || 375) >= 1000;
+  await page.setViewport({
+    width: width || 375,
+    height: wideViewport ? 900 : 812,
+    deviceScaleFactor: 1,
+    isMobile: !wideViewport,
+    hasTouch: !wideViewport
+  });
   await page.goto(URL, { waitUntil: 'load' });
   return { page, errors };
 }
@@ -192,7 +205,7 @@ function readBar() {
   const app = document.querySelector('.app');
   return {
     status: document.getElementById('accountStatus').innerText.replace(/\s+/g, ' ').trim(),
-    who: (document.querySelector('#accountStatus .account-who') || {}).textContent || '',
+    who: ((document.querySelector('#accountStatus .account-who') || {}).textContent || '').replace(/★/g, '').trim(),
     meta: meta.hidden ? '' : meta.textContent,
     fixture: document.getElementById('accountFixture').hidden ? '' : document.getElementById('accountFixture').textContent.trim(),
     traderMode: document.body.classList.contains('trader-mode'),
@@ -453,6 +466,217 @@ function readBar() {
     !/ADMIN MODE/.test(dropped.barText),
     dropped);
   await staff.page.close();
+
+  const roles = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 390 });
+  await roles.page.waitForFunction(() => document.getElementById('rolesBtn').textContent === 'Roles 4');
+  await roles.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:0;left:0;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+  });
+  const mineBtn = await roles.page.evaluate(() => {
+    const btn = document.getElementById('rolesBtn');
+    const change = document.getElementById('customerChangeBtn');
+    return {
+      text: btn.textContent,
+      quiet: btn.classList.contains('is-quiet'),
+      disabled: btn.disabled,
+      changeHidden: change.hidden,
+      star: !!document.querySelector('.day-one-star'),
+      beside: btn.parentElement === change.parentElement
+    };
+  });
+  check('my-account-roles-button',
+    mineBtn.text === 'Roles 4' && !mineBtn.quiet && !mineBtn.disabled && mineBtn.changeHidden && !mineBtn.star && mineBtn.beside,
+    mineBtn);
+  await roles.page.click('#rolesBtn');
+  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 22);
+  const popup = await roles.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const buttons = [...grid.querySelectorAll('.earn-role')];
+    const road = buttons.find(row => row.textContent.includes('Roadkill'));
+    const pop = document.getElementById('rolesPop').getBoundingClientRect();
+    const view = document.documentElement.clientHeight;
+    return {
+      open: document.body.classList.contains('roles-open'),
+      count: buttons.length,
+      dayOne: buttons.some(row => row.textContent.includes('Day One')),
+      road: road ? road.textContent.replace(/\s+/g, ' ').trim() : '',
+      roadHeld: !!(road && road.classList.contains('is-held')),
+      inputs: grid.querySelectorAll('input, select, textarea, [role="switch"]').length,
+      detail: grid.querySelectorAll('.earn-role-detail').length,
+      short: pop.height < view * 0.85
+    };
+  });
+  check('roles-popup-names-only',
+    popup.open && popup.count === 22 && !popup.dayOne && popup.roadHeld && popup.road === '✓Roadkill' &&
+    popup.inputs === 0 && popup.detail === 0 && popup.short,
+    popup);
+  await roles.page.evaluate(() => [...document.querySelectorAll('#earnRolesGrid .earn-role')].find(item => item.textContent.includes('Roadkill')).click());
+  const roleDetail = await roles.page.evaluate(() => {
+    const detail = document.querySelector('#earnRolesGrid .earn-role-detail');
+    return {
+      text: detail ? detail.innerText.replace(/\s+/g, ' ').trim() : '',
+      held: document.querySelectorAll('#earnRolesGrid .earn-role.is-held').length,
+      label: document.getElementById('rolesBtn').textContent
+    };
+  });
+  check('roles-popup-reveals-detail',
+    /Flatten a player/.test(roleDetail.text) && /25% off car parts/.test(roleDetail.text) && roleDetail.held === 4 && roleDetail.label === 'Roles 4',
+    roleDetail);
+  await roles.page.evaluate(() => [...document.querySelectorAll('#earnRolesGrid .earn-role')].find(item => item.textContent.includes('Roadkill')).click());
+  const collapsed = await roles.page.evaluate(() => document.querySelectorAll('#earnRolesGrid .earn-role-detail').length);
+  check('roles-popup-collapses-detail', collapsed === 0, collapsed);
+  await roles.page.click('#rolesPopClose');
+  await roles.page.waitForFunction(() => !document.body.classList.contains('roles-open'));
+  check('roles-popup-closes-to-my-account', await roles.page.evaluate(() => document.getElementById('accountStatus').innerText.includes('Riley Chen') && !document.querySelector('.day-one-star')));
+  await roles.page.click('#modeTraderBtn');
+  await roles.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
+  check('roles-button-hidden-until-customer', await roles.page.evaluate(() => document.getElementById('rolesBtn').hidden === true));
+  await roles.page.type('#customerSearch', 'jor');
+  await roles.page.waitForFunction(() => [...document.querySelectorAll('#customerResults [role="option"]')].some(b => b.textContent === 'Jordan Hale'));
+  await roles.page.click('#customerResults [role="option"]');
+  await roles.page.waitForFunction(() => document.getElementById('rolesBtn').textContent === 'Roles 4' && document.querySelector('.day-one-star'));
+  const header = await roles.page.evaluate(() => {
+    const rolesBtn = document.getElementById('rolesBtn');
+    const change = document.getElementById('customerChangeBtn');
+    const star = document.querySelector('.day-one-star');
+    return {
+      roles: rolesBtn.textContent,
+      change: change.textContent,
+      changeHidden: change.hidden,
+      sameRow: rolesBtn.parentElement === change.parentElement && !change.hidden && !rolesBtn.hidden,
+      star: star ? star.getAttribute('aria-label') : '',
+      title: star ? star.title : '',
+      heightGap: Math.abs(rolesBtn.getBoundingClientRect().height - change.getBoundingClientRect().height)
+    };
+  });
+  check('trader-roles-beside-change-with-star',
+    header.roles === 'Roles 4' && header.change === 'Change' && header.sameRow && header.star === 'Day One' && header.title === 'Day One' && header.heightGap < 2,
+    header);
+  await shot(roles.page, 'roles-trader-header-390-mock');
+  await roles.page.click('#rolesBtn');
+  await roles.page.waitForFunction(() => document.body.classList.contains('roles-open') && !document.querySelector('.earn-role-detail'));
+  await shot(roles.page, 'roles-popup-390-mock');
+  const customerPopup = await roles.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const held = (name) => {
+      const row = [...grid.querySelectorAll('.earn-role')].find(item => item.textContent.includes(name));
+      return !!(row && row.classList.contains('is-held'));
+    };
+    return {
+      deadshot: held('Deadshot'),
+      roadkill: held('Roadkill'),
+      dayOne: [...grid.querySelectorAll('.earn-role')].some(item => item.textContent.includes('Day One'))
+    };
+  });
+  check('customer-roles-follow-server-list', customerPopup.deadshot && !customerPopup.roadkill && !customerPopup.dayOne, customerPopup);
+  await roles.page.evaluate(() => [...document.querySelectorAll('#earnRolesGrid .earn-role')].find(item => item.textContent.includes('Deadshot')).click());
+  await roles.page.waitForFunction(() => {
+    const detail = document.querySelector('.earn-role-detail');
+    return detail && detail.innerText.includes('50% off 7 items');
+  });
+  await shot(roles.page, 'roles-popup-detail-390-mock');
+  await roles.page.click('#rolesPopClose');
+  await roles.page.evaluate(() => document.getElementById('customerChangeBtn').click());
+  await roles.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Select a customer'));
+  await roles.page.evaluate(() => { document.getElementById('customerIdRow').hidden = false; document.getElementById('customerIdInput').value = '444444444444444444'; });
+  await roles.page.click('#customerIdBtn');
+  await roles.page.waitForFunction(() => document.getElementById('accountStatus').innerText.includes('Jonah Pike'));
+  const unavailable = await roles.page.evaluate(() => ({
+    chip: document.getElementById('rolesBtn').textContent,
+    who: document.getElementById('accountStatus').innerText,
+    meta: document.getElementById('accountMeta').textContent,
+    dock: !!document.getElementById('calculateBtn')
+  }));
+  check('missing-role-lookup-keeps-the-order-panel',
+    unavailable.chip === 'Roles unavailable' && /Jonah Pike/.test(unavailable.who) && /Cash 10/.test(unavailable.meta) && unavailable.dock,
+    unavailable);
+  check('roles-console', roles.errors.length === 0, roles.errors.slice(0, 4));
+  await roles.page.close();
+
+  const widePage = await boot(browser, { gateway: GATEWAY, me: ALLOWED, width: 1280 });
+  await widePage.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:8px;left:8px;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+  });
+  await widePage.page.click('#modeTraderBtn');
+  await widePage.page.waitForFunction(() => document.body.classList.contains('mode-trader'));
+  await widePage.page.type('#customerSearch', 'jor');
+  await widePage.page.waitForFunction(() => [...document.querySelectorAll('#customerResults [role="option"]')].some(b => b.textContent === 'Jordan Hale'));
+  await widePage.page.click('#customerResults [role="option"]');
+  await widePage.page.waitForFunction(() => document.getElementById('rolesBtn').textContent === 'Roles 4' && document.getElementById('accountStatus').innerText.includes('Jordan Hale'));
+  await widePage.page.click('#rolesBtn');
+  await widePage.page.waitForFunction(() => document.body.classList.contains('roles-open') && document.querySelectorAll('#earnRolesGrid .earn-role').length === 22);
+  const wide = await widePage.page.evaluate(() => {
+    const grid = document.getElementById('earnRolesGrid');
+    const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+    const pop = document.getElementById('rolesPop').getBoundingClientRect();
+    const deadshot = [...grid.querySelectorAll('.earn-role')].find(row => row.textContent.includes('Deadshot'));
+    const a = grid.querySelector('.earn-role').getBoundingClientRect();
+    const b = grid.querySelectorAll('.earn-role')[1].getBoundingClientRect();
+    return {
+      cols,
+      width: Math.round(pop.width),
+      height: Math.round(pop.height),
+      open: document.body.classList.contains('roles-open'),
+      deadshot: !!(deadshot && deadshot.classList.contains('is-held')),
+      dayOne: [...grid.querySelectorAll('.earn-role')].some(row => row.textContent.includes('Day One')),
+      equal: Math.abs(a.width - b.width) < 2
+    };
+  });
+  check('roles-popup-two-columns-at-1280',
+    wide.open && wide.cols === 2 && wide.width > 400 && wide.width < 700 && wide.height < 700 && wide.deadshot && !wide.dayOne && wide.equal,
+    wide);
+  await shot(widePage.page, 'roles-popup-1280-mock');
+  check('roles-wide-console', widePage.errors.length === 0, widePage.errors.slice(0, 4));
+  await widePage.page.close();
+
+  const cart = await boot(browser, { width: 390 });
+  await cart.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:0;left:0;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+    document.getElementById('codeSheetBtn').click();
+  });
+  await cart.page.waitForFunction(() => document.body.classList.contains('code-open') && document.getElementById('genCodeBtn').disabled && document.getElementById('orderCodeOut').hidden);
+  await shot(cart.page, 'cart-sheet-empty-390-mock');
+  await cart.page.evaluate(() => {
+    addToCart('buy', 'M4A1', 1, 3500);
+    addToCart('buy', 'Bandages', 2, 250);
+    document.getElementById('genCodeBtn').click();
+  });
+  await cart.page.waitForFunction(() => !document.getElementById('orderCodeOut').hidden && document.getElementById('orderCodeOut').value.indexOf('#order=') >= 0);
+  await shot(cart.page, 'cart-sheet-items-390-mock');
+  const cartState = await cart.page.evaluate(() => ({
+    link: document.getElementById('orderCodeOut').value,
+    copies: document.querySelectorAll('#copyCodeBtn, #clearCodeBtn, #shareHeading').length,
+    clear: document.getElementById('clearAllBtn').textContent,
+    enabled: !document.getElementById('genCodeBtn').disabled
+  }));
+  check('cart-sheet-one-share-flow',
+    cartState.enabled && cartState.copies === 0 && cartState.clear === 'Clear cart' && cartState.link.indexOf('#order=') >= 0 && cartState.link.indexOf('github.io') < 0,
+    cartState);
+  await cart.page.close();
+
+  const cartWide = await boot(browser, { width: 1280 });
+  await cartWide.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:8px;left:8px;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+    addToCart('buy', 'M4A1', 1, 3500);
+    addToCart('buy', 'Bandages', 2, 250);
+    document.getElementById('codeSheetBtn').click();
+    document.getElementById('genCodeBtn').click();
+  });
+  await cartWide.page.waitForFunction(() => document.body.classList.contains('code-open') && document.getElementById('orderCodeOut').value.indexOf('#order=') >= 0);
+  await shot(cartWide.page, 'cart-sheet-items-1280-mock');
+  await cartWide.page.close();
 
   await browser.close();
   const summary = { pass: fails.length === 0, failed: fails.length, fails };

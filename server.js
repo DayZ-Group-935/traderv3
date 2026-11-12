@@ -53,7 +53,7 @@ function assertHostReady(config, host) {
 }
 
 function calculatorDocument(config) {
-  const file = path.join(config.root, 'index.html');
+  const file = path.join(config.root, 'app', 'index.html');
   const html = fs.readFileSync(file, 'utf8');
   const inject = '<script>window.__935AccountGateway=window.location.origin;</script>';
   const marker = html.indexOf('<script>');

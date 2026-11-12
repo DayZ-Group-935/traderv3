@@ -374,6 +374,57 @@ async function run() {
     assert.equal(tiny.reason, 'query_too_short');
   });
 
+  await test('customer role names come from the verified map and stay on the trader route', async () => {
+    const roadId = '1217087146838458378';
+    const botLookup = {
+      isConfigured() { return true; },
+      unavailable() { return { ok: false, status: 503, error: 'provider_unavailable', reason: 'not_configured' }; },
+      async searchMembers() { return { ok: true, status: 200, data: [] }; },
+      async getMember(id) {
+        assert.equal(id, OTHER_ID);
+        return {
+          ok: true,
+          status: 200,
+          data: { user: { id: OTHER_ID, username: 'ada', global_name: 'Ada' }, roles: [roadId, '999'] },
+        };
+      },
+    };
+    await withApp({
+      env: { discordDiscountRoleMap: { [roadId]: 'Roadkill' } },
+      botLookup,
+      oauth: mockOAuth({
+        memberByToken: {
+          [TRADER_AT]: () => ({ roles: [TRADER_ROLE, roadId] }),
+          [PLAYER_AT]: () => ({ roles: [] }),
+        },
+      }),
+    }, async (app, origin) => {
+      const trader = sessionCookie(app, {
+        discordUserId: TRADER_ID,
+        username: 'trader',
+        accessToken: TRADER_AT,
+      });
+      const player = sessionCookie(app, {
+        discordUserId: PLAYER_ID,
+        username: 'player',
+        accessToken: PLAYER_AT,
+      });
+      const own = await request(origin, `/api/me?roles=Day%20One&pricing_roles=Kamikaze`, { cookie: trader });
+      assert.equal(own.status, 200);
+      assert.deepEqual(own.json.pricing_roles, ['Roadkill']);
+      assert.equal(JSON.stringify(own.json).includes('Kamikaze'), false);
+      const denied = await request(origin, `/api/trader/players/${OTHER_ID}?roles=Day%20One`, { cookie: player });
+      assert.equal(denied.status, 403);
+      assert.equal(denied.json.reason, 'elevated_role_required');
+      const customer = await request(origin, `/api/trader/players/${OTHER_ID}?roles=Day%20One&pricing_roles=Kamikaze`, { cookie: trader });
+      assert.equal(customer.status, 200);
+      assert.deepEqual(customer.json.pricing_roles, ['Roadkill']);
+      assert.equal(customer.json.lookup.member.id, OTHER_ID);
+      assert.equal(JSON.stringify(customer.json).includes(SECRET), false);
+      assert.equal(JSON.stringify(customer.json).includes('Day One'), false);
+    });
+  });
+
   await test('rate limiter reserves a slot before waiting', async () => {
     const limiter = createRateLimiter({ minIntervalMs: 40 });
     const starts = [];
@@ -1160,7 +1211,9 @@ async function run() {
   });
 
   await test('GET / serves the calculator on the same origin only', async () => {
-    const disk = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const rootIndex = path.join(__dirname, '..', 'index.html');
+    assert.equal(fs.existsSync(rootIndex), false);
+    const disk = fs.readFileSync(path.join(__dirname, '..', 'app', 'index.html'), 'utf8');
     assert.equal(disk.includes('window.__935AccountGateway='), false);
     assert.equal(disk.includes('onrender.com'), false);
     await withApp({ config: baseConfig({ DISCORD_CLIENT_SECRET: SECRET }) }, async (_app, origin) => {

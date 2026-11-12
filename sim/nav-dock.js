@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 
-const FILE = process.argv[2] || path.join(__dirname, '..', 'index.html');
+const FILE = process.argv[2] || path.join(__dirname, '..', 'app', 'index.html');
 const URL = 'file://' + FILE;
 const OUT = process.env.OUT || path.join(__dirname, 'out', 'nav-dock');
 const ART = '/opt/cursor/artifacts';
@@ -16,7 +16,6 @@ function check(id, ok, detail) {
   console.log((ok ? 'PASS ' : 'FAIL ') + id + (detail !== undefined ? ' :: ' + JSON.stringify(detail).slice(0, 700) : ''));
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const SHARE_BASE = 'https://dayz-group-935.github.io/traderv3/';
 
 async function boot(browser, width, height) {
   const page = await browser.newPage();
@@ -279,16 +278,26 @@ async function shot(page, name) {
     document.getElementById('codeSheetClose').click();
     buyCart = {}; sellCart = {}; kitConfigs = [];
     const out = document.getElementById('orderCodeOut');
-    out.value = '';
+    out.value = 'stale';
     render();
     document.getElementById('shareOrderBtn').click();
+    document.getElementById('codeSheetBtn').click();
     return {
       toast: document.getElementById('toast').textContent,
       open: document.body.classList.contains('code-open'),
-      value: out.value
+      value: out.value,
+      hidden: out.hidden,
+      disabled: document.getElementById('genCodeBtn').disabled,
+      duplicateCopy: !!document.getElementById('copyCodeBtn'),
+      clearLink: !!document.getElementById('clearCodeBtn'),
+      clearLabel: document.getElementById('clearAllBtn').textContent
     };
   });
-  check('share-empty-cart', shareEmpty.toast === 'Cart is empty' && shareEmpty.open === false && shareEmpty.value === '', shareEmpty);
+  check('share-empty-cart',
+    shareEmpty.toast === 'Cart is empty' && shareEmpty.value === '' && shareEmpty.hidden && shareEmpty.disabled &&
+    !shareEmpty.duplicateCopy && !shareEmpty.clearLink && shareEmpty.clearLabel === 'Clear cart',
+    shareEmpty);
+  await page.evaluate(() => document.getElementById('codeSheetClose').click());
 
   const shareBuy = await page.evaluate(async () => {
     let copied = null;
@@ -317,9 +326,14 @@ async function shot(page, name) {
       decoded
     };
   });
+  const shareBase = await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.hash = '';
+    url.search = '';
+    return url.toString();
+  });
   check('share-buy-existing-link',
-    shareBuy.immediate === 'Link generated' &&
-    shareBuy.link.startsWith(SHARE_BASE + '#order=') &&
+    shareBuy.link.startsWith(shareBase + '#order=') && !shareBuy.link.includes('github.io') &&
     shareBuy.copied === shareBuy.link &&
     shareBuy.rejected === 1 && /Copy failed/.test(shareBuy.after) &&
     shareBuy.open && shareBuy.display === 'block' && shareBuy.shown <= 12 &&
@@ -332,9 +346,16 @@ async function shot(page, name) {
     navigator.clipboard.writeText = (t) => { copied = t; return Promise.resolve(); };
     document.getElementById('shareOrderBtn').click();
     await new Promise(r => setTimeout(r, 30));
-    return { toast: document.getElementById('toast').textContent, copied: copied && copied.startsWith('https://dayz-group-935.github.io/traderv3/#order=') };
+    const base = new URL(location.href);
+    base.hash = '';
+    base.search = '';
+    return {
+      toast: document.getElementById('toast').textContent,
+      label: document.getElementById('genCodeBtn').textContent,
+      copied: copied && copied.startsWith(base.toString() + '#order=')
+    };
   });
-  check('share-copy-success-toast', shareCopied.toast === 'Link copied' && shareCopied.copied, shareCopied);
+  check('share-copy-success-toast', shareCopied.toast === 'Copied' && shareCopied.label === 'Copied' && shareCopied.copied, shareCopied);
 
   const sellShare = await page.evaluate(async () => {
     const out = document.getElementById('orderCodeOut');
