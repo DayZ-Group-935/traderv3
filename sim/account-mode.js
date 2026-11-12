@@ -635,6 +635,49 @@ function readBar() {
   check('roles-wide-console', widePage.errors.length === 0, widePage.errors.slice(0, 4));
   await widePage.page.close();
 
+  const cart = await boot(browser, { width: 390 });
+  await cart.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:0;left:0;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+    document.getElementById('codeSheetBtn').click();
+  });
+  await cart.page.waitForFunction(() => document.body.classList.contains('code-open') && document.getElementById('genCodeBtn').disabled && document.getElementById('orderCodeOut').hidden);
+  await shot(cart.page, 'cart-sheet-empty-390-mock');
+  await cart.page.evaluate(() => {
+    addToCart('buy', 'M4A1', 1, 3500);
+    addToCart('buy', 'Bandages', 2, 250);
+    document.getElementById('genCodeBtn').click();
+  });
+  await cart.page.waitForFunction(() => !document.getElementById('orderCodeOut').hidden && document.getElementById('orderCodeOut').value.indexOf('#order=') >= 0);
+  await shot(cart.page, 'cart-sheet-items-390-mock');
+  const cartState = await cart.page.evaluate(() => ({
+    link: document.getElementById('orderCodeOut').value,
+    copies: document.querySelectorAll('#copyCodeBtn, #clearCodeBtn, #shareHeading').length,
+    clear: document.getElementById('clearAllBtn').textContent,
+    enabled: !document.getElementById('genCodeBtn').disabled
+  }));
+  check('cart-sheet-one-share-flow',
+    cartState.enabled && cartState.copies === 0 && cartState.clear === 'Clear cart' && cartState.link.indexOf('#order=') >= 0 && cartState.link.indexOf('github.io') < 0,
+    cartState);
+  await cart.page.close();
+
+  const cartWide = await boot(browser, { width: 1280 });
+  await cartWide.page.evaluate(() => {
+    const banner = document.createElement('div');
+    banner.textContent = 'MOCK DATA';
+    banner.style.cssText = 'position:fixed;top:8px;left:8px;z-index:80;background:#7a4a30;color:#f3e9d6;font:700 11px ui-monospace,monospace;letter-spacing:.12em;padding:4px 8px';
+    document.body.appendChild(banner);
+    addToCart('buy', 'M4A1', 1, 3500);
+    addToCart('buy', 'Bandages', 2, 250);
+    document.getElementById('codeSheetBtn').click();
+    document.getElementById('genCodeBtn').click();
+  });
+  await cartWide.page.waitForFunction(() => document.body.classList.contains('code-open') && document.getElementById('orderCodeOut').value.indexOf('#order=') >= 0);
+  await shot(cartWide.page, 'cart-sheet-items-1280-mock');
+  await cartWide.page.close();
+
   await browser.close();
   const summary = { pass: fails.length === 0, failed: fails.length, fails };
   fs.writeFileSync(path.join(OUT, 'account-mode.json'), JSON.stringify(summary, null, 2));

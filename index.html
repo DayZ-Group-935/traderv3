@@ -534,12 +534,18 @@ body.code-open { overflow: hidden; }
 }
 .order-code-row input, #orderCodeOut { flex: 1; min-width: 0; padding: 0 12px; outline: none; }
 #orderCodeOut { display: block; width: 100%; margin: 8px 0; font-family: ui-monospace, monospace; font-size: 13px; }
-#genCodeBtn, #loadCodeBtn, #clearAllBtn, #clearRolesBtn, #copyCodeBtn, #clearCodeBtn, .text-action {
+#genCodeBtn, #loadCodeBtn, #clearAllBtn, #clearRolesBtn, .text-action {
   min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--dim);
   font-family: ui-monospace, monospace; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
 }
 #genCodeBtn { color: var(--ink); }
-.sheet-actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 4px 0 8px; }
+.sheet-actions { display: flex; justify-content: stretch; gap: 8px; flex-wrap: nowrap; margin: 4px 0 8px; }
+.sheet-actions #genCodeBtn, .sheet-actions #clearAllBtn {
+  flex: 1 1 0; min-width: 0; border: 1px solid var(--line-2); background: transparent;
+}
+.sheet-actions #clearAllBtn { color: var(--dim); }
+.sheet-actions #genCodeBtn:disabled { color: var(--faint); border-color: var(--line); }
+#orderCodeOut[hidden] { display: none !important; }
 .sheet-calc { width: 100%; min-width: 0; height: 52px; margin: 4px 0 8px; }
 
 .roles-section { margin-top: 12px; padding: 16px 0 0; border-top: 1px solid var(--line); }
@@ -810,14 +816,11 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       </section>
       <button class="sheet-calc" id="sheetCalcBtn" type="button">Calculate</button>
       <div class="sheet-actions">
-        <button id="genCodeBtn" type="button">Copy order link</button>
-        <button id="clearAllBtn" type="button">Clear</button>
+        <button id="genCodeBtn" type="button" disabled>Copy order link</button>
+        <button id="clearAllBtn" type="button">Clear cart</button>
       </div>
       <div class="order-code-box" id="orderCodeBox">
-        <h3 id="shareHeading">Share order</h3>
-        <input type="text" id="orderCodeOut" readonly placeholder="Link appears here..." style="display:none;" autocomplete="off" aria-label="Generated order link">
-        <button id="copyCodeBtn" type="button" style="display:none;" title="Copy" aria-label="Copy order link">Copy</button>
-        <button id="clearCodeBtn" type="button" title="Clear" aria-label="Clear link">Clear link</button>
+        <input type="text" id="orderCodeOut" readonly hidden placeholder="Link appears here..." autocomplete="off" aria-label="Order link">
         <div class="code-divider">Load a link or code</div>
         <div class="order-code-row">
           <input type="text" id="orderCodeIn" placeholder="Paste order link or code..." autocomplete="off" aria-label="Paste order link or code">
@@ -2710,8 +2713,10 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       buyCart = {}; sellCart = {}; kitConfigs = []; activeRoles = new Set(); searchTerm = "";
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "buy"));
       ["search", "orderCodeIn", "orderCodeOut"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-      const out = document.getElementById("orderCodeOut"); if (out) out.style.display = "none";
-      const copyBtn = document.getElementById("copyCodeBtn"); if (copyBtn) copyBtn.style.display = "none";
+      const out = document.getElementById("orderCodeOut");
+      if (out) { out.value = ""; out.hidden = true; out.style.display = "none"; }
+      const shareBtn = document.getElementById("genCodeBtn");
+      if (shareBtn) { shareBtn.disabled = true; shareBtn.textContent = "Copy order link"; }
       const kp = document.getElementById("kitPanel"); if (kp) { kp.style.display = "none"; delete kp.dataset.ghillie; }
       const kf = document.getElementById("kitFields"); if (kf) kf.innerHTML = "";   // kit form is rebuilt fresh on open
       const t = document.getElementById("toast"); if (t) { t.classList.remove("show"); t.textContent = ""; }
@@ -2832,6 +2837,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         rc.textContent = selected ? String(selected) : "";
       }
       if (roleBtn) roleBtn.setAttribute("aria-label", selected ? ("Roles, " + selected + " selected") : "Roles");
+      syncOrderShare();
       const share = document.getElementById("shareOrderBtn");
       if (share) {
         const buy = currentTab === "buy";
@@ -3441,14 +3447,40 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       searchTerm = e.target.value.toLowerCase().trim();
       render();
     };
-    const ORDER_SHARE_BASE = "https://dayz-group-935.github.io/traderv3/";
-
     function encodeOrderPayload() {
       const data = JSON.stringify({v: 2, cart: buyCart, kits: kitConfigs});
       return btoa(unescape(encodeURIComponent(data)));
     }
+    function pageShareBase() {
+      const url = new URL(location.href);
+      url.hash = "";
+      url.search = "";
+      return url.toString();
+    }
     function makeOrderShareLink(payload) {
-      return ORDER_SHARE_BASE + "#order=" + encodeURIComponent(payload || encodeOrderPayload());
+      return pageShareBase() + "#order=" + encodeURIComponent(payload || encodeOrderPayload());
+    }
+    function syncOrderShare() {
+      const empty = Object.keys(buyCart).length === 0;
+      const btn = document.getElementById("genCodeBtn");
+      const out = document.getElementById("orderCodeOut");
+      if (btn) {
+        btn.disabled = empty;
+        if (empty) btn.textContent = "Copy order link";
+      }
+      if (empty && out) {
+        out.value = "";
+        out.hidden = true;
+        out.style.display = "none";
+      }
+    }
+    let copiedTimer = 0;
+    function showCopied(btn) {
+      btn.textContent = "Copied";
+      clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => {
+        if (btn.textContent === "Copied") btn.textContent = "Copy order link";
+      }, 1600);
     }
     function extractOrderPayload(text) {
       const s = String(text == null ? "" : text).trim();
@@ -3529,39 +3561,26 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     }
 
     document.getElementById("genCodeBtn").onclick = () => {
-      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); return; }
+      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); syncOrderShare(); return; }
       const link = makeOrderShareLink();
       const out = document.getElementById("orderCodeOut");
+      const btn = document.getElementById("genCodeBtn");
       out.value = link;
+      out.hidden = false;
       out.style.display = "block";
-      document.getElementById("copyCodeBtn").style.display = "block";
-      toast("Link generated");
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(link).then(() => {
-          const t = document.getElementById("toast");
-          if (t && t.textContent === "Link generated") toast("Link copied");
+          showCopied(btn);
+          toast("Copied");
         }).catch(() => {
-          const t = document.getElementById("toast");
-          if (t && (t.textContent === "Link generated" || t.textContent === "Link copied")) toast("Copy failed — use the link below");
+          toast("Copy failed — use the link below");
         });
+      } else {
+        toast("Copy failed — use the link below");
       }
-    };
-    document.getElementById("copyCodeBtn").onclick = () => {
-      const out = document.getElementById("orderCodeOut");
-      out.select();
-      navigator.clipboard.writeText(out.value).then(() => toast("Copied!")).catch(() => toast("Copy failed"));
     };
     document.getElementById("loadCodeBtn").onclick = () => {
       applyOrderCode(document.getElementById("orderCodeIn").value);
-    };
-    document.getElementById("clearCodeBtn").onclick = () => {
-      const out = document.getElementById("orderCodeOut");
-      const copyBtn = document.getElementById("copyCodeBtn");
-      const inp = document.getElementById("orderCodeIn");
-      if (out) { out.value = ""; out.style.display = "none"; }
-      if (copyBtn) copyBtn.style.display = "none";
-      if (inp) inp.value = "";
-      toast("Link cleared");
     };
 
     document.getElementById("calculateBtn").onclick = calculate;
@@ -3600,8 +3619,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         toast("Order links are for the buy cart");
         return;
       }
+      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); return; }
       document.getElementById("genCodeBtn").click();
-      if (Object.keys(buyCart).length === 0) return;
       openCodeSheet();
       requestAnimationFrame(() => {
         scrollSheetTo(document.getElementById("orderCodeBox"));
@@ -3628,9 +3647,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     document.getElementById("clearAllBtn").onclick = () => {
       buyCart = {}; sellCart = {}; kitConfigs = []; saveState(); render();
       renderKitSummaries();
-      const out = document.getElementById("orderCodeOut"); out.value = ""; out.style.display = "none";
-      document.getElementById("copyCodeBtn").style.display = "none";
-      toast("Carts cleared");
+      syncOrderShare();
+      toast("Cart cleared");
     };
     bindAccountControls();
     render();

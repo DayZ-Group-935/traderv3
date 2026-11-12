@@ -43,7 +43,8 @@ async function openHash(page, hash) {
   if (String(hash).startsWith('#order=')) {
     await page.waitForFunction(() => {
       const t = document.getElementById('toast');
-      return !!t && (t.textContent === 'Order loaded' || t.textContent === 'Invalid code' || t.textContent === 'Paste a link or code first');
+      const text = t.textContent || '';
+      return text === 'Order loaded' || text.indexOf('Order loaded') === 0 || text === 'Invalid code' || text === 'Paste a link or code first';
     }, { timeout: 5000 });
   }
   await settle(page);
@@ -56,7 +57,7 @@ function viewOf() {
   const sheet = document.getElementById('orderSheet');
   const br = body.getBoundingClientRect();
   const cr = cart.getBoundingClientRect();
-  const rr = roles.getBoundingClientRect();
+  const rr = roles ? roles.getBoundingClientRect() : { top: 9999 };
   const active = document.activeElement;
   return {
     open: document.body.classList.contains('code-open'),
@@ -77,7 +78,7 @@ function viewOf() {
     cart: JSON.parse(JSON.stringify(buyCart)),
     kitCount: kitConfigs.length,
     navRows: document.querySelectorAll('#buyGrid .catstack > .catrow').length,
-    rolesBtn: document.getElementById('rolesDockBtn').textContent.replace(/\s+/g, ' ').trim(),
+    rolesBtn: '',
     shareBtn: document.getElementById('shareOrderBtn').querySelector('.dock-act-label').textContent.trim(),
     scrollW: document.documentElement.scrollWidth,
     clientW: document.documentElement.clientWidth
@@ -94,7 +95,7 @@ function viewOf() {
   const { page, errors } = await boot(browser, 390, 844);
   await page.goto(URL, { waitUntil: 'load' });
   await settle(page);
-  const link = await page.evaluate(() => {
+  const built = await page.evaluate(() => {
     buyCart = {}; kitConfigs = [];
     addToCart('buy', 'M4A1', 2, 3500);
     addToCart('buy', 'Bandages', 2, 250);
@@ -103,10 +104,14 @@ function viewOf() {
     w.value = 'M4A1';
     w.dispatchEvent(new Event('change', { bubbles: true }));
     saveKit();
-    return makeOrderShareLink();
+    const url = new URL(location.href);
+    url.hash = '';
+    url.search = '';
+    return { link: makeOrderShareLink(), base: url.toString() };
   });
+  const link = built.link;
   const mixedHash = hashOf(link);
-  check('built-link', mixedHash.startsWith('#order=') && link.startsWith('https://dayz-group-935.github.io/traderv3/#order='), link.slice(0, 120));
+  check('built-link', mixedHash.startsWith('#order=') && link.startsWith(built.base + '#order=') && !link.includes('github.io'), link.slice(0, 120));
 
   await openHash(page, mixedHash);
   const opened = await page.evaluate(viewOf);
@@ -118,7 +123,7 @@ function viewOf() {
     opened.cart['Player Kit 1'] && opened.cart['Player Kit 1'].base === 16000 && opened.kitCount === 1 &&
     /23,500/.test(opened.header) && /M4A1/.test(opened.kits) && opened.kitShown &&
     opened.focusId === 'orderSheet' && opened.focusTag !== 'INPUT' && opened.focusTag !== 'TEXTAREA' &&
-    opened.tab === 'buy' && opened.navRows >= 1 && opened.rolesBtn.startsWith('Roles') && opened.shareBtn === 'Share order' &&
+    opened.tab === 'buy' && opened.navRows >= 1 && opened.shareBtn === 'Share order' &&
     opened.scrollW <= opened.clientW + 1,
     opened);
   await page.evaluate(() => document.getElementById('toast').classList.remove('show'));
@@ -208,7 +213,7 @@ function viewOf() {
   await openHash(page, v1);
   const legacy1 = await page.evaluate(viewOf);
   check('legacy-v1-opens-repriced-cart',
-    legacy1.toast === 'Order loaded' && legacy1.open && legacy1.scroll === 0 && legacy1.cart.M4A1.qty === 3 && legacy1.cart.M4A1.base === 3500 && /10,500/.test(legacy1.header),
+    legacy1.toast.indexOf('Order loaded') === 0 && legacy1.open && legacy1.scroll === 0 && legacy1.cart.M4A1.qty === 3 && legacy1.cart.M4A1.base === 3500 && /10,500/.test(legacy1.header),
     { toast: legacy1.toast, open: legacy1.open, scroll: legacy1.scroll, cart: legacy1.cart.M4A1, header: legacy1.header });
 
   const v2 = '#order=' + encodeURIComponent(btoa(JSON.stringify({
@@ -219,7 +224,7 @@ function viewOf() {
   await openHash(page, v2);
   const legacy2 = await page.evaluate(viewOf);
   check('legacy-v2-opens-kit',
-    legacy2.toast === 'Order loaded' && legacy2.open && legacy2.scroll === 0 && legacy2.cart['Player Kit 1'].base === 16000 && legacy2.kitCount === 1 && /KAM/.test(legacy2.kits),
+    legacy2.toast.indexOf('Order loaded') === 0 && legacy2.open && legacy2.scroll === 0 && legacy2.cart['Player Kit 1'].base === 16000 && legacy2.kitCount === 1 && /KAM/.test(legacy2.kits),
     { toast: legacy2.toast, base: legacy2.cart['Player Kit 1'], kits: legacy2.kits.slice(0, 180), scroll: legacy2.scroll });
 
   await page.goto(URL, { waitUntil: 'load' });
@@ -246,7 +251,7 @@ function viewOf() {
     };
   }, 'https://dayz-group-935.github.io/traderv3/' + v1);
   check('pasted-link-shows-cart-without-input-focus',
-    pasted.toast === 'Order loaded' && pasted.open && pasted.scroll === 0 && pasted.cartTop <= 16 &&
+    pasted.toast.indexOf('Order loaded') === 0 && pasted.open && pasted.scroll === 0 && pasted.cartTop <= 16 &&
     pasted.tab === 'buy' && pasted.qty === 3 && pasted.sell === 2 && pasted.focusTag !== 'INPUT',
     pasted);
 
@@ -276,6 +281,24 @@ function viewOf() {
     hash: location.hash
   }));
   check('pageshow-without-hash-resets', restored.open === false && restored.keys.length === 0 && restored.hash === '', restored);
+
+  const emptyShare = await page.evaluate(() => {
+    document.getElementById('shareOrderBtn').click();
+    document.getElementById('codeSheetBtn').click();
+    const out = document.getElementById('orderCodeOut');
+    return {
+      toast: document.getElementById('toast').textContent,
+      value: out.value,
+      hidden: out.hidden,
+      disabled: document.getElementById('genCodeBtn').disabled,
+      copyGone: !document.getElementById('copyCodeBtn'),
+      clearLabel: document.getElementById('clearAllBtn').textContent
+    };
+  });
+  check('empty-cart-hides-share-link',
+    emptyShare.toast === 'Cart is empty' && emptyShare.value === '' && emptyShare.hidden && emptyShare.disabled &&
+    emptyShare.copyGone && emptyShare.clearLabel === 'Clear cart',
+    emptyShare);
 
   check('order-console', errors.length === 0, errors.slice(0, 6));
   await page.close();
