@@ -118,6 +118,22 @@ function rec(id, pass, detail) { results.push({ id, pass, detail }); console.log
   });
   rec('role-stacking: Deadshot+Hotshot Tundra=1250 (max discount, not stacked)', stack.tundra_dead_hot === 1250, stack.tundra_dead_hot);
   rec('role-stacking: Kamikaze(25)+ClickClickBoom(20) Grenade=562.5', stack.grenade_kam_ccb === 562.5, stack.grenade_kam_ccb);
+  const dayOneStack = await E(() => {
+    activeRoles = new Set(['Kamikaze', 'Click Click Boom']);
+    const best = getDiscountedPrice('Grenade', 750, 'buy');
+    buyCart = { Grenade: { qty: 1, base: 750, salePrice: null } };
+    const without = computeTotals().buyTotal;
+    activeRoles = new Set(['Kamikaze', 'Click Click Boom', 'Day One']);
+    const withDay = computeTotals().buyTotal;
+    const stackedAll = 750 * 0.8 * 0.75 * 0.9;
+    activeRoles = new Set();
+    buyCart = {};
+    render();
+    return { best, without, withDay, stackedAll };
+  });
+  rec('role-stacking: biggest role discount, then Day One 10% on that price',
+    dayOneStack.best === 562.5 && dayOneStack.without === 563 && Math.abs(dayOneStack.withDay - 563 * 0.9) < 1e-9 && dayOneStack.withDay !== dayOneStack.stackedAll,
+    dayOneStack);
   rec('role-308: Deadshot/Hotshot/Head Hunter discount 308 WIN (expect 250)', stack.win308 === 250, stack.win308);
   rec('role-all-active: no negative unit prices', stack.anyNegative.length === 0, stack.anyNegative);
 

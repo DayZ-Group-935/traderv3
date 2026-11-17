@@ -205,7 +205,13 @@ function readBar() {
   const app = document.querySelector('.app');
   return {
     status: document.getElementById('accountStatus').innerText.replace(/\s+/g, ' ').trim(),
-    who: ((document.querySelector('#accountStatus .account-who') || {}).textContent || '').replace(/★/g, '').trim(),
+    who: (() => {
+      const who = document.querySelector('#accountStatus .account-who');
+      if (!who) return '';
+      const clone = who.cloneNode(true);
+      clone.querySelectorAll('.day-one-tip').forEach(node => node.remove());
+      return clone.textContent.replace(/★/g, '').trim();
+    })(),
     meta: meta.hidden ? '' : meta.textContent,
     fixture: document.getElementById('accountFixture').hidden ? '' : document.getElementById('accountFixture').textContent.trim(),
     traderMode: document.body.classList.contains('trader-mode'),
@@ -509,6 +515,14 @@ function readBar() {
       short: pop.height < view * 0.85
     };
   });
+  const popupNotes = await roles.page.evaluate(() => ({
+    stack: document.getElementById('rolesStackNote').textContent,
+    claim: document.getElementById('rolesClaimNote').textContent
+  }));
+  check('roles-popup-explains-stacking-and-claims',
+    popupNotes.stack === "Role discounts don't stack; the biggest one applies. Day 1's 10% stacks on top." &&
+    popupNotes.claim === 'Open a ticket to claim a role.',
+    popupNotes);
   check('roles-popup-names-only',
     popup.open && popup.count === 22 && !popup.dayOne && popup.roadHeld && popup.road === '✓Roadkill' &&
     popup.inputs === 0 && popup.detail === 0 && popup.short,
@@ -552,8 +566,21 @@ function readBar() {
       heightGap: Math.abs(rolesBtn.getBoundingClientRect().height - change.getBoundingClientRect().height)
     };
   });
+  await roles.page.click('.day-one-star');
+  const starTap = await roles.page.evaluate(() => {
+    const tip = document.querySelector('.day-one-tip');
+    const star = document.querySelector('.day-one-star');
+    const shown = tip && getComputedStyle(tip).display !== 'none';
+    return { shown, open: star.classList.contains('is-open'), text: tip ? tip.textContent : '' };
+  });
+  check('day-one-star-tap-shows-stacking-note',
+    starTap.shown && starTap.open && starTap.text === "Day 1: 10% off everything, stacks with other discounts",
+    starTap);
+  await roles.page.click('.day-one-star');
   check('trader-roles-beside-change-with-star',
-    header.roles === 'Roles 4' && header.change === 'Change' && header.sameRow && header.star === 'Day One' && header.title === 'Day One' && header.heightGap < 2,
+    header.roles === 'Roles 4' && header.change === 'Change' && header.sameRow &&
+    header.star === "Day 1: 10% off everything, stacks with other discounts" &&
+    header.title === "Day 1: 10% off everything, stacks with other discounts" && header.heightGap < 2,
     header);
   await shot(roles.page, 'roles-trader-header-390-mock');
   await roles.page.click('#rolesBtn');
