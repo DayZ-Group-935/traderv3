@@ -145,7 +145,20 @@ img, svg { display: block; }
 .account-status { font-size: 13px; font-weight: 600; color: var(--ink); }
 .account-who { display: block; white-space: normal; }
 .account-meta { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.day-one-star { margin-left: 4px; color: var(--wood); font-weight: 700; }
+.day-one-star {
+  position: relative; margin-left: 4px; padding: 0 2px; border: 0; background: transparent;
+  color: var(--wood); font-weight: 700; font-size: 14px; line-height: 1; min-width: 28px; min-height: 28px;
+}
+.day-one-tip {
+  display: none; position: absolute; z-index: 9; left: 0; top: calc(100% + 4px);
+  width: min(240px, 72vw); padding: 8px 10px; background: var(--surf); border: 1px solid var(--line-2);
+  color: var(--ink); font: 600 12px/1.35 "Segoe UI", system-ui, sans-serif; text-align: left; white-space: normal;
+}
+.day-one-star:hover .day-one-tip,
+.day-one-star:focus .day-one-tip,
+.day-one-star:focus-visible .day-one-tip,
+.day-one-star.is-open .day-one-tip { display: block; }
+.roles-pop-note { margin: 0 0 8px; font-size: 13px; line-height: 1.35; color: var(--dim); }
 .account-actions { flex: 1 1 100%; display: flex; align-items: stretch; padding: 2px 0 4px; }
 .account-actions[hidden] { display: none !important; }
 .account-actions .account-change + .account-change { border-left: 0; }
@@ -851,6 +864,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       <button class="sheet-close" id="rolesPopClose" type="button" aria-label="Close roles">✕</button>
     </div>
     <div class="roles-pop-body">
+      <p class="roles-pop-note" id="rolesStackNote">Role discounts don't stack; the biggest one applies. Day 1's 10% stacks on top.</p>
+      <p class="roles-pop-note" id="rolesClaimNote">Open a ticket to claim a role.</p>
       <div class="roles-grid" id="earnRolesGrid"></div>
     </div>
   </div>
@@ -1648,12 +1663,25 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       who.className = "account-who";
       who.append(document.createTextNode(label));
       if (held && held.indexOf("Day One") >= 0) {
-        const star = document.createElement("span");
+        const tipText = "Day 1: 10% off everything, stacks with other discounts";
+        const star = document.createElement("button");
+        star.type = "button";
         star.className = "day-one-star";
         star.textContent = "★";
-        star.title = "Day One";
-        star.setAttribute("role", "img");
-        star.setAttribute("aria-label", "Day One");
+        star.title = tipText;
+        star.setAttribute("aria-label", tipText);
+        const tip = document.createElement("span");
+        tip.className = "day-one-tip";
+        tip.setAttribute("role", "tooltip");
+        tip.textContent = tipText;
+        star.append(tip);
+        star.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const open = star.classList.contains("is-open");
+          document.querySelectorAll(".day-one-star.is-open").forEach(el => el.classList.remove("is-open"));
+          if (!open) star.classList.add("is-open");
+        };
         who.append(star);
       }
       return who;
