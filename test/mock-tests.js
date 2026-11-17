@@ -135,6 +135,8 @@ async function withApp(opts, fn) {
     oauth: opts.oauth || mockOAuth(opts),
     botLookup: opts.botLookup,
     killfeed: opts.killfeed,
+    orders: opts.orders,
+    orderRate: opts.orderRate,
     logger: opts.logger || { info() {}, error() {}, request() {} },
   });
   const addr = await app.listen(0, '127.0.0.1');
@@ -152,6 +154,7 @@ async function request(origin, path, options = {}) {
   const res = await fetch(`${origin}${path}`, {
     method: options.method || 'GET',
     headers,
+    body: options.body,
     redirect: 'manual',
   });
   const text = await res.text();
@@ -1208,6 +1211,108 @@ async function run() {
       const rec = [...app.sessions._map.values()][0];
       assert.equal(rec.accessToken, PLAYER_AT);
     });
+  });
+
+  await test('short order links expire, cap size, and stay anonymous', async () => {
+    const { createOrderStore, createOrderRateLimit } = require('../lib/order-store');
+    const clock = { t: 1_000_000 };
+    const ttlMs = 45 * 60 * 1000;
+    let issuedAt = 0;
+    const orders = createOrderStore({
+      now: () => clock.t,
+      ttlMs,
+      maxEntries: 2,
+      randomCode: () => {
+        issuedAt += 1;
+        if (issuedAt === 1 || issuedAt === 2) return 'SAMECODE';
+        if (issuedAt === 3) return 'OTHERCOD';
+        return ('C' + String(issuedAt).padStart(7, '0')).slice(0, 8);
+      },
+    });
+    const first = orders.create({ v: 2, cart: { M4A1: { qty: 1, base: 3500, salePrice: null } }, kits: [] });
+    assert.equal(first.code, 'SAMECODE');
+    assert.equal(first.expiresAt, clock.t + ttlMs);
+    const second = orders.create({ v: 2, cart: { Bandages: { qty: 2, base: 250, salePrice: null } }, kits: [] });
+    assert.equal(second.code, 'OTHERCOD');
+    assert.equal(orders.get('SAMECODE').status, 200);
+    clock.t += ttlMs;
+    assert.equal(orders.get('SAMECODE').status, 410);
+    assert.equal(orders.get('SAMECODE').status, 404);
+    orders.sweep();
+    const kept = orders.create({ v: 2, cart: { M4A1: { qty: 1, base: 1, salePrice: null } }, kits: [] });
+    const newer = orders.create({ v: 2, cart: { Gloves: { qty: 1, base: 1, salePrice: null } }, kits: [] });
+    const evicted = orders.create({ v: 2, cart: { Compass: { qty: 1, base: 1, salePrice: null } }, kits: [] });
+    assert.equal(orders.get(kept.code).status, 404);
+    assert.equal(orders.get(newer.code).status, 200);
+    assert.equal(orders.get(evicted.code).status, 200);
+    assert.ok(orders.size() <= 2);
+
+    const rate = createOrderRateLimit({ limit: 2, windowMs: 60 * 1000, now: () => clock.t });
+    await withApp({
+      orders: createOrderStore({ now: () => clock.t, ttlMs, maxEntries: 10 }),
+      orderRate: rate,
+    }, async (_app, origin) => {
+      const headers = { Origin: 'http://localhost:8787', 'Content-Type': 'application/json' };
+      const body = JSON.stringify({
+        v: 2,
+        cart: { M4A1: { qty: 2, base: 3500, salePrice: null } },
+        kits: [{ name: 'Player Kit 1', token: false, weapon1: { item: 'M4A1' } }],
+        identity: { id: 'should-not-stick' },
+        balance: { cash: 5 },
+        roles: ['Trader'],
+      });
+      const created = await request(origin, '/api/orders', { method: 'POST', headers, body });
+      assert.equal(created.status, 201);
+      assert.match(created.json.code, /^[A-Za-z0-9_-]{6,8}$/);
+      assert.equal(created.json.expiresAt, new Date(clock.t + ttlMs).toISOString());
+      const loaded = await request(origin, `/api/orders/${created.json.code}`);
+      assert.equal(loaded.status, 200);
+      assert.equal(loaded.json.cart.M4A1.qty, 2);
+      assert.equal(loaded.json.kits[0].weapon1.item, 'M4A1');
+      assert.equal(loaded.json.identity, undefined);
+      assert.equal(loaded.json.balance, undefined);
+      assert.equal(loaded.json.roles, undefined);
+      const again = await request(origin, '/api/orders', { method: 'POST', headers, body });
+      assert.equal(again.status, 201);
+      const limited = await request(origin, '/api/orders', { method: 'POST', headers, body });
+      assert.equal(limited.status, 429);
+      assert.equal(limited.json.error, 'rate_limited');
+      const missing = await request(origin, '/api/orders/NOSUCH1');
+      assert.equal(missing.status, 404);
+      clock.t += ttlMs;
+      const expired = await request(origin, `/api/orders/${created.json.code}`);
+      assert.equal(expired.status, 410);
+      assert.equal(expired.json.error, 'expired');
+      const noOrigin = await request(origin, '/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      assert.equal(noOrigin.status, 403);
+    });
+
+    await withApp({
+      orders: createOrderStore({ now: () => clock.t, ttlMs, maxEntries: 10 }),
+      orderRate: createOrderRateLimit({ limit: 5, windowMs: 60 * 1000, now: () => clock.t }),
+    }, async (_app, origin) => {
+      const headers = { Origin: 'http://localhost:8787', 'Content-Type': 'application/json' };
+      const huge = JSON.stringify({
+        v: 2,
+        cart: { M4A1: { qty: 1, base: 1, salePrice: null, item: 'x'.repeat(17000) } },
+        kits: [],
+      });
+      const tooBig = await request(origin, '/api/orders', { method: 'POST', headers, body: huge });
+      assert.equal(tooBig.status, 413);
+      assert.equal(tooBig.json.error, 'too_large');
+      const empty = await request(origin, '/api/orders', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ v: 2, cart: {}, kits: [] }),
+      });
+      assert.equal(empty.status, 400);
+    });
+
+    const page = fs.readFileSync(path.join(__dirname, '..', 'app', 'index.html'), 'utf8');
+    assert.ok(page.includes('function makeOrderShareLink'));
+    assert.ok(page.includes('#order='));
+    assert.ok(page.includes('This order link expired. Ask for a new one.'));
+    assert.ok(page.includes('?o='));
   });
 
   await test('GET / serves the calculator on the same origin only', async () => {

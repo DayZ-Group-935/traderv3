@@ -20,7 +20,15 @@ const {
   sendRedirect,
   readUrl,
 } = require('./lib/http-util');
-const { canonicalFromRedirect, assessRequest, safeAuthorizeLocation } = require('./lib/request-guard');
+const { canonicalFromRedirect, assessRequest, requireMutationOrigin, safeAuthorizeLocation } = require('./lib/request-guard');
+const {
+  ORDER_MAX_BYTES,
+  validateOrderPayload,
+  createOrderStore,
+  createOrderRateLimit,
+  readLimitedBody,
+  clientIp,
+} = require('./lib/order-store');
 const { loadBaseCatalog } = require('./lib/catalog-base');
 const { openCatalogStoreFromEnv } = require('./lib/catalog-store');
 const { handleCatalogRoutes } = require('./lib/catalog-routes');
@@ -91,6 +99,9 @@ function createApp(options = {}) {
   const botLookup = options.botLookup || createDiscordBotLookup(config, { fetch: options.fetch, logger });
   const killfeed = options.killfeed || createKillfeedAdapter(config, { fetch: options.fetch });
   const catalogStore = options.catalogStore || openCatalogStoreFromEnv();
+  const orders = options.orders || createOrderStore();
+  const orderRate = options.orderRate || createOrderRateLimit();
+  orders.start();
   let baseCatalog = [];
   try {
     baseCatalog = options.baseCatalog || loadBaseCatalog();
@@ -303,6 +314,68 @@ function createApp(options = {}) {
       return;
     }
 
+    if (path === '/api/orders' && method === 'POST') {
+      const origin = requireMutationOrigin(config, req);
+      if (!origin.ok) {
+        sendJson(res, origin.status, { error: origin.error });
+        logger.request(logReq, origin.status, { reason: origin.error });
+        return;
+      }
+      if (!orderRate.allow(clientIp(req))) {
+        sendJson(res, 429, { error: 'rate_limited' });
+        logger.request(logReq, 429, { reason: 'rate_limited' });
+        return;
+      }
+      let text = '';
+      try {
+        text = await readLimitedBody(req, ORDER_MAX_BYTES);
+      } catch (err) {
+        const status = err && err.status === 413 ? 413 : 400;
+        sendJson(res, status, { error: status === 413 ? 'too_large' : 'invalid_order' });
+        logger.request(logReq, status, { reason: status === 413 ? 'too_large' : 'invalid_order' });
+        return;
+      }
+      let raw = null;
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        sendJson(res, 400, { error: 'invalid_order' });
+        logger.request(logReq, 400, { reason: 'invalid_order' });
+        return;
+      }
+      const validated = validateOrderPayload(raw, text);
+      if (validated.error) {
+        sendJson(res, validated.status || 400, { error: validated.error });
+        logger.request(logReq, validated.status || 400, { reason: validated.error });
+        return;
+      }
+      let created;
+      try {
+        created = orders.create(validated.payload);
+      } catch (err) {
+        const status = err && err.status === 503 ? 503 : 500;
+        sendJson(res, status, { error: status === 503 ? 'code_unavailable' : 'internal_error' });
+        logger.request(logReq, status, { reason: 'order_code' });
+        return;
+      }
+      sendJson(res, 201, { code: created.code, expiresAt: new Date(created.expiresAt).toISOString() });
+      logger.request(logReq, 201);
+      return;
+    }
+
+    const orderGet = path.match(/^\/api\/orders\/([A-Za-z0-9_-]{6,8})$/);
+    if (orderGet && method === 'GET') {
+      const found = orders.get(orderGet[1]);
+      if (found.status === 200) {
+        sendJson(res, 200, found.payload);
+        logger.request(logReq, 200);
+        return;
+      }
+      sendJson(res, found.status, { error: found.status === 410 ? 'expired' : 'not_found' });
+      logger.request(logReq, found.status, { reason: found.status === 410 ? 'expired' : 'not_found' });
+      return;
+    }
+
     if (path === '/api/me' && method === 'GET') {
       const session = await requireSession(req, res);
       if (!session) {
@@ -502,6 +575,7 @@ function createApp(options = {}) {
   }
 
   function close() {
+    if (orders.stop) orders.stop();
     return new Promise((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
     });

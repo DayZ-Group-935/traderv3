@@ -821,6 +821,7 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       </div>
       <div class="order-code-box" id="orderCodeBox">
         <input type="text" id="orderCodeOut" readonly hidden placeholder="Link appears here..." autocomplete="off" aria-label="Order link">
+        <p class="sheet-note" id="orderLinkExpiry" hidden></p>
         <div class="code-divider">Load a link or code</div>
         <div class="order-code-row">
           <input type="text" id="orderCodeIn" placeholder="Paste order link or code..." autocomplete="off" aria-label="Paste order link or code">
@@ -3500,13 +3501,8 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
     function normalizeOrderPayload(raw) {
       return String(raw || "").replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
     }
-    function applyOrderCode(input) {
-      const extracted = extractOrderPayload(input);
-      if (extracted === "") { toast("Paste a link or code first"); return false; }
-      if (extracted == null || !extracted) { toast("Invalid code"); return false; }
+    function applyParsedOrder(parsed) {
       try {
-        const data = decodeURIComponent(escape(atob(normalizeOrderPayload(extracted))));
-        const parsed = JSON.parse(data);
         const isObj = o => o && typeof o === "object" && !Array.isArray(o);
         if (!isObj(parsed)) throw new Error("not an object");
         let rawCart = parsed.v === 2 ? parsed.cart : parsed;   // v1 codes were the bare cart
@@ -3547,11 +3543,67 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
         return false;
       }
     }
+    function applyOrderCode(input) {
+      const extracted = extractOrderPayload(input);
+      if (extracted === "") { toast("Paste a link or code first"); return false; }
+      if (extracted == null || !extracted) { toast("Invalid code"); return false; }
+      try {
+        const data = decodeURIComponent(escape(atob(normalizeOrderPayload(extracted))));
+        return applyParsedOrder(JSON.parse(data));
+      } catch (e) {
+        toast("Invalid code");
+        return false;
+      }
+    }
     function clearOrderHash() {
       if (!/#/.test(location.href)) return;
       try { history.replaceState(null, "", location.href.replace(/#.*$/, "")); } catch (e) {}
     }
+    function shortOrderCodeFromLocation() {
+      try {
+        const queryCode = new URL(location.href).searchParams.get('o') || '';
+        if (/^[A-Za-z0-9_-]{6,8}$/.test(queryCode)) return queryCode;
+      } catch (e) {}
+      const hashMatch = String(location.hash || '').match(/^#o=([A-Za-z0-9_-]{6,8})$/);
+      return hashMatch ? hashMatch[1] : '';
+    }
+    function clearShortOrderLocation() {
+      try {
+        const url = new URL(location.href);
+        url.searchParams.delete('o');
+        if (/^#o=/i.test(url.hash)) url.hash = '';
+        history.replaceState(null, '', url.pathname + url.search + url.hash);
+      } catch (e) {}
+    }
+    function orderApiBase() {
+      if (!window.__935AccountGateway) return '';
+      return String(window.__935AccountGateway).replace(/\/$/, '');
+    }
+    async function loadShortOrder(code) {
+      let res;
+      try {
+        res = await fetch(orderApiBase() + '/api/orders/' + encodeURIComponent(code), {
+          credentials: 'include',
+          headers: { accept: 'application/json' }
+        });
+      } catch (e) {
+        toast('This order link expired. Ask for a new one.');
+        return;
+      }
+      if (!res.ok) {
+        toast('This order link expired. Ask for a new one.');
+        return;
+      }
+      const body = await res.json().catch(() => null);
+      if (!body) toast('This order link expired. Ask for a new one.');
+      else applyParsedOrder(body);
+    }
     function importOrderFromLocation() {
+      const shortCode = shortOrderCodeFromLocation();
+      if (shortCode) {
+        clearShortOrderLocation();
+        return loadShortOrder(shortCode);
+      }
       const hash = location.hash || "";
       if (!/^#order=/i.test(hash)) return;
       const extracted = extractOrderPayload(hash);
@@ -3559,25 +3611,50 @@ body[data-tab="sell"] #kitSummaryBox { display: none !important; }
       if (!extracted) { toast("Invalid code"); return; }
       applyOrderCode(extracted);
     }
-
-    document.getElementById("genCodeBtn").onclick = () => {
-      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); syncOrderShare(); return; }
-      const link = makeOrderShareLink();
+    function presentOrderLink(link, expiresNote) {
       const out = document.getElementById("orderCodeOut");
       const btn = document.getElementById("genCodeBtn");
+      const note = document.getElementById("orderLinkExpiry");
       out.value = link;
       out.hidden = false;
       out.style.display = "block";
+      if (note) {
+        note.hidden = !expiresNote;
+        note.textContent = expiresNote || "";
+      }
+      const copiedToast = expiresNote ? "Copied. Expires in 45 minutes." : "Copied";
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(link).then(() => {
           showCopied(btn);
-          toast("Copied");
+          toast(copiedToast);
         }).catch(() => {
           toast("Copy failed — use the link below");
         });
       } else {
         toast("Copy failed — use the link below");
       }
+    }
+    async function shortOrderLink() {
+      if (!orderApiBase()) return null;
+      const res = await gatewayJSON('/api/orders', {
+        method: 'POST',
+        body: { v: 2, cart: buyCart, kits: kitConfigs }
+      });
+      if (!res || res.offline || res.status !== 201 || !res.body || !/^[A-Za-z0-9_-]{6,8}$/.test(res.body.code || '')) return null;
+      return pageShareBase() + '?o=' + encodeURIComponent(res.body.code);
+    }
+
+    document.getElementById("genCodeBtn").onclick = () => {
+      if (Object.keys(buyCart).length === 0) { toast("Cart is empty"); syncOrderShare(); return; }
+      const publish = (link, note) => presentOrderLink(link, note);
+      if (!orderApiBase()) {
+        publish(makeOrderShareLink(), "");
+        return;
+      }
+      shortOrderLink().then((link) => {
+        if (link) publish(link, "Expires in 45 minutes.");
+        else publish(makeOrderShareLink(), "");
+      }).catch(() => publish(makeOrderShareLink(), ""));
     };
     document.getElementById("loadCodeBtn").onclick = () => {
       applyOrderCode(document.getElementById("orderCodeIn").value);
